@@ -7,6 +7,10 @@ versions follow [SemVer](https://semver.org/).
 ## [0.5.0] — 2026-09-06
 
 ### Added
+- **Firefox support**: `scripts/build-firefox.py` generates a Firefox-ready
+  add-on (event-page background, `sidebar_action`, gecko id) from the same
+  shared sources — verified end-to-end in Firefox 155 (load → sidebar panel →
+  demo run → full report).
 - **OpenRouter auto-free model selection**: set the model to `auto-free` and the
   provider discovers currently-available free models from the OpenRouter catalog,
   ranks them (generalist families first, specialized code/music/safety models

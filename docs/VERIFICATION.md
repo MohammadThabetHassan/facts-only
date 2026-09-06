@@ -35,6 +35,7 @@ profile), driving the actual UI rather than unit shims:
 | **Real extension:** toolbar popup settings → provider switch → save | PASS |
 | **Real extension:** select text on example.com → context menu "FactLens: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
 | **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 FactLens — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
+| **Firefox (155):** build-firefox.py → Load Temporary Add-on → sidebar panel renders → demo run completes with full report ("Manipulated sources detected") | PASS |
 
 ### Selector drift caught and fixed (2026-09-06)
 

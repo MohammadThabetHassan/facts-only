@@ -103,11 +103,14 @@ page"), source warning flags, the bias & framing analysis, and an optional
   is set manually. Model-generated report text stays in the language the
   verification was performed in.
 
-## Install (Chrome / Edge / Brave)
+## Install (Chrome / Edge / Brave / **Firefox**)
 
 1. Clone or download this repository.
-2. Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** →
-   select the `extension/` folder.
+2. **Chrome/Edge/Brave:** open `chrome://extensions` → enable **Developer mode** →
+   **Load unpacked** → select the `extension/` folder.
+   **Firefox (128+):** run `python scripts/build-firefox.py`, then
+   `about:debugging` → **Load Temporary Add-on…** → select
+   `firefox-build/manifest.json` (temporary install; see the roadmap for signed builds).
 3. Click the FactLens icon → paste a **free Gemini API key**
    ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) → **Save** →
    **Test connection**.
@@ -131,8 +134,9 @@ search the web, so evidence quality is lower.
 ## Development
 
 ```bash
-node test/smoke.mjs                        # 73-check offline suite — no key, no network
-python scripts/generate_icons.py           # regenerate extension icons (pure stdlib)
+node test/smoke.mjs                        # 91-check offline suite — no key, no network
+python scripts/build-firefox.py            # build the Firefox add-on directory
+python scripts/package-extension.py        # store-ready zip of the Chrome extension
 python scripts/dev-server.py               # serve webapp/panel at localhost:8123 for manual testing
 FACTLENS_GEMINI_KEY=… node scripts/live-check.mjs   # one REAL end-to-end run (costs ~5 free-tier calls)
 ```
