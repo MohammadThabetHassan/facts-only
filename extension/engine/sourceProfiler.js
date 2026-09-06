@@ -8,7 +8,7 @@
 import { fetchWithTimeout } from "./http.js";
 import { extractJson } from "./json.js";
 import { stripHtml, truncate, domainOf, normText, isPublicHttpUrl } from "./text.js";
-import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS } from "./sourceScore.js";
+import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS, DECISIVE } from "./sourceScore.js";
 
 // Domains treated as established publishers / primary sources (positives).
 // NOTE: this list signals ESTABLISHMENT (editorial standards, accountability,
@@ -302,8 +302,23 @@ export function computeFlags(p) {
   // The allowlist is now only a short-circuit for primary sources - courts, UN
   // bodies, government gazettes, wire services - not the definition of a real
   // publisher. Everything else earns its standing from the evidence below.
+  //
+  // But it is NOT a short-circuit past paid content: established outlets publish
+  // advertorials, and a trusted masthead makes a paid placement more effective,
+  // not less. Decisive signals are checked before the allowlist is honoured.
   if (established) {
-    return { flags: [toFlag("established", 0)], established: true, highRisk: false, score: 0, level: "clean" };
+    const decisiveKeys = detectSignals(p).filter((k) => DECISIVE.has(k));
+    if (decisiveKeys.length === 0) {
+      return { flags: [toFlag("established", 0)], established: true, highRisk: false, score: 0, level: "clean" };
+    }
+    const scored = scoreSignals(decisiveKeys);
+    return {
+      flags: [toFlag("established", 0), ...scored.contributions.map((c) => toFlag(c.key, c.weight))],
+      established: true,
+      highRisk: true,
+      score: scored.score,
+      level: "high"
+    };
   }
 
   const scored = scoreSignals(detectSignals(p));

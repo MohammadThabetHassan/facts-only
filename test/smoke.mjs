@@ -667,6 +667,40 @@ console.log("\nplacement scoring:");
   check("unknown signal keys are ignored rather than scored as zero-weight noise",
     scoreSignals(["not-a-real-signal"]).score === 0 && scoreSignals(["not-a-real-signal"]).contributions.length === 0);
 
+  // Found by the eval, not by inspection: a thirty-year-old newspaper running an
+  // advertorial scored CLEAN, because its archive history (-30), byline (-10)
+  // and about page (-5) more than cancelled the paid-content signal (+60).
+  // Exactly backwards - a trusted masthead makes paid placement more effective,
+  // not less - so paid content is decisive regardless of everything else.
+  check("reputation cannot cancel out paid content",
+    (() => {
+      const r = scoreSignals(["sponsored", "named-author", "has-about", "domain-long-history"]);
+      return r.level === "high" && r.decisive === true && r.score < HIGH_RISK_AT;
+    })());
+
+  check("a non-public citation is decisive too",
+    scoreSignals(["non-public-url", "domain-long-history", "named-author"]).level === "high");
+
+  check("an allowlisted publisher running an advertorial is still flagged",
+    (() => {
+      const r = computeFlags({
+        url: "https://reuters.com/x", siteName: "reuters.com", title: "The law explained",
+        fetched: true, author: "R. Ellis", aboutLink: true,
+        excerpt: "Sponsored content produced with our commercial team.",
+        archive: { ageDays: 9000, months: 300 }
+      });
+      return r.established === true && r.highRisk === true && r.flags.some((f) => f.key === "sponsored");
+    })());
+
+  check("an allowlisted publisher with nothing paid is still short-circuited clean",
+    (() => {
+      const r = computeFlags({
+        url: "https://reuters.com/x", siteName: "reuters.com", title: "Is the economy recovering?",
+        fetched: true, author: "", aboutLink: false, excerpt: "", archive: null
+      });
+      return r.established === true && r.level === "clean";
+    })());
+
   check("classifyAuthor separates a byline from a placeholder",
     classifyAuthor("R. Ellis") === "named" &&
     classifyAuthor("Editorial Team") === "generic" &&

@@ -69,6 +69,17 @@ export const SIGNAL_WEIGHTS = {
   "has-about": -5
 };
 
+// Signals that decide the outcome on their own, whatever else is true.
+//
+// Weighting was not enough for these. A thirty-year-old newspaper running an
+// advertorial scored CLEAN, because three decades of archive history
+// (-30) plus a byline (-10) and an about page (-5) more than cancelled the
+// paid-content signal (+60). That is exactly backwards: "who paid to be in this
+// answer" is the question the tool exists to answer, and a trusted masthead
+// makes paid placement more effective, not less. Reputation cannot buy off
+// disclosure.
+export const DECISIVE = new Set(["sponsored", "non-public-url"]);
+
 /** Score at or above which a source is reported as placed/paid. */
 export const HIGH_RISK_AT = 45;
 /** Score at or above which a source is reported as opaque. */
@@ -76,7 +87,7 @@ export const ELEVATED_AT = 22;
 
 /**
  * @param {string[]} signalKeys
- * @returns {{score:number, level:"high"|"elevated"|"clean", contributions:{key:string,weight:number}[]}}
+ * @returns {{score:number, level:"high"|"elevated"|"clean", decisive:boolean, contributions:{key:string,weight:number}[]}}
  */
 export function scoreSignals(signalKeys) {
   const seen = [...new Set(signalKeys || [])].filter((k) => SIGNAL_WEIGHTS[k] !== undefined);
@@ -84,8 +95,9 @@ export function scoreSignals(signalKeys) {
     .map((key) => ({ key, weight: SIGNAL_WEIGHTS[key] }))
     .sort((a, b) => b.weight - a.weight);
   const score = contributions.reduce((n, c) => n + c.weight, 0);
-  const level = score >= HIGH_RISK_AT ? "high" : score >= ELEVATED_AT ? "elevated" : "clean";
-  return { score, level, contributions };
+  const decisive = seen.some((k) => DECISIVE.has(k));
+  const level = decisive || score >= HIGH_RISK_AT ? "high" : score >= ELEVATED_AT ? "elevated" : "clean";
+  return { score, level, decisive, contributions };
 }
 
 // Months of archive coverage a domain needs before its age counts as a

@@ -12,7 +12,7 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
-![Tests: 143 offline checks](https://img.shields.io/badge/tests-143%20offline%20checks-brightgreen)
+![Tests: 147 offline checks](https://img.shields.io/badge/tests-147%20offline%20checks-brightgreen)
 ![False positives: 0 of 111](https://img.shields.io/badge/false%20positives-0%20%2F%20111%20publishers-brightgreen)
 
 </div>
@@ -71,6 +71,12 @@ make. The old rule lost at **rung 1: deleting one question mark.** Rung 6 is
 buying an aged domain — the standard answer to any age check — and it is caught,
 because age was never the signal; continuous archived publishing is, and that
 cannot be bought retroactively.
+
+Paid content is **decisive**: an advertorial is flagged even on a thirty-year-old
+masthead, because a trusted name makes a placement more effective, not less. That
+rule exists because the harness caught the opposite behaviour shipping. Every
+weight is also perturbed ±20% and the measurement re-run, so the numbers are a
+real operating point rather than a fit to this corpus.
 
 **The ceiling is stated, not hidden.** An operation that runs a real site for six
 years is not distinguishable from a publisher by these signals, is not detected,
@@ -246,7 +252,7 @@ There is no build step and there are no dependencies — load `extension/` unpac
 the files.
 
 ```bash
-npm test                  # 143-check offline suite: no key, no network
+npm test                  # 147-check offline suite: no key, no network
 npm run test:e2e          # 15 real-browser checks in headless Chrome
 npm run eval              # measure the detector against 50 real publishers
 npm run typecheck         # type-check the engine from its JSDoc (still no build step)

@@ -50,6 +50,21 @@ Rung 8 — six years of continuous publishing — is **not** detected, is docume
 as the accepted ceiling, and is excluded from the numerator rather than hidden
 behind a friendlier denominator. See [docs/EVALUATION.md](docs/EVALUATION.md).
 
+### Fixed — reputation could cancel out paid content
+
+Found by the evaluation harness, not by reading the code. A thirty-year-old
+newspaper running an advertorial scored **clean**: its archive history (−30),
+byline (−10) and about page (−5) more than cancelled the paid-content signal
+(+60). Exactly backwards — a trusted masthead makes a paid placement more
+effective, not less. `sponsored` and `non-public-url` are now decisive: they set
+the verdict regardless of score and regardless of the allowlist.
+
+The harness also gained technique variants beyond the English ladder (Arabic
+campaigns with and without a question mark, advertorials, raw AI filler,
+injection payloads) and a **weight-sensitivity analysis** that perturbs every
+weight ±20% and re-runs the whole measurement, so the headline numbers are
+demonstrably an operating point rather than a fit to the corpus.
+
 ### Added — keyless source check
 
 The plain-language warning was written for someone who has just read a chatbot
@@ -84,7 +99,7 @@ report states plainly that the claims themselves were not verified.
 ### Engineering
 - The engine type-checks from its JSDoc (`npm run typecheck`, `jsconfig.json`),
   in CI, with no build step and no runtime dependency.
-- Offline suite 113 → **143 checks**.
+- Offline suite 113 → **147 checks**.
 
 ## [1.0.0] — 2026-09-06
 

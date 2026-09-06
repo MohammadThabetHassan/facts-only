@@ -5,7 +5,7 @@ with each release so contributors and users can trust claims instead of assertio
 
 Last updated: 2026-09-06 (v1.1.0 — measured placement scoring + keyless source check)
 
-## 1. Offline test suite — PASSING (143 checks)
+## 1. Offline test suite — PASSING (147 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 

@@ -129,6 +129,58 @@ for exactly this purpose. It is caught because age alone was never the signal:
 what counts is *continuous archived publishing*, which cannot be bought
 retroactively.
 
+## Other techniques
+
+A campaign is not obliged to be English, and paid content does not have to look
+like a content farm. These are scored on their own rather than as rungs:
+
+| Technique | Score | Verdict |
+| --- | --- | --- |
+| Arabic-language campaign, question headline | 100 | HIGH |
+| Arabic campaign, no question mark | 82 | HIGH |
+| Advertorial on an otherwise reputable site | 15 | **HIGH** (decisive) |
+| Raw AI-generated filler on a shell domain | 30 | warn |
+| Citation to an internal address (injection payload) | 100 | HIGH |
+
+### The bug this found
+
+The advertorial row failed when it was first added, and it is the most useful
+thing the harness has produced.
+
+A thirty-year-old newspaper running sponsored content scored **clean**: three
+decades of archive history (−30), a byline (−10) and an about page (−5) more
+than cancelled the paid-content signal (+60). That is exactly backwards. *Who
+paid to be in this answer* is the question the tool exists to answer, and a
+trusted masthead makes a paid placement **more** effective, not less.
+
+So `sponsored` and `non-public-url` are now **decisive**: they set the verdict
+regardless of score, and regardless of the allowlist. Reputation cannot buy off
+disclosure. No amount of reading the weights table would have surfaced that; the
+test case did.
+
+## Weight sensitivity
+
+The weights are hand-set, which invites a fair objection: are the headline
+numbers real, or are they a fit to this corpus at exactly these values? So every
+weight is perturbed and the whole measurement re-run.
+
+| Perturbation | Publishers accused (of 111) | Adversary rungs missed (of 8) |
+| --- | --- | --- |
+| all weights −20% | 0 | 2 |
+| all weights +20% | 1 | 0 |
+| suspicion −25%, legitimacy unchanged | 0 | 3 |
+| legitimacy −25%, suspicion unchanged | 0 | 0 |
+
+Read honestly: the model is **not** knife-edge — the harmful failure, accusing a
+real publisher, stays at 0 or 1 across every perturbation — but it is **not
+insensitive either**. Weakening the suspicion signals by a quarter loses three
+rungs. The numbers are a real operating point, not the only one that works, and
+not a plateau.
+
+The gates reflect that asymmetry. False accusations must stay rare under
+re-tuning; detection is allowed to degrade, because a missed campaign leaves the
+reader where they already were, while a false accusation lands on a newsroom.
+
 ## The ceiling, stated plainly
 
 **Rung 8 is not detected, and this is not a bug to be quietly excluded from the
@@ -165,8 +217,9 @@ real newsroom.
 ## Known limits of this evaluation
 
 - **The adversary is synthetic.** It models documented techniques, but a real
-  operation will do something not on the ladder. Rungs should be added as new
-  techniques are published.
+  operation will do something not on the ladder. Rungs and technique variants
+  should be added as new methods are published — that is the maintenance this
+  file asks for.
 - **The corpus measures the archive signal most strongly**, because that is what
   the collector gathers. Page-level signals (byline, about page) are supplied as
   worst-case assumptions rather than crawled.

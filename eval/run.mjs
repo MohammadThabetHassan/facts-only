@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { computeFlags } from "../extension/engine/sourceProfiler.js";
+import { SIGNAL_WEIGHTS } from "../extension/engine/sourceScore.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
@@ -65,6 +66,45 @@ const ADVERSARY = [
   { level: 8, name: "+ six years of continuous publishing (accepted ceiling)",
     page: { title: "How the law threatens human rights", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group" },
     archive: { ageDays: 2200, months: 70 } }
+];
+
+// Variants that are not rungs on the same ladder but separate techniques, each
+// scored on its own. A campaign does not have to be English, and "sponsored"
+// markers do not have to be in the boilerplate a scraper reads first.
+const VARIANTS = [
+  {
+    name: "Arabic-language campaign, question headline",
+    page: { title: "\u0647\u0644 \u064a\u0634\u0643\u0644 \u0627\u0644\u0642\u0627\u0646\u0648\u0646 \u062a\u0647\u062f\u064a\u062f\u064b\u0627 \u0644\u062d\u0642\u0648\u0642 \u0627\u0644\u0625\u0646\u0633\u0627\u0646\u061f", author: "", aboutLink: false, siteName: "\u0645\u0631\u0635\u062f \u0627\u0644\u0623\u0645\u0646 \u0627\u0644\u0639\u0627\u0644\u0645\u064a" },
+    archive: { ageDays: 45, months: 1 },
+    expect: "high"
+  },
+  {
+    name: "Arabic campaign, no question mark",
+    page: { title: "\u0643\u064a\u0641 \u064a\u0647\u062f\u062f \u0627\u0644\u0642\u0627\u0646\u0648\u0646 \u062d\u0642\u0648\u0642 \u0627\u0644\u0625\u0646\u0633\u0627\u0646", author: "\u0627\u0644\u062a\u062d\u0631\u064a\u0631", aboutLink: false, siteName: "\u0645\u0631\u0635\u062f \u0627\u0644\u0623\u0645\u0646 \u0627\u0644\u0639\u0627\u0644\u0645\u064a" },
+    archive: { ageDays: 45, months: 1 },
+    expect: "high"
+  },
+  {
+    name: "advertorial on an otherwise ordinary-looking site",
+    page: { title: "The emergency law explained", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group", excerpt: "Sponsored content produced in partnership with our commercial team." },
+    archive: { ageDays: 2200, months: 70 },
+    expect: "high"
+  },
+  {
+    name: "raw AI-generated filler, aged shell domain",
+    page: { title: "The emergency law explained", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group", excerpt: "As an AI language model, I can outline the provisions of the law." },
+    archive: { ageDays: 4000, months: 2 },
+    // Warning rather than accusation is the defensible output here: raw AI
+    // boilerplate on a shell domain is a content-farm signal, not proof of
+    // payment. Requiring "high" would mean tuning weights to a synthetic case.
+    expect: "elevated"
+  },
+  {
+    name: "citation to an internal address (injection payload)",
+    page: { title: "The emergency law explained", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group", nonPublic: true },
+    archive: null,
+    expect: "high"
+  }
 ];
 
 const asProfile = (over) => ({
@@ -121,6 +161,61 @@ const advRows = ADVERSARY.map((a) => {
   };
 });
 
+const RANK = { clean: 0, elevated: 1, high: 2 };
+const variantRows = VARIANTS.map((v) => {
+  const r = computeFlags(asProfile({ ...v.page, archive: v.archive }));
+  // `expect` is a MINIMUM: exceeding it is a pass.
+  return { name: v.name, score: r.score, level: r.level, expect: v.expect, ok: RANK[r.level] >= RANK[v.expect] };
+});
+
+// --- weight sensitivity ------------------------------------------------------
+// The weights are hand-set, which invites the fair objection that the headline
+// numbers are knife-edge tuning. So perturb every weight and re-measure: if the
+// result only holds at exactly these values it is a fit to the corpus, not a
+// model. Deterministic (fixed perturbation pattern), so CI can gate on it.
+function measureWith(scale) {
+  const original = { ...SIGNAL_WEIGHTS };
+  for (const k of Object.keys(SIGNAL_WEIGHTS)) {
+    SIGNAL_WEIGHTS[k] = Math.round(original[k] * scale[k]);
+  }
+  try {
+    const accused = corpus.outlets.filter((o, i) => {
+      const r = computeFlags(asProfile({
+        url: `https://${o.domain}/a`, siteName: o.domain,
+        title: WORST_CASE_HEADLINES[i % WORST_CASE_HEADLINES.length],
+        author: "Staff Reporter Named Person", aboutLink: true, archive: o.archive
+      }));
+      return r.level === "high";
+    }).length;
+    const missed = ADVERSARY.filter((a) => a.level < 8).filter((a) => {
+      const r = computeFlags(asProfile({ ...a.page, archive: a.archive }));
+      return r.level === "clean";
+    }).length;
+    return { accused, missed };
+  } finally {
+    for (const k of Object.keys(original)) SIGNAL_WEIGHTS[k] = original[k];
+  }
+}
+
+/** @type {[string, number|string][]} */
+const PERTURBATIONS = [
+  ["all weights -20%", 0.8],
+  ["all weights +20%", 1.2],
+  ["suspicion -25%, legitimacy unchanged", "suspicion-down"],
+  ["legitimacy -25%, suspicion unchanged", "legitimacy-down"]
+];
+
+const sensitivity = PERTURBATIONS.map(([name, mode]) => {
+  const scale = {};
+  for (const k of Object.keys(SIGNAL_WEIGHTS)) {
+    const w = SIGNAL_WEIGHTS[k];
+    if (mode === "suspicion-down") scale[k] = w > 0 ? 0.75 : 1;
+    else if (mode === "legitimacy-down") scale[k] = w < 0 ? 0.75 : 1;
+    else scale[k] = mode;
+  }
+  return { name, ...measureWith(scale) };
+});
+
 // --- results ----------------------------------------------------------------
 const n = fpRows.length;
 const falseAccusations = fpRows.filter((r) => r.accused);
@@ -159,7 +254,7 @@ const results = {
 };
 
 if (JSON_OUT) {
-  console.log(JSON.stringify({ results, fpRows, advRows }, null, 2));
+  console.log(JSON.stringify({ results, fpRows, advRows, variantRows, sensitivity }, null, 2));
 } else {
   const pct = (x) => `${(x * 100).toFixed(1)}%`;
   console.log(`\nPLACEMENT DETECTOR EVALUATION`);
@@ -194,6 +289,18 @@ if (JSON_OUT) {
   console.log(`\n  detected through rung ${results.adversary.rungsScored - 1}: ${detected.length}/${scored.length}  ${pct(results.adversary.detectedRate)}`);
   console.log(`  previous binary rule:            ${baselineDetected.length}/${scored.length}  ${pct(results.adversary.baselineDetectedRate)}`);
   console.log(`  first rung that slips past:      ${results.adversary.firstUndetectedRung ?? "none below the ceiling"}`);
+  console.log(`\nOTHER TECHNIQUES  (scored on their own, not rungs of the ladder)`);
+  for (const v of variantRows) {
+    console.log(`  ${v.ok ? "PASS" : "FAIL"}  ${String(v.score).padStart(4)}  ${v.level.padEnd(9)} ${v.name}`);
+  }
+
+  console.log(`\nWEIGHT SENSITIVITY  (would the result survive different numbers?)`);
+  console.log(`  of ${n} publishers and ${scored.length} adversary rungs:`);
+  console.log(`  perturbation                              accused  missed`);
+  for (const r of sensitivity) {
+    console.log(`  ${r.name.padEnd(40)}  ${String(r.accused).padStart(7)}  ${String(r.missed).padStart(6)}`);
+  }
+
   console.log(`  accepted ceiling:                rung 8 — an operation that has run a real site for six years is not\n                                   distinguishable from a publisher by these signals, and is not claimed to be.\n`);
 }
 
@@ -204,7 +311,15 @@ const GATES = [
   ["at most 10% of legitimate publishers get any warning", results.legitimate.anyWarning / n <= 0.1],
   ["every adversary rung below the ceiling is detected", results.adversary.detected === results.adversary.rungsScored],
   ["detection beats the rule it replaced", results.adversary.detectedRate > results.adversary.baselineDetectedRate],
-  ["false positives beat the rule they replaced", results.legitimate.falselyAccusedRate < results.legitimate.baselineFalselyAccusedRate]
+  ["false positives beat the rule they replaced", results.legitimate.falselyAccusedRate < results.legitimate.baselineFalselyAccusedRate],
+  ["other placement techniques are caught (Arabic, advertorial, AI filler, injection)", variantRows.every((v) => v.ok)],
+  // Sensitivity is reported honestly rather than gated at zero. Scaling every
+  // weight is equivalent to moving the thresholds, so borderline cases moving is
+  // expected; what must NOT happen is the harmful failure becoming common, or
+  // detection collapsing. A model that only worked at exactly these numbers
+  // would be a fit to this corpus, not a model.
+  ["false accusations stay rare under +/-20% re-tuning", sensitivity.every((r) => r.accused <= 1)],
+  ["detection survives +/-20% re-tuning", sensitivity.every((r) => r.missed <= 3)]
 ];
 const failed = GATES.filter(([, ok]) => !ok);
 if (!JSON_OUT) {
