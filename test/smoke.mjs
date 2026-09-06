@@ -12,6 +12,7 @@ import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
 import { summarizeRisk } from "../extension/engine/explain.js";
+import { checkSources } from "../extension/engine/sourceCheck.js";
 import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS, HIGH_RISK_AT } from "../extension/engine/sourceScore.js";
 
 let failures = 0;
@@ -531,15 +532,32 @@ console.log("\nrisk explanation:");
 {
   // Sources as the profiler emits them: flags carry weights and severities, and
   // the source carries the level its score earned.
+  // A source we actually managed to check: fetched, with an archive record.
+  // Without those, summarizeRisk correctly refuses to call it clean.
   const src = (keys, level, established = false) => ({
     url: "https://example.org/a",
     siteName: "example.org",
     established,
+    fetched: true,
+    archivedMonths: 120,
+    firstArchived: "2010-01",
     placementLevel: level,
     flags: keys.map((key) => ({
       key,
       severity: key === "established" || key.startsWith("named-") || key.startsWith("has-") || key === "domain-long-history" ? "info" : "high"
     }))
+  });
+
+  // A source we could not reach at all: no fetch, no archive record.
+  const unreachable = () => ({
+    url: "https://blocked.example/a",
+    siteName: "blocked.example",
+    established: false,
+    fetched: false,
+    archivedMonths: null,
+    firstArchived: null,
+    placementLevel: "clean",
+    flags: []
   });
 
   check("clean when every source is an established publisher",
@@ -585,6 +603,27 @@ console.log("\nrisk explanation:");
       return r.level === "planted" && r.offenders[0].reasonKeys.length === 3;
     })());
 
+  // Silence is not an all-clear. In the web app CORS blocks both the page fetch
+  // and the Wayback API, so this is the normal case there, not an edge case -
+  // and reporting it as "clean" would be the most harmful thing this tool could
+  // say to someone who came here precisely because they could not tell.
+  check("a source we could not check is never reported as clean",
+    summarizeRisk([unreachable()]).level === "unknown");
+
+  check("the unknown verdict names the sources it could not reach",
+    (() => {
+      const r = summarizeRisk([unreachable()]);
+      return r.uncheckedCount === 1 && r.offenders.length === 1 && r.offenders[0].name === "blocked.example";
+    })());
+
+  // Real evidence still outranks silence: one flagged source is worth reporting
+  // even if another could not be reached.
+  check("a real finding outranks an unreachable source",
+    summarizeRisk([unreachable(), src(["sponsored"], "high")]).level === "paid");
+
+  check("allowlisted sources count as checked even without a fetch",
+    summarizeRisk([{ url: "https://reuters.com/a", siteName: "reuters.com", established: true, fetched: false, flags: [], placementLevel: "clean" }]).level === "clean");
+
   check("empty source list degrades to clean, not a crash",
     summarizeRisk([]).level === "clean" && summarizeRisk().level === "clean");
 
@@ -596,7 +635,7 @@ console.log("\nrisk explanation:");
     check(`every source flag has plain wording in ${loc}`, missing.length === 0, missing.join());
   }
   for (const loc of ["en", "ar"]) {
-    const missing = ["paid", "planted", "opaque", "clean"].flatMap((lvl) =>
+    const missing = ["paid", "planted", "opaque", "clean", "unknown"].flatMap((lvl) =>
       ["head", "body"].map((part) => `explain.${lvl}.${part}`)
     ).filter((k) => t(k, loc) === k);
     check(`every risk level has plain wording in ${loc}`, missing.length === 0, missing.join());
@@ -656,6 +695,57 @@ console.log("\nplacement scoring:");
     head);
   check("exported source flags use plain wording with the technical term in parentheses",
     /- \u26a0 [^(\n]+\(/.test(md) || !/## Sources/.test(md));
+}
+
+// --- keyless source check ----------------------------------------------------
+// The half of the pipeline that needs no API key, and therefore no setup at all.
+console.log("\nkeyless source check:");
+{
+  const cited = [
+    { url: "https://global-security-observatory.org/is-x-a-threat", title: "Is the law a threat to human rights?" },
+    { url: "https://reuters.com/world/x", title: "Parliament passes emergency law" }
+  ];
+  const report = await checkSources({ text: "…", sources: cited, page: "test" }, { fetchSources: false });
+
+  check("keyless check runs with no provider and no key", !!report && report.sourcesOnly === true);
+  check("keyless check profiles every cited source", report.sources.length === 2);
+  check("keyless check reports no claims rather than pretending to have checked them",
+    Array.isArray(report.claims) && report.claims.length === 0 && report.method.claimsChecked === 0);
+  check("keyless check advertises itself as keyless", report.method.keyless === true && report.providerName === "none");
+
+  // The disclaimer is the whole safety story for this mode: a reader must not
+  // read "sources look fine" as "the answer is true".
+  check("keyless disclaimer says the claims were NOT verified",
+    /NOT verified/i.test(report.disclaimer) && /source check only/i.test(report.disclaimer));
+
+  check("keyless check still recognises an established publisher",
+    report.sources.some((x) => x.url.includes("reuters.com") && x.established === true));
+
+  // With fetching disabled nothing could be learned about the unknown domain,
+  // so the verdict must be "could not check", never an all-clear.
+  check("keyless check with no fetch reports unknown, not clean",
+    ["unknown", "opaque", "planted", "paid"].includes(report.riskLevel), report.riskLevel);
+
+  let threw = "";
+  try {
+    await checkSources({ text: "no links here at all", sources: [] }, {});
+  } catch (e) {
+    threw = String(e.message || e);
+  }
+  check("keyless check refuses text with no links, and says why", /No links found/i.test(threw), threw);
+
+  // A sources-only report must survive the Markdown exporter, which was written
+  // assuming claims, bias and a second opinion all exist.
+  const { reportToMarkdown: toMd } = await import("../extension/engine/ui/report-view.js");
+  let md = "";
+  let mdError = "";
+  try {
+    md = toMd(report);
+  } catch (e) {
+    mdError = String(e.message || e);
+  }
+  check("sources-only report exports to Markdown without crashing", !mdError, mdError);
+  check("exported keyless report carries the disclaimer", /NOT verified/i.test(md));
 }
 
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);

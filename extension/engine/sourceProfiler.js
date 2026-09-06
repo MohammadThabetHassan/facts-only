@@ -371,6 +371,35 @@ Return JSON exactly in this shape:
   });
 }
 
+// A report with 12 sources used to fire 12 page fetches and 12 Wayback lookups
+// at once, all from the reader's own IP address. That is a burst a network
+// monitor notices, it is rude to the free Wayback endpoint, and on a slow
+// connection every request competes with the others. Three at a time costs a
+// couple of seconds and behaves like a person reading.
+const FETCH_CONCURRENCY = 3;
+
+/**
+ * @template T,R
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T) => Promise<R>} fn
+ * @returns {Promise<R[]>}
+ */
+async function mapLimit(items, limit, fn) {
+  /** @type {R[]} */
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]);
+      }
+    })
+  );
+  return out;
+}
+
 /**
  * @param {*} provider
  * @param {*} settings
@@ -383,8 +412,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
   const isPublic = (u) => isPublicHttpUrl(u);
 
   const seed = (u) => truncate(String(seedTitles[u] || ""), 200);
-  const fetched = await Promise.all(
-    unique.map(async (url) => {
+  const fetched = await mapLimit(unique, FETCH_CONCURRENCY, async (url) => {
       const established = isEstablishedDomain(url);
       /** @type {SourceProfile} */
       let p;
@@ -410,9 +438,9 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
         }
       }
       return p;
-    })
-  );
+  });
 
+  /** @type {(SourceProfile & {flags: any[], established: boolean, highRisk: boolean, score: number, level: string})[]} */
   const withFlags = fetched.map((p) => ({ ...p, ...computeFlags(p) }));
 
   let llmProfiles = null;

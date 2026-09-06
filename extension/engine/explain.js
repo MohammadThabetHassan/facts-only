@@ -52,10 +52,18 @@ function assess(s) {
   // carry severity "info" and must never be quoted back as reasons to worry.
   const concerning = flags.filter((f) => f && f.severity !== "info");
   const level = s && s.placementLevel ? s.placementLevel : scoreSignals(flags.map((f) => f && f.key)).level;
+  // A source we could neither fetch nor look up in the archive told us nothing.
+  // Scoring silence as "clean" would turn a failed check into an all-clear,
+  // which is the single most harmful thing this report could say: the reader
+  // came here precisely because they could not tell. In the web app this is the
+  // normal case - CORS blocks both the page fetch and the Wayback API - so it
+  // has to be reported honestly rather than treated as an edge case.
+  const unchecked = !!s && !s.established && !s.fetched && !s.archivedMonths && !s.firstArchived;
   return {
     url: s && s.url,
     name: (s && (s.siteName || s.title)) || (s && s.url) || "",
     established: !!(s && s.established),
+    unchecked,
     level,
     keys: new Set(concerning.map((f) => f.key)),
     orderedKeys: concerning.map((f) => f.key)
@@ -78,15 +86,29 @@ export function summarizeRisk(sources = []) {
   const list = Array.isArray(sources) ? sources : [];
   const total = list.length;
   const assessed = list.map(assess);
-  // "Trustworthy" now means allowlisted OR scored clean on the evidence — the
-  // point of the scoring rewrite was that a publisher can earn this without
-  // being on anyone's list.
-  const establishedCount = assessed.filter((a) => a.established || a.level === "clean").length;
+  // "Trustworthy" means allowlisted, or scored clean ON EVIDENCE WE ACTUALLY
+  // HAVE - the point of the scoring rewrite was that a publisher can earn this
+  // without being on anyone's list. A source we could not reach is neither:
+  // counting it here would let a blocked fetch inflate the reassuring number.
+  const establishedCount = assessed.filter((a) => a.established || (a.level === "clean" && !a.unchecked)).length;
 
   const flagged = assessed.filter((a) => a.level !== "clean");
   const level = flagged.length ? LEVELS.find((l) => flagged.some((a) => l.matches(a))) : null;
   if (!level) {
-    return { level: "clean", tone: "good", reasonKeys: [], offenders: [], establishedCount, total };
+    // Nothing was flagged - but say so only if we actually managed to look.
+    const unchecked = assessed.filter((a) => a.unchecked);
+    if (unchecked.length) {
+      return {
+        level: "unknown",
+        tone: "warn",
+        reasonKeys: [],
+        offenders: unchecked.map((a) => ({ url: a.url, name: a.name, reasonKeys: [] })),
+        uncheckedCount: unchecked.length,
+        establishedCount,
+        total
+      };
+    }
+    return { level: "clean", tone: "good", reasonKeys: [], offenders: [], uncheckedCount: 0, establishedCount, total };
   }
 
   // Only sources that actually triggered this level are named, so the sentence
@@ -100,5 +122,13 @@ export function summarizeRisk(sources = []) {
     .filter((o) => o.reasonKeys.length > 0);
 
   const reasonKeys = [...new Set(offenders.flatMap((o) => o.reasonKeys))];
-  return { level: level.key, tone: level.tone, reasonKeys, offenders, establishedCount, total };
+  return {
+    level: level.key,
+    tone: level.tone,
+    reasonKeys,
+    offenders,
+    uncheckedCount: assessed.filter((a) => a.unchecked).length,
+    establishedCount,
+    total
+  };
 }

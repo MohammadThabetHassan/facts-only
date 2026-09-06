@@ -8,6 +8,7 @@ import { renderReport, reportToMarkdown } from "../extension/engine/ui/report-vi
 import { getSettings } from "../extension/engine/ui/storage.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { verifyAnswer } from "../extension/engine/pipeline.js";
+import { checkSources } from "../extension/engine/sourceCheck.js";
 import { createProvider } from "../extension/engine/providers/index.js";
 import { extractUrls } from "../extension/engine/text.js";
 import { t, resolveLocale, applyDirection, applyI18n } from "../extension/engine/ui/i18n.js";
@@ -145,6 +146,47 @@ function runDemo() {
   $("input").value = demoText;
   run(demoText, extractUrls(demoText), createProvider({ provider: "mock", grounding: false }));
 }
+
+// Keyless source check. Deliberately its own button rather than a fallback
+// inside Verify: it answers a narrower question ("who is behind these sources?")
+// and the report says so, so it must be something the reader chose.
+$("sources").addEventListener("click", async () => {
+  const text = $("input").value.trim();
+  const sources = extractUrls(text);
+  if (!sources.length) {
+    $("error").textContent = t("msg.noLinks", currentLang);
+    $("error").hidden = false;
+    return;
+  }
+  if (running) return;
+  running = true;
+  $("error").hidden = true;
+  $("report").innerHTML = "";
+  $("run").disabled = true;
+  currentAbort = new AbortController();
+  try {
+    const report = await checkSources({ text, sources, page: "webapp" }, {
+      onProgress: setProgress,
+      signal: currentAbort.signal
+    });
+    renderReport($("report"), report, {
+      lang: currentLang,
+      onExport: () => downloadMd(report),
+      onCopy: () => navigator.clipboard.writeText(reportToMarkdown(report))
+    });
+  } catch (e) {
+    $("error").textContent =
+      e && (e.name === "AbortError" || /abort/i.test(String(e.message)))
+        ? t("msg.cancelled", currentLang)
+        : String(e.message || e);
+    $("error").hidden = false;
+  } finally {
+    setProgress(null);
+    $("run").disabled = false;
+    running = false;
+    currentAbort = null;
+  }
+});
 
 $("demo").addEventListener("click", runDemo);
 

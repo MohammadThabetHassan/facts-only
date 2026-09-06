@@ -115,8 +115,13 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
     container.appendChild(box);
   }
 
+  // A sources-only report has no claim verdicts, so everything below the
+  // risk card that describes them is skipped rather than rendered empty.
+  const sourcesOnly = !!report.sourcesOnly;
+
   // Trust banner with the counts behind it
   const tone = TONE[TRUST_TONE[report.trustKey] || "neutral"];
+  if (!sourcesOnly) {
   const c = report.trustCounts || {};
   // Each "<number> <label>" pair is its own bidi-isolated node. Built as one
   // string, an RTL locale reorders the Latin digits across the separators and
@@ -139,6 +144,15 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
     ])
   );
 
+  }
+
+  // What this run did NOT do. On a keyless check this is the most important
+  // line in the report: the reader must not mistake "sources look fine" for
+  // "the answer is true".
+  if (sourcesOnly) {
+    container.appendChild(el("p", { class: "fo-method", text: t("rep.sourcesOnlyMethod", L) }));
+  }
+
   // Method / transparency line — what this verification actually did
   const m = report.method;
   if (m) {
@@ -160,8 +174,9 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   }
 
   // Claims
-  const claimsBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.claims", L, { n: report.claims.length }) })]);
-  for (const cl of report.claims) {
+  const claims = report.claims || [];
+  const claimsBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.claims", L, { n: claims.length }) })]);
+  for (const cl of claims) {
     const card = el("div", { class: "fo-card" }, [
       el("div", { class: "fo-card-head" }, [
         chip(t("verdict." + cl.verdict, L), CLAIM_TONE[cl.verdict] || "neutral"),
@@ -193,7 +208,7 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
     }
     claimsBox.appendChild(card);
   }
-  container.appendChild(claimsBox);
+  if (claims.length) container.appendChild(claimsBox);
 
   // Sources
   const flagged = report.sources.filter((s) => s.flags.some((f) => f.severity !== "info"));
@@ -237,7 +252,8 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   container.appendChild(srcBox);
 
   // Bias
-  const b = report.bias;
+  const b = sourcesOnly ? null : report.bias;
+  if (b) {
   const biasBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.bias", L) })]);
   if (b.strongestCounterargument) {
     biasBox.appendChild(el("p", {}, [el("strong", { text: t("rep.strongest", L) }), document.createTextNode(b.strongestCounterargument)]));
@@ -256,9 +272,10 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
     biasBox.appendChild(el("p", { class: "fo-dim", text: t("rep.noBias", L) }));
   }
   container.appendChild(biasBox);
+  }
 
   // Second opinion (cross-model check)
-  const so = report.secondOpinion;
+  const so = sourcesOnly ? null : report.secondOpinion;
   if (so) {
     const soBox = el("section", { class: "fo-section" }, [
       el("h3", { text: `${t("rep.second", L)}${so.available ? ` — ${so.providerName}${so.model ? ` (${so.model})` : ""}` : ""}` })
@@ -324,7 +341,7 @@ export function reportToMarkdown(report, lang = "en") {
     for (const key of o.reasonKeys) lines.push(`>   - ${t("flag." + key, L)}`);
   }
   lines.push(``);
-  lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
+  if (report.trustLabel) lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
   lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchUsed ? "yes" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);
   if (m.claimsChecked != null) {
     lines.push(`- **Coverage:** ${m.claimsChecked} of ~${m.claimsTotal} checkable claims examined${m.additionalCheckable ? ` (${m.additionalCheckable} not checked)` : ""}`);
@@ -336,7 +353,7 @@ export function reportToMarkdown(report, lang = "en") {
   if (report.readerAdvice) lines.push(`\n**Next step:** ${report.readerAdvice}`);
   lines.push(``);
   lines.push(`## Claims`);
-  for (const c of report.claims) {
+  for (const c of report.claims || []) {
     lines.push(``);
     lines.push(`### [${c.verdict} / ${c.confidence}] ${c.text}`);
     if (c.notes) lines.push(`${c.notes}`);
@@ -361,16 +378,16 @@ export function reportToMarkdown(report, lang = "en") {
   }
   lines.push(``);
   lines.push(`## Bias & framing`);
-  if (report.bias.strongestCounterargument) lines.push(`**Strongest argument against:** ${report.bias.strongestCounterargument}`);
+  if (report.bias && report.bias.strongestCounterargument) lines.push(`**Strongest argument against:** ${report.bias.strongestCounterargument}`);
   const list = (title, items) => {
     if (!items || !items.length) return;
     lines.push(``);
     lines.push(`**${title}**`);
     items.forEach((i) => lines.push(`- ${i}`));
   };
-  list("Framing issues", report.bias.framingIssues);
-  list("Missing context", report.bias.missingContext);
-  list("Manipulation signals", report.bias.manipulationSignals);
+  list("Framing issues", report.bias && report.bias.framingIssues);
+  list("Missing context", report.bias && report.bias.missingContext);
+  list("Manipulation signals", report.bias && report.bias.manipulationSignals);
 
   const so = report.secondOpinion;
   if (so) {

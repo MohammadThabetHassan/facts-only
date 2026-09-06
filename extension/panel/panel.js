@@ -6,6 +6,7 @@ import { renderReport, reportToMarkdown } from "../engine/ui/report-view.js";
 import { getSettings, set, get, remove, onChanged } from "../engine/ui/storage.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../engine/ui/cache.js";
 import { verifyAnswer } from "../engine/pipeline.js";
+import { checkSources } from "../engine/sourceCheck.js";
 import { createProvider } from "../engine/providers/index.js";
 import { truncate, extractUrls } from "../engine/text.js";
 import { t, resolveLocale, applyDirection, applyI18n } from "../engine/ui/i18n.js";
@@ -38,6 +39,28 @@ let currentAbort = null;
 let pendingSources = [];
 let pendingPage = "manual";
 let lastReport = null;
+
+
+// Fetching cited pages needs host access, which is now an OPTIONAL permission:
+// the install prompt no longer asks for "read all your data on every website",
+// which is both better for the reader and the difference between a store review
+// that passes and one that does not.
+//
+// It is requested from the click that needs it, because Chrome only grants
+// optional permissions inside a user gesture, and request() resolves true
+// without prompting when the permission is already held.
+//
+// A refusal is not an error. The run continues with fetching disabled, and the
+// report then says the sources could not be checked - which is true, and far
+// better than a silent all-clear built on zero evidence.
+async function ensureFetchPermission() {
+  try {
+    if (typeof chrome === "undefined" || !chrome.permissions) return true; // web app / tests
+    return await chrome.permissions.request({ origins: ["<all_urls>"] });
+  } catch (e) {
+    return false;
+  }
+}
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -129,7 +152,15 @@ async function run(text, sources = [], providerOverride = null, { ignoreCache = 
     const report = await verifyAnswer(
       { text, sources, page: pendingPage },
       settings,
-      { onProgress: setProgress, provider, signal: currentAbort.signal }
+      {
+        onProgress: setProgress,
+        provider,
+        // Same optional-permission gate as the keyless check: without host
+        // access the pages cannot be fetched, and the report says so rather
+        // than quietly profiling from link text alone.
+        fetchSources: await ensureFetchPermission(),
+        signal: currentAbort.signal
+      }
     );
     afterReportRendered(report);
     await saveHistory(report);
@@ -211,6 +242,46 @@ $("run").addEventListener("click", () => {
 
 $("cancel").addEventListener("click", () => {
   if (currentAbort) currentAbort.abort();
+});
+
+// Keyless source check. This is the extension's strongest form of it: unlike
+// the web app it holds host permissions, so pages and the Wayback API are
+// actually reachable and every code heuristic has real data to work with.
+$("sources").addEventListener("click", async () => {
+  const text = input.value.trim();
+  const sources = pendingSources.length ? pendingSources.slice() : extractUrls(text);
+  if (!sources.length) {
+    showError(t("msg.noLinks", currentLang));
+    return;
+  }
+  if (running) return;
+  running = true;
+  clearError();
+  reportBox.innerHTML = "";
+  $("run").disabled = true;
+  currentAbort = new AbortController();
+  try {
+    const canFetch = await ensureFetchPermission();
+    const report = await checkSources({ text, sources, page: pendingPage }, {
+      onProgress: setProgress,
+      fetchSources: canFetch,
+      signal: currentAbort.signal
+    });
+    // Same render path as a full run, so a keyless report exports, copies and
+    // records history exactly like any other.
+    afterReportRendered(report);
+  } catch (e) {
+    showError(
+      e && (e.name === "AbortError" || /abort/i.test(String(e.message)))
+        ? t("msg.cancelled", currentLang)
+        : String(e.message || e)
+    );
+  } finally {
+    setProgress(null);
+    $("run").disabled = false;
+    running = false;
+    currentAbort = null;
+  }
 });
 
 $("demo").addEventListener("click", () => {
