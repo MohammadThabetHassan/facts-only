@@ -4,6 +4,87 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [1.1.0] — 2026-09-06
+
+The detector stopped being a set of plausible heuristics and became a measured
+one, and the tool stopped requiring an API key to answer the question most
+readers actually have.
+
+### Changed — placement scoring replaces binary flags
+
+An audit measured two failure modes with a single root cause: one weak signal
+could decide the outcome, and legitimacy could only be proven by allowlist
+membership.
+
+- **Evasion.** `geo-question-headline` was the only high-severity signal, so
+  deleting one question mark took a campaign site from "high risk" to unflagged.
+- **False accusation.** Conversely one question-shaped headline was enough to
+  brand ProPublica, Bellingcat, Dawn or The Hindu as manipulated, and the
+  plain-language card then announced it in the loudest box on the page.
+
+`engine/sourceScore.js` gives every signal a weight and lets evidence
+accumulate. Legitimacy is **earned**: a long, continuously archived publishing
+history counts against suspicion the way a fresh domain counts for it, which is
+what protects the independent and non-Western press no hand-written list will
+ever cover. The allowlist survives only as a short-circuit for primary sources.
+
+New signals close the evasions: prompt-shaped headlines without a question mark,
+placeholder bylines ("Editorial Team"), and — from a Wayback request that now
+returns coverage as well as first-seen — aged shells (old domain, almost nothing
+published) and thin publishing history. Aged domains are sold specifically to
+defeat age checks; continuous archiving cannot be bought retroactively.
+
+### Added — accuracy is now a build gate
+
+`eval/` measures both failure modes offline and deterministically, against 50
+real publishers with real Wayback histories (48 not allowlisted) and a 9-rung
+adversary ladder. CI fails the build if the thresholds regress.
+
+| | before | after |
+| --- | --- | --- |
+| Legitimate publishers accused | 50/50 (100%) | **0/50 (0%)** |
+| Adversary rungs detected | 1/8 (12.5%) | **8/8 (100%)** |
+
+Rung 8 — six years of continuous publishing — is **not** detected, is documented
+as the accepted ceiling, and is excluded from the numerator rather than hidden
+behind a friendlier denominator. See [docs/EVALUATION.md](docs/EVALUATION.md).
+
+### Added — keyless source check
+
+The plain-language warning was written for someone who has just read a chatbot
+answer, and the install flow then asked them to mint an API key. But that half
+of the pipeline never needed a model: page metadata, headline shape and archive
+history are deterministic code against keyless services.
+
+`engine/sourceCheck.js` runs it with no setup at all, in both surfaces, and the
+report states plainly that the claims themselves were not verified.
+
+### Fixed
+- **Silence was reported as an all-clear.** A source that could be neither
+  fetched nor found in the archive told us nothing; scoring that as "clean"
+  turned a failed check into reassurance. There is now an `unknown` verdict, and
+  unreachable sources no longer inflate the "N of M are established publishers"
+  count either. In the web app this is the normal case, since CORS blocks both
+  the page fetch and the archive lookup.
+- The plain-language card keyed off signal presence rather than the score, so it
+  could still accuse a source the detector had cleared.
+- A sources-only report crashed the renderer on a null `report.bias`.
+- The Arabic locale table held literal `\uXXXX` escape text that no translator
+  could read or edit; it is real characters again.
+
+### Security
+- `<all_urls>` moved from a required to an **optional** host permission,
+  requested from the click that needs it. The install prompt no longer asks to
+  read all your data on every website; a refusal degrades to the honest
+  "could not check" verdict rather than failing.
+- Source fetching throttled to 3 concurrent requests. Twelve sources previously
+  meant 24 simultaneous requests from the reader's own IP.
+
+### Engineering
+- The engine type-checks from its JSDoc (`npm run typecheck`, `jsconfig.json`),
+  in CI, with no build step and no runtime dependency.
+- Offline suite 113 → **143 checks**.
+
 ## [1.0.0] — 2026-09-06
 
 Renamed from **FactLens** to **Facts Only**, and re-pointed at the question the project

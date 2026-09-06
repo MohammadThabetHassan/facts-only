@@ -88,6 +88,27 @@ internal address is itself a detection event.
 address — is invisible to a URL-level check. Blocking it needs resolution-time
 control the extension platform does not offer.
 
+### 7. Defeating the heuristics themselves
+**Attack:** the publisher simply stops matching the detectors — drops the
+question mark, fills the author tag, adds an about page, buys an aged domain.
+**Defense:** signals are weighted and accumulate, so no single change clears a
+source, and the ones that are cheap to fake are weighted accordingly. The
+strongest signal is the one that cannot be bought retroactively: continuous
+archived publishing history. Each rung of this attack is measured in
+[EVALUATION.md](EVALUATION.md); the old binary rule lost at rung 1 (one
+character), the current model holds to rung 7.
+**Residual risk:** an operation that runs a genuine site for six years before
+using it is not distinguishable from a publisher by these signals. That is the
+documented ceiling, not an oversight.
+
+### 8. A failed check misread as an all-clear
+**Attack:** not an attacker at all — the tool's own failure mode. A source that
+cannot be fetched produces no flags, and "no flags" reads as "fine".
+**Defense:** a source that could be neither fetched nor found in the archive is
+reported as *unknown*, never clean, and does not count toward the reassuring
+"N of M are established publishers" line.
+**Residual risk:** a reader who stops at the colour of the banner.
+
 ## What Facts Only does NOT defend against
 
 - **Training-data bias in the verification model.** If the checker model itself

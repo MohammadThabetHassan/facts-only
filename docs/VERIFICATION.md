@@ -3,9 +3,9 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-06 (v1.0.0 — Facts Only rename + plain-language risk card)
+Last updated: 2026-09-06 (v1.1.0 — measured placement scoring + keyless source check)
 
-## 1. Offline test suite — PASSING (113 checks)
+## 1. Offline test suite — PASSING (143 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -84,3 +84,27 @@ Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
 - Independent human review. All passing evidence to date was produced by the
   project author; the test suite is intentionally offline and deterministic so
   any reviewer can reproduce it in seconds.
+
+## 5. Detector accuracy — MEASURED (2026-09-06)
+
+The claim "it detects manipulation" was, until this release, an assertion. It is
+now a measurement that runs on every commit: `npm run eval`, offline and
+deterministic against `eval/corpus.json` (50 real publishers, real Wayback
+histories collected by `eval/collect.mjs`).
+
+| | before | after |
+| --- | --- | --- |
+| Legitimate publishers accused of placement | 50 / 50 (100%) | **0 / 50 (0%)** |
+| Adversary rungs detected below the ceiling | 1 / 8 (12.5%) | **8 / 8 (100%)** |
+
+48 of the 50 publishers are **not** on any allowlist in this repository, and
+each is scored as though it had published the exact headline shape the detector
+hunts for — a harder test than reality.
+
+Five thresholds gate CI, including "no legitimate publisher is accused of
+placement". Full method, corpus criteria, adversary ladder and the documented
+ceiling: [EVALUATION.md](EVALUATION.md).
+
+**Not claimed:** recall against real influence campaigns. Naming real domains as
+influence operations on the strength of a heuristic is precisely what this tool
+refuses to do, so the negative class is synthetic and labelled as such.

@@ -140,9 +140,11 @@ $("cancel").addEventListener("click", () => {
   if (currentAbort) currentAbort.abort();
 });
 
+const DEMO_TEXT =
+  "Country X's parliament passed the emergency law on 12 March 2025. According to the [Is the law a threat to human rights?](https://global-security-observatory.org/is-x-a-threat) report by the Global Security Observatory, the law allows detention without trial for up to 90 days, and over 40,000 people were affected in the first month. Critics say this is the harshest measure in a decade.";
+
 function runDemo() {
-  const demoText =
-    "Country X's parliament passed the emergency law on 12 March 2025. According to the [Is the law a threat to human rights?](https://global-security-observatory.org/is-x-a-threat) report by the Global Security Observatory, the law allows detention without trial for up to 90 days, and over 40,000 people were affected in the first month. Critics say this is the harshest measure in a decade.";
+  const demoText = DEMO_TEXT;
   $("input").value = demoText;
   run(demoText, extractUrls(demoText), createProvider({ provider: "mock", grounding: false }));
 }
@@ -196,3 +198,9 @@ $("demo").addEventListener("click", runDemo);
 const params = new URLSearchParams(location.search);
 if (params.get("shot") === "1") document.body.classList.add("fo-shot");
 if (params.get("demo") === "1") runDemo();
+// ?sourcecheck=1 runs the keyless source check on the sample answer, so the
+// documentation screenshot of that mode is reproducible too.
+if (params.get("sourcecheck") === "1") {
+  $("input").value = DEMO_TEXT;
+  $("sources").click();
+}

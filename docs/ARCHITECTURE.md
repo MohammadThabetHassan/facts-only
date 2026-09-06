@@ -172,3 +172,44 @@ Like `computeTrustSignal`, this runs **in code, from the step outputs**. The mod
 checked writes none of it, so it cannot soften a warning about itself. It is DOM-free and
 i18n-free; the caller supplies the wording, which is what lets the same function drive the
 on-screen card and the Markdown export in either language.
+
+## Placement scoring (`engine/sourceScore.js`)
+
+The detector's model, kept as data rather than as branches, because it is tuned
+empirically: change a weight and `npm run eval` reports what it cost.
+
+Signals carry weights in "placement points". Positive means evidence of
+placement, negative means evidence of an ordinary publisher; a source is
+reported at `high` from 45 points and `elevated` from 22.
+
+Two invariants are tested rather than intended:
+
+1. **No single signal reaches the high-risk threshold** except explicit paid
+   content and a non-public URL. The previous design let one question-shaped
+   headline convict a source, which is how a detector ends up accusing
+   ProPublica.
+2. **Legitimacy is earned from evidence.** `domain-long-history` (five years,
+   continuously archived) is worth −30 — the largest single weight in the table
+   — because it is the only signal here that a hand-written allowlist was
+   really standing in for, and the only one an operator cannot buy retroactively.
+
+Archive history does the work that domain age alone cannot: aged domains are
+sold specifically to clear age checks, so `domain-shell` (old registration,
+almost no archived months) is *suspicious*, while sustained coverage is
+exculpatory. One Wayback CDX request with `collapse=timestamp:6` returns both
+numbers.
+
+## Keyless source check (`engine/sourceCheck.js`)
+
+The pipeline splits cleanly along a line worth naming: claim extraction,
+evidence hunting, bias analysis and the written summary need a model; source
+profiling does not. Page metadata, headline shape, and archive history are
+deterministic code against keyless services.
+
+`checkSources()` runs only the second half. It exists because the plain-language
+warning is written for a reader who will never mint an API key, and answering
+"who is behind these sources?" for them at zero cost is worth more than
+answering nothing. The returned report carries `sourcesOnly: true`, an empty
+`claims` array, and a disclaimer that says the claims were not verified — the
+renderer and the Markdown exporter both branch on it rather than rendering empty
+sections.

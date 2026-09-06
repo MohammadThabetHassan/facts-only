@@ -141,6 +141,7 @@ def main() -> None:
         (f"{DEV_URL}/webapp/index.html?demo=1&shot=1", OUT_DIR / "report.png", 900),
         (f"{DEV_URL}/webapp/index.html?demo=1", OUT_DIR / "webapp-full.png", 1400),
         (f"{DEV_URL}/webapp/index.html?demo=1&shot=1&lang=ar", OUT_DIR / "report-arabic-rtl.png", 700),
+        (f"{DEV_URL}/webapp/index.html?sourcecheck=1&shot=1", OUT_DIR / "report-keyless.png", 760),
     ]
     for url, dest, max_h in targets:
         print(f"capturing {url}")

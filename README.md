@@ -12,7 +12,8 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
-![Tests: 113 offline checks](https://img.shields.io/badge/tests-113%20offline%20checks-brightgreen)
+![Tests: 143 offline checks](https://img.shields.io/badge/tests-143%20offline%20checks-brightgreen)
+![False positives: 0 of 50](https://img.shields.io/badge/false%20positives-0%20%2F%2050%20publishers-brightgreen)
 
 </div>
 
@@ -42,6 +43,44 @@ read, and which source it was.
 > fact. Facts Only never outputs "true" or "false"; it shows you the evidence, the
 > counter-evidence, and who is behind each source, and you decide.
 
+## Does it actually work?
+
+Heuristics that flag sources are easy to write and easy to believe. These are
+measured instead, on every commit, against two failure modes — because a tool
+like this drifts into the second one by default, and that is the one that lands
+on a real newsroom.
+
+| | result | the rule this replaced |
+| --- | --- | --- |
+| Legitimate publishers accused of placement | **0 / 50 (0%)** | 50 / 50 (100%) |
+| Adversary rungs detected (below the stated ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
+
+The 50 publishers carry **real Wayback histories** and are weighted toward the
+press no allowlist covers — South Asian, African, Middle Eastern, Latin
+American, South-East Asian, independent investigative. **48 of the 50 are not on
+any list inside this repo**; they score clean because a long, continuously
+archived publishing record is itself evidence of an ordinary publisher. Each one
+is scored as though it had published the exact headline shape the detector hunts
+for, which is harder than reality.
+
+The adversary is a campaign site plus each cheap change a real operator would
+make. The old rule lost at **rung 1: deleting one question mark.** Rung 6 is
+buying an aged domain — the standard answer to any age check — and it is caught,
+because age was never the signal; continuous archived publishing is, and that
+cannot be bought retroactively.
+
+**The ceiling is stated, not hidden.** An operation that runs a real site for six
+years is not distinguishable from a publisher by these signals, is not detected,
+and is excluded from the numerator rather than buried in a friendlier
+denominator. The honest claim: *this raises the cost of placement from one
+character to a six-year operation.*
+
+```bash
+npm run eval     # reproduce all of it offline, no key, no network
+```
+
+Method, corpus criteria, and the full ladder: **[docs/EVALUATION.md](docs/EVALUATION.md)**.
+
 ## What a report looks like
 
 <div align="center">
@@ -64,9 +103,14 @@ the bias and framing analysis, and an optional **second-model opinion** asked to
 the first review.
 
 <details>
-<summary>The full web app, and the Arabic RTL layout</summary>
+<summary>The keyless source check, the full web app, and the Arabic RTL layout</summary>
+
+**No API key.** The same warning, from page metadata and archive history alone,
+with the report stating plainly that the claims were not verified:
 
 <div align="center">
+  <img src="docs/screenshots/report-keyless.png" width="700" alt="A keyless source check: the same red plain-language warning, followed by a line reading 'Source check only: the claims in this answer were NOT verified', the flagged source with its reasons, and a closing disclaimer.">
+  <br><br>
   <img src="docs/screenshots/webapp-full.png" width="700" alt="The Facts Only web app with the paste box and a rendered report below it.">
   <br><br>
   <img src="docs/screenshots/report-arabic-rtl.png" width="700" alt="The same report rendered in Arabic with a right-to-left layout.">
@@ -109,6 +153,11 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 
 ## Features
 
+- 🔓 **Works with no API key at all** — "Check sources only" runs the half of
+  the pipeline that never needed a model: who is behind each cited source, how
+  long they have really been publishing, and the same plain-language warning.
+  No signup, no cost, no setup. The report states plainly that the claims
+  themselves were not verified.
 - 💰 **Says who paid, in plain words** — the report opens with one sentence a
   non-technical reader understands ("One of these sources looks planted, not reported"),
   names the site, and lists why. Ranked worst-first so paid placement outranks every
@@ -128,6 +177,10 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 - ⚖️ **Cross-partisan by design** — the established-publisher list spans wire services,
   courts and UN bodies, academic venues, and newspapers from different editorial lines,
   with documented inclusion criteria ([SOURCE-LISTS.md](docs/SOURCE-LISTS.md)).
+- 🔇 **Silence is never an all-clear** — a source that could not be fetched and
+  has no archive record is reported as *"we could not check who is behind this"*,
+  never as clean. A failed check that reads like reassurance is the most harmful
+  thing this tool could say.
 - 🛡️ **Hardened against the attack it studies** — fetched pages and analyzed answers are
   treated as untrusted data in every model prompt, and model-supplied URLs are refused
   unless they are public web addresses, so a page cannot steer the extension into the
@@ -190,11 +243,16 @@ There is no build step and there are no dependencies — load `extension/` unpac
 the files.
 
 ```bash
-npm test                  # 113-check offline suite: no key, no network
+npm test                  # 143-check offline suite: no key, no network
+npm run eval              # measure the detector against 50 real publishers
+npm run typecheck         # type-check the engine from its JSDoc (still no build step)
 npm run dev               # serve webapp + panel at localhost:8123
 npm run build:firefox     # build the Firefox add-on directory
 npm run package           # store-ready zip of the Chrome extension
 ```
+
+All four run in CI on every push, and the eval thresholds are build gates:
+loosening one is a visible, argued commit.
 
 Each script is a plain `node` or `python` invocation if you would rather not use npm — see
 `package.json`.
@@ -220,12 +278,15 @@ extension/          Manifest V3 extension (no build step)
   engine/           Shared verification engine (also used by the web app)
     providers/      gemini · openrouter · openai-compat · mock
     steps/          claims · evidence · bias · summary
+    sourceScore.js  weighted placement scoring (the model, tuned against eval/)
+    sourceCheck.js  keyless source-only check — no API key needed
     explain.js      plain-language risk summary (computed in code)
     ui/             storage · settings · report renderer · cache (shared with webapp)
   content/          chatbot answer detection + Verify buttons
   panel/  popup/    side panel & settings UI
 webapp/             paste-text web app reusing the same engine
-docs/               ARCHITECTURE.md · THREAT-MODEL.md · SOURCE-LISTS.md · VERIFICATION.md
+docs/               ARCHITECTURE · EVALUATION · THREAT-MODEL · SOURCE-LISTS · VERIFICATION
+eval/               accuracy measurement: corpus, collector, CI gate
 scripts/            icon generator · dev server · packaging · screenshot capture
 test/smoke.mjs      offline pipeline test suite
 ```
@@ -238,10 +299,19 @@ test/smoke.mjs      offline pipeline test suite
 - [ ] Signed Firefox add-on and a Chrome Web Store listing
 - [ ] Credibility notes from Wikipedia and Wayback instead of model memory
 - [ ] Optional local-model provider (e.g. via Ollama)
-- [ ] Narrow `<all_urls>` to an optional permission requested on first fetch
+- [x] Narrow `<all_urls>` to an optional permission requested on first fetch
+- [x] Measured accuracy with a false-positive corpus and an adversary ladder
+- [ ] Grow the adversary ladder as new placement techniques are published
+- [ ] Publisher-registry and funding lookups, to push past the six-year ceiling
 
 ## Known limitations
 
+- **The detector has a documented ceiling.** An operation willing to run a real
+  site for six years clears every signal here. See
+  [EVALUATION.md](docs/EVALUATION.md) — it is measured and stated, not hidden.
+- The keyless source check is strongest in the extension, which holds host
+  permissions. In the web app CORS blocks page fetches and the archive lookup,
+  so most sources come back as "could not check" rather than cleared.
 - Free-tier daily limits apply to Gemini's search-grounded requests.
 - Some sites block fetching; those sources are profiled from link text and model knowledge
   only, and marked as such. Quote chips then read "page not fetched — quote unchecked".
@@ -265,6 +335,7 @@ proxy logs.
 - [Contributing](CONTRIBUTING.md) — ground rules, and how to add heuristics or providers
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md) — prompt injection, key handling, evasion reports
+- [Evaluation](docs/EVALUATION.md) — how accuracy is measured, and where it fails
 - [Threat model](docs/THREAT-MODEL.md) — what Facts Only defends against, and what it does not
 - [Verification log](docs/VERIFICATION.md) — what is tested, how, and what remains
 - [Changelog](CHANGELOG.md)

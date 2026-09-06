@@ -154,7 +154,9 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   }
 
   // Method / transparency line — what this verification actually did
-  const m = report.method;
+  // A keyless run has its own, clearer method line above; the generic one would
+  // otherwise claim "model knowledge only" for a check that used no model.
+  const m = sourcesOnly ? null : report.method;
   if (m) {
     const bits = [
       m.searchUsed ? t("m.searchUsed", L) : t("m.noSearch", L),
