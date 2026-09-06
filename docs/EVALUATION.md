@@ -106,6 +106,20 @@ organisations that this repository will not make on the strength of a heuristic
 **synthetic and explicit**: a campaign site, then the same site after each cheap
 change a real operator would make.
 
+**Rung 0 is not invented.** It is assembled from the characteristics the public
+reporting attributes to the case this project exists because of — a
+self-described think tank with no verifiable organisation behind it, publishing
+question-titled reports at volume, on a domain with no history, without named
+authors:
+
+> The Guardian, 26 Aug 2026 — ["Fake US thinktank set up and funded by Israel
+> sought to influence AI chatbots"](https://www.theguardian.com/world/2026/aug/26/fake-thinktank-israel-ai-propaganda)
+> Politico, 14 Aug 2026 — ["Israeli PR wants to answer your ChatGPT questions"](https://www.politico.com/newsletters/politico-influence/2026/08/14/israeli-pr-wants-to-answer-your-chatgpt-questions-01038138)
+
+The profile is modelled from those descriptions; **no real domain is named,
+scored, or shipped in this repository**. Every rung above 0 is then a documented
+evasion technique applied to that profile.
+
 The question is not *can this be evaded* — anything can. It is **how far up the
 ladder an operation has to climb**, because every rung costs money or time.
 
@@ -226,6 +240,11 @@ real newsroom.
 - **111 outlets is still small.** It is more than enough to have caught the 100%
   false-positive rate of the previous rule, and enough to say the current rate is
   under a couple of percent. It is not enough to distinguish 0.5% from 0.05%.
-- **No recall measurement against real campaigns**, for the reason given above.
-  If a public, documented dataset of AI-targeted influence domains becomes
-  available with permission to redistribute, it belongs here.
+- **No recall measurement against real campaigns.** Rung 0 is modelled on a
+  documented case, but modelling a case is not the same as measuring against a
+  labelled corpus of real ones. No such corpus exists publicly with permission to
+  redistribute, and this repository will not assemble one by accusing domains on
+  the strength of its own heuristics — that is circular, and it is the exact
+  harm the false-positive half of this evaluation exists to prevent. If a
+  peer-reviewed or press-verified dataset becomes available, it belongs here and
+  the recall number should be published beside the rest.

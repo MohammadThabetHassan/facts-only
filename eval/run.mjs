@@ -38,6 +38,13 @@ const baselineFlags = (p) => {
 // Each rung is one concrete, cheap change a publisher can make. The question the
 // eval answers is not "can this be evaded" — anything can — but *how far up this
 // ladder an operation has to climb*, because every rung costs real money or time.
+//
+// Rung 0 is assembled from the characteristics public reporting attributes to
+// the case this project exists because of (The Guardian, 26 Aug 2026; Politico,
+// 14 Aug 2026): a self-described think tank with no verifiable organisation
+// behind it, question-titled reports at volume, a domain with no history, no
+// named authors. The PROFILE is modelled from that reporting; no real domain is
+// named or scored here. See docs/EVALUATION.md.
 const ADVERSARY = [
   { level: 0, name: "naive content farm",
     page: { title: "Is the law a threat to human rights?", author: "", aboutLink: false, siteName: "Global Security Observatory" },
