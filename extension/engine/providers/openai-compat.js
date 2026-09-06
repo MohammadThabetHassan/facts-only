@@ -6,7 +6,7 @@ export function createCompatProvider(settings) {
   const name = "openai-compat";
   const supportsSearch = false;
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal = undefined }) {
     const key = (settings.compatKey || "").trim();
     const base = (settings.compatBase || "https://api.openai.com/v1").replace(/\/+$/, "");
     if (!key) throw new Error("Missing API key for the custom OpenAI-compatible endpoint. Open Facts Only settings.");

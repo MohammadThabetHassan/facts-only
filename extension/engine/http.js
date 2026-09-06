@@ -2,6 +2,14 @@
 // Retry policy: 429/5xx and network errors are retried with exponential backoff,
 // honoring Retry-After when present. An aborted external signal is NEVER retried.
 
+/**
+ * An HTTP-layer Error carrying the response status, so callers can decide
+ * whether a failure is retryable or terminal without re-parsing a message.
+ * @typedef {Error & {status?: number, raw?: string}} HttpError
+ */
+
+/** @typedef {{retries?: number, signal?: AbortSignal}} RequestOptions */
+
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 export async function sleep(ms) {
@@ -23,6 +31,14 @@ function combineSignals(external, timeoutCtrl) {
   return external; // very old engines: external signal wins, timeout degrades
 }
 
+/**
+ * @param {string} url
+ * @param {unknown} body
+ * @param {number} [timeoutMs]
+ * @param {Record<string,string>} [headers]
+ * @param {RequestOptions} [options]
+ * @returns {Promise<Response>}
+ */
 export async function postJson(url, body, timeoutMs = 90000, headers = {}, { retries = 2, signal } = {}) {
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -58,6 +74,13 @@ export async function postJson(url, body, timeoutMs = 90000, headers = {}, { ret
   throw lastError || new Error("request failed");
 }
 
+/**
+ * @param {string} url
+ * @param {number} [timeoutMs]
+ * @param {AbortSignal} [signal]
+ * @param {RequestInit} [init]
+ * @returns {Promise<Response>}
+ */
 export async function fetchWithTimeout(url, timeoutMs = 10000, signal = undefined, init = {}) {
   if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
   const timeoutCtrl = new AbortController();

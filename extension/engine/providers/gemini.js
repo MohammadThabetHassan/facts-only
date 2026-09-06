@@ -12,7 +12,9 @@ async function callGenerate({ model, key, body, signal }) {
   const res = await postJson(url, body, 90000, { "x-goog-api-key": key }, { retries: 2, signal });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    const err = new Error(`Gemini API error ${res.status}: ${errText.slice(0, 400)}`);
+    const err = /** @type {Error & {status?: number, raw?: string}} */ (
+      new Error(`Gemini API error ${res.status}: ${errText.slice(0, 400)}`)
+    );
     err.status = res.status;
     err.raw = errText;
     throw err;
@@ -24,7 +26,7 @@ export function createGeminiProvider(settings) {
   const name = "gemini";
   const supportsSearch = settings.grounding !== false;
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal = undefined }) {
     const key = (settings.geminiKey || "").trim();
     if (!key) throw new Error("Missing Gemini API key. Open Facts Only settings and paste your free key from aistudio.google.com.");
     const model = (settings.geminiModel || "gemini-2.5-flash").trim();

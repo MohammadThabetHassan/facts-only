@@ -31,9 +31,17 @@
   },
   "scripts": {
     "test": "node test/smoke.mjs",
+    "eval": "node eval/run.mjs",
+    "eval:json": "node eval/run.mjs --json",
+    "eval:collect": "node eval/collect.mjs",
+    "typecheck": "tsc -p jsconfig.json",
     "live": "node scripts/live-check.mjs",
     "build:firefox": "python scripts/build-firefox.py",
     "package": "python scripts/package-extension.py",
     "dev": "python scripts/dev-server.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
   }
 }

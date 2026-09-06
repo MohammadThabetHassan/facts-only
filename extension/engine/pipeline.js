@@ -128,6 +128,18 @@ Return JSON exactly in this shape:
   }
 }
 
+/**
+ * @typedef {object} Progress
+ * @property {string} step
+ * @property {number} pct
+ * @property {string} message
+ */
+
+/**
+ * @param {{text: string, sources?: {url: string, title?: string}[], page?: string}} input
+ * @param {*} settings
+ * @param {{onProgress?: (p: Progress) => void, provider?: *, fetchSources?: boolean, signal?: AbortSignal}} [options]
+ */
 export async function verifyAnswer(input, settings, { onProgress = () => {}, provider = null, fetchSources = true, signal } = {}) {
   const answerText = String(input.text || "").trim().slice(0, 15000);
   if (answerText.length < 40) throw new Error("Text too short to verify — paste or select a full AI answer.");
@@ -176,6 +188,7 @@ export async function verifyAnswer(input, settings, { onProgress = () => {}, pro
   onProgress({ step: "sources", pct: 60, message: "Profiling every source for manipulation patterns…" });
   const citedUrls = (input.sources || []).map((s) => s && s.url).filter(isHttpUrl);
   const evidenceUrls = claimResults.flatMap((c) => c.evidence.map((e) => e.url));
+  /** @type {Record<string,string>} */
   const seedTitles = {};
   (input.sources || []).forEach((s) => {
     if (s && isHttpUrl(s.url) && s.title) seedTitles[s.url] = s.title;

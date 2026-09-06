@@ -22,6 +22,11 @@ export function settingsFingerprint(settings) {
   ].join("|");
 }
 
+/**
+ * @param {string} text
+ * @param {string} fingerprint
+ * @param {{storage?: {get: Function, set: Function}, ttlMs?: number}} [options]
+ */
 export async function lookupCache(text, fingerprint, { storage, ttlMs = 1000 * 60 * 60 * 24 * 7 } = {}) {
   const store = storage || (await import("./storage.js"));
   const entries = (await store.get("cache", [])) || [];
@@ -32,6 +37,12 @@ export async function lookupCache(text, fingerprint, { storage, ttlMs = 1000 * 6
   return { report: hit.report, ts: hit.ts };
 }
 
+/**
+ * @param {string} text
+ * @param {string} fingerprint
+ * @param {*} report
+ * @param {{storage?: {get: Function, set: Function}, maxEntries?: number}} [options]
+ */
 export async function saveToCache(text, fingerprint, report, { storage, maxEntries = 10 } = {}) {
   const store = storage || (await import("./storage.js"));
   const entries = (await store.get("cache", [])) || [];

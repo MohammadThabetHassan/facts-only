@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Type-checks the plain-JS engine from its JSDoc annotations. There is still",
+    "no build step and no compiler output - `npm run typecheck` only reads.",
+    "A 2,600-line untyped engine that four UI surfaces share is exactly where a",
+    "renamed field goes unnoticed until a report renders blank."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "extension/engine/**/*.js",
+    "eval/**/*.mjs",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "firefox-build",
+    "dist"
+  ]
+}

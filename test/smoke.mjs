@@ -7,11 +7,12 @@ import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
 import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
-import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen } from "../extension/engine/sourceProfiler.js";
+import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen } from "../extension/engine/sourceProfiler.js";
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
 import { summarizeRisk } from "../extension/engine/explain.js";
+import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS, HIGH_RISK_AT } from "../extension/engine/sourceScore.js";
 
 let failures = 0;
 function check(name, cond, extra = "") {
@@ -265,10 +266,31 @@ const oldTs = "19961231000000";
 check("domainAgeDays parses recent timestamp", domainAgeDays(recentTs) >= 28 && domainAgeDays(recentTs) <= 32, domainAgeDays(recentTs));
 check("domainAgeDays for 1996 is very old", domainAgeDays(oldTs) > 9000);
 check("formatFirstSeen renders YYYY-MM", formatFirstSeen("19961231000000") === "1996-12");
-const freshPage = computeFlags({ url: "https://fresh-campaign-site.org/report", title: "Country X passes law", fetched: true, author: "Jane Doe", aboutLink: true, excerpt: "...", firstSeen: recentTs });
-check("fresh domain (<90d) flagged", freshPage.flags.some((f) => f.key === "domain-fresh"), JSON.stringify(freshPage.flags));
-const oldPage = computeFlags({ url: "https://long-standing-analysis.org/report", title: "Country X passes law", fetched: true, author: "Jane Doe", aboutLink: true, excerpt: "...", firstSeen: oldTs });
-check("old domain not freshness-flagged", !oldPage.flags.some((f) => f.key === "domain-fresh" || f.key === "domain-unarchived"));
+const page = (over) => computeFlags({
+  url: "https://analysis-site.org/report", title: "Country X passes law", fetched: true,
+  author: "Jane Doe", aboutLink: true, excerpt: "...", ...over
+});
+const keysOf = (r) => r.flags.map((f) => f.key);
+
+check("fresh domain (<90d) flagged",
+  keysOf(page({ archive: { ageDays: 30, months: 1 } })).includes("domain-fresh"));
+check("long, continuously archived domain earns a legitimacy signal",
+  keysOf(page({ archive: { ageDays: 9000, months: 200 } })).includes("domain-long-history"));
+check("old domain is not freshness-flagged",
+  !keysOf(page({ archive: { ageDays: 9000, months: 200 } })).some((k) => k === "domain-fresh" || k === "domain-unarchived"));
+
+// Aged domains are sold specifically to defeat age checks, so age without a
+// publishing history to match it is itself the signal.
+check("aged domain with almost no archive history is flagged as a shell",
+  keysOf(page({ archive: { ageDays: 4000, months: 2 } })).includes("domain-shell"));
+check("aged shell does NOT get the long-history legitimacy signal",
+  !keysOf(page({ archive: { ageDays: 4000, months: 2 } })).includes("domain-long-history"));
+check("a young site publishing sporadically is flagged as thin",
+  keysOf(page({ archive: { ageDays: 550, months: 3 } })).includes("domain-thin-history"));
+check("a young site publishing consistently is not flagged as thin",
+  !keysOf(page({ archive: { ageDays: 550, months: 16 } })).includes("domain-thin-history"));
+check("a failed archive lookup emits no archive signal at all",
+  !keysOf(page({ archive: null })).some((k) => k.startsWith("domain-")));
 
 // --- i18n (en/ar parity, fallback, formatting) --------------------------------
 console.log("i18n checks:");
@@ -507,49 +529,60 @@ console.log("\nssrf guard:");
 // --- plain-language risk explanation ----------------------------------------
 console.log("\nrisk explanation:");
 {
-  const src = (flags, established = false) => ({
+  // Sources as the profiler emits them: flags carry weights and severities, and
+  // the source carries the level its score earned.
+  const src = (keys, level, established = false) => ({
     url: "https://example.org/a",
     siteName: "example.org",
     established,
-    flags: flags.map((key) => ({ key, severity: key === "established" ? "info" : "high" }))
+    placementLevel: level,
+    flags: keys.map((key) => ({
+      key,
+      severity: key === "established" || key.startsWith("named-") || key.startsWith("has-") || key === "domain-long-history" ? "info" : "high"
+    }))
   });
 
   check("clean when every source is an established publisher",
-    summarizeRisk([src(["established"], true), src(["established"], true)]).level === "clean");
+    summarizeRisk([src(["established"], "clean", true), src(["established"], "clean", true)]).level === "clean");
 
   // Worst-first: paid placement must never be softened into "unnamed publisher".
   check("paid content outranks every other signal",
-    summarizeRisk([src(["no-author", "domain-fresh", "sponsored"])]).level === "paid");
+    summarizeRisk([src(["no-author", "domain-fresh", "sponsored"], "high")]).level === "paid");
 
-  check("GEO headline reads as planted",
-    summarizeRisk([src(["geo-question-headline", "no-author"])]).level === "planted");
+  check("a high placement score reads as planted",
+    summarizeRisk([src(["prompt-shaped-headline", "no-author", "domain-fresh"], "high")]).level === "planted");
 
-  check("a citation to a private address reads as planted",
-    summarizeRisk([src(["non-public-url"])]).level === "planted");
+  check("an elevated placement score reads as opaque, not planted",
+    summarizeRisk([src(["no-author", "domain-recent"], "elevated")]).level === "opaque");
 
-  check("unnamed / brand-new publishers read as opaque",
-    summarizeRisk([src(["no-author", "domain-fresh"])]).level === "opaque");
+  // THE regression that motivated the scoring rewrite: a question-shaped
+  // headline is ordinary journalism. If the source scored clean, the card must
+  // stay silent no matter which signals are present on it.
+  check("a cleared source is never announced as planted, whatever its signals",
+    summarizeRisk([src(["geo-question-headline", "domain-long-history"], "clean")]).level === "clean");
 
-  check("risk summary counts established sources for the reader",
+  check("positive signals are never quoted back as reasons to worry",
     (() => {
-      const r = summarizeRisk([src(["established"], true), src(["sponsored"])]);
+      const r = summarizeRisk([src(["sponsored", "named-author", "has-about", "domain-long-history"], "high")]);
+      return r.reasonKeys.length === 1 && r.reasonKeys[0] === "sponsored";
+    })());
+
+  check("risk summary counts trustworthy sources for the reader",
+    (() => {
+      const r = summarizeRisk([src(["established"], "clean", true), src(["sponsored"], "high")]);
       return r.total === 2 && r.establishedCount === 1;
     })());
 
-  // The card names the source responsible, so the reader can go and look at it.
   check("risk summary names only the sources that triggered the level",
     (() => {
-      const r = summarizeRisk([src(["established"], true), src(["sponsored"])]);
+      const r = summarizeRisk([src(["established"], "clean", true), src(["sponsored"], "high")]);
       return r.offenders.length === 1 && r.offenders[0].reasonKeys.join() === "sponsored";
     })());
 
-  // A named source lists all of its reasons, triggering one first.
-  check("a flagged source lists every reason, triggering reason first",
+  check("a flagged source lists every concerning reason it has",
     (() => {
-      const r = summarizeRisk([src(["no-author", "geo-question-headline", "domain-fresh"])]);
-      return r.level === "planted" &&
-        r.offenders[0].reasonKeys[0] === "geo-question-headline" &&
-        r.offenders[0].reasonKeys.length === 3;
+      const r = summarizeRisk([src(["prompt-shaped-headline", "no-author", "domain-fresh"], "high")]);
+      return r.level === "planted" && r.offenders[0].reasonKeys.length === 3;
     })());
 
   check("empty source list degrades to clean, not a crash",
@@ -557,9 +590,7 @@ console.log("\nrisk explanation:");
 
   // Every flag the profiler can emit needs plain wording in BOTH locales,
   // otherwise a reader sees a raw i18n key where the explanation should be.
-  const FLAG_KEYS = ["sponsored", "geo-question-headline", "non-public-url",
-    "think-tank-unverified", "domain-unarchived", "domain-fresh", "no-author",
-    "no-about", "ai-generated-text", "established"];
+  const FLAG_KEYS = Object.keys(SIGNAL_WEIGHTS).concat("established");
   for (const loc of ["en", "ar"]) {
     const missing = FLAG_KEYS.filter((k) => t("flag." + k, loc) === "flag." + k);
     check(`every source flag has plain wording in ${loc}`, missing.length === 0, missing.join());
@@ -570,6 +601,45 @@ console.log("\nrisk explanation:");
     ).filter((k) => t(k, loc) === k);
     check(`every risk level has plain wording in ${loc}`, missing.length === 0, missing.join());
   }
+}
+
+// --- placement scoring -------------------------------------------------------
+console.log("\nplacement scoring:");
+{
+  check("no single signal can convict a source on its own",
+    Object.entries(SIGNAL_WEIGHTS)
+      .filter(([k]) => k !== "non-public-url" && k !== "sponsored")
+      .every(([, w]) => w < HIGH_RISK_AT),
+    "a lone signal reaching the high-risk threshold is exactly the bug this replaced");
+
+  check("paid content and non-public URLs ARE decisive alone",
+    scoreSignals(["sponsored"]).level === "high" && scoreSignals(["non-public-url"]).level === "high");
+
+  // The one-character evasion that motivated all of this.
+  check("dropping the question mark no longer clears a campaign site",
+    scoreSignals(["prompt-shaped-headline", "no-author", "no-about", "think-tank-unverified", "domain-fresh"]).level === "high");
+
+  check("a long, continuously archived publisher survives a question headline",
+    scoreSignals(["geo-question-headline", "named-author", "has-about", "domain-long-history"]).level === "clean");
+
+  check("scoring is order-independent and ignores duplicates",
+    scoreSignals(["no-author", "domain-fresh", "no-author"]).score === scoreSignals(["domain-fresh", "no-author"]).score);
+
+  check("unknown signal keys are ignored rather than scored as zero-weight noise",
+    scoreSignals(["not-a-real-signal"]).score === 0 && scoreSignals(["not-a-real-signal"]).contributions.length === 0);
+
+  check("classifyAuthor separates a byline from a placeholder",
+    classifyAuthor("R. Ellis") === "named" &&
+    classifyAuthor("Editorial Team") === "generic" &&
+    classifyAuthor("Admin") === "generic" &&
+    classifyAuthor("") === "none");
+
+  check("a prompt-shaped headline is detected without a question mark",
+    looksLikePromptShapedHeadline("How the law threatens human rights") &&
+    !looksLikePromptShapedHeadline("Parliament passes emergency law"));
+
+  check("the punctuated and unpunctuated headline signals never both fire",
+    !(looksLikeQuestionHeadline("Is the law a threat?") && looksLikePromptShapedHeadline("Is the law a threat?")));
 }
 
 // The exported Markdown is what actually gets pasted into a chat or an email,

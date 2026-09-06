@@ -32,3 +32,15 @@ jobs:
         run: |
           node -e "JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('eval/corpus.json','utf8'))"
+
+      # The detector's accuracy is a build gate, not a claim in a README.
+      # Offline and deterministic: real archive histories are committed in
+      # eval/corpus.json, so this needs no key and no network.
+      - name: Evaluate the placement detector
+        run: node eval/run.mjs
+
+      - name: Type-check the engine (JSDoc types, no build step)
+        run: |
+          npm install --no-save typescript@5.6
+          npx tsc -p jsconfig.json

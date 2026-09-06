@@ -68,7 +68,7 @@ export function createOpenRouterProvider(settings) {
   const name = "openrouter";
   const supportsSearch = false;
 
-  async function attempt(key, model, { system, user, json, temperature, signal }) {
+  async function attempt(key, model, { system, user, json, temperature, signal = undefined }) {
     const body = {
       model,
       temperature,
@@ -91,7 +91,9 @@ export function createOpenRouterProvider(settings) {
     );
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
-      const err = new Error(`OpenRouter error ${res.status}: ${errText.slice(0, 300)}`);
+      const err = /** @type {Error & {status?: number}} */ (
+        new Error(`OpenRouter error ${res.status}: ${errText.slice(0, 300)}`)
+      );
       err.status = res.status;
       throw err;
     }
@@ -100,7 +102,7 @@ export function createOpenRouterProvider(settings) {
     return { text: (msg && msg.content) || "", meta: { model } };
   }
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal = undefined }) {
     const key = (settings.openrouterKey || "").trim();
     if (!key) throw new Error("Missing OpenRouter API key. Open Facts Only settings and paste your key from openrouter.ai/keys.");
     const configured = (settings.openrouterModel || "google/gemini-2.5-flash").trim();
@@ -115,7 +117,8 @@ export function createOpenRouterProvider(settings) {
     for (const model of models) {
       try {
         return await attempt(key, model, { system, user, json, temperature, signal });
-      } catch (e) {
+      } catch (err) {
+        const e = /** @type {Error & {status?: number}} */ (err);
         if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
         lastErr = e;
         // model-specific unavailability → fall back to the next candidate

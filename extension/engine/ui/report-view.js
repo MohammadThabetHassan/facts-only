@@ -62,6 +62,11 @@ function safeLink(url, text) {
   return el("a", { href: u.href, target: "_blank", rel: "noopener noreferrer", text: text || u.hostname });
 }
 
+/**
+ * @param {HTMLElement} container
+ * @param {*} report
+ * @param {{onExport?: () => void, onCopy?: () => void, lang?: string}} [options]
+ */
 export function renderReport(container, report, { onExport, onCopy, lang = "en" } = {}) {
   const L = resolveLocale(lang);
   container.innerHTML = "";

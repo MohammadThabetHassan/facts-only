@@ -8,6 +8,7 @@
 import { fetchWithTimeout } from "./http.js";
 import { extractJson } from "./json.js";
 import { stripHtml, truncate, domainOf, normText, isPublicHttpUrl } from "./text.js";
+import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS } from "./sourceScore.js";
 
 // Domains treated as established publishers / primary sources (positives).
 // NOTE: this list signals ESTABLISHMENT (editorial standards, accountability,
@@ -57,6 +58,18 @@ export function looksLikeQuestionHeadline(title) {
   return QUESTION_STARTERS.some((re) => re.test(t));
 }
 
+// A headline shaped like a chatbot prompt but WITHOUT the question mark:
+// "How the law threatens human rights". Removing the "?" used to defeat the
+// GEO check outright, which made the whole heuristic a one-character evasion.
+// It carries less weight than the punctuated form because ordinary explanatory
+// journalism writes this way too - it is corroborating evidence, not a verdict.
+export function looksLikePromptShapedHeadline(title) {
+  const t = String(title || "").trim();
+  if (!t) return false;
+  if (looksLikeQuestionHeadline(t)) return false; // counted as the stronger signal
+  return QUESTION_STARTERS.some((re) => re.test(t));
+}
+
 export function isEstablishedDomain(url) {
   const d = domainOf(url);
   if (!d) return false;
@@ -69,25 +82,42 @@ export function isEstablishedDomain(url) {
 // Returns: "YYYYMMDD…" timestamp | "none" (archived never) | "error".
 const waybackCache = new Map();
 
-export async function fetchFirstSeen(domain, signal) {
+/**
+ * Archive profile for a domain, from one Wayback CDX request.
+ *
+ * Returns BOTH the first snapshot and how many distinct months have any
+ * snapshot at all. The second number is the point: domain age on its own is
+ * trivially bought - aged domains are sold specifically to clear age checks -
+ * whereas a decade of continuous archiving has to be lived through.
+ * `collapse=timestamp:6` buckets by month, so one request yields both.
+ *
+ * @returns {Promise<{firstSeen:string, months:number}|null>} null when the
+ *          lookup fails, so callers can stay silent rather than guess.
+ */
+export async function fetchArchiveProfile(domain, signal) {
   if (waybackCache.has(domain)) return waybackCache.get(domain);
-  let firstSeen = "error";
+  let profile = null;
   try {
     const res = await fetchWithTimeout(
-      `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&matchType=domain&limit=1&fl=timestamp`,
-      8000,
+      `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}` +
+        `&matchType=domain&fl=timestamp&collapse=timestamp:6&limit=400`,
+      12000,
       signal
     );
     if (res.ok) {
-      const text = (await res.text()).trim();
-      const ts = text.split("\n")[0]?.trim() || "";
-      firstSeen = /^\d{8}/.test(ts) ? ts : "none";
+      const rows = (await res.text())
+        .split("\n")
+        .map((r) => r.trim())
+        .filter((r) => /^\d{8}/.test(r));
+      profile = rows.length
+        ? { firstSeen: rows[0], months: new Set(rows.map((r) => r.slice(0, 6))).size }
+        : { firstSeen: "none", months: 0 };
     }
   } catch (e) {
-    firstSeen = "error";
+    profile = null;
   }
-  waybackCache.set(domain, firstSeen);
-  return firstSeen;
+  waybackCache.set(domain, profile);
+  return profile;
 }
 
 export function domainAgeDays(firstSeen, now = Date.now()) {
@@ -102,27 +132,31 @@ export function formatFirstSeen(firstSeen) {
   return /^\d{8}/.test(firstSeen || "") ? `${firstSeen.slice(0, 4)}-${firstSeen.slice(4, 6)}` : null;
 }
 
-export function domainAgeFlags(firstSeen, ageDays) {
-  const flags = [];
-  if (ageDays == null) {
-    flags.push({
-      key: "domain-unarchived",
-      label: "Domain has no Wayback Machine history at all",
-      detail: "The Wayback Machine holds no snapshot of this domain. Long-standing publishers are archived within months; a never-archived domain publishing 'research' is a strong influence-campaign signal (not proof on its own).",
-      severity: "medium"
-    });
-  } else if (ageDays < 90) {
-    flags.push({
-      key: "domain-fresh",
-      label: `Domain first archived only ${ageDays} days ago`,
-      detail: "Fresh domains publishing research are a documented pattern in influence campaigns. Cross-check the publisher's registration, funding, and authors.",
-      severity: "medium"
-    });
-  }
-  return flags;
-}
+/**
+ * A source as observed before scoring. `archive` is filled in separately by
+ * profileSources() because it comes from a different (keyless) service.
+ * @typedef {object} SourceProfile
+ * @property {string} url
+ * @property {boolean} ok
+ * @property {boolean} fetched
+ * @property {string} title
+ * @property {string} siteName
+ * @property {string} author
+ * @property {string} excerpt
+ * @property {boolean} [aboutLink]
+ * @property {boolean} [nonPublic]
+ * @property {string} [note]
+ * @property {string|null} [firstSeen]
+ * @property {{ageDays: number|null, months: number}|null} [archive]
+ */
 
+/**
+ * @param {string} url
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<SourceProfile>}
+ */
 async function fetchForProfile(url, signal) {
+  /** @type {SourceProfile} */
   const base = { url, ok: false, title: "", siteName: "", author: "", excerpt: "", fetched: false };
   try {
     const res = await fetchWithTimeout(url, 10000, signal);
@@ -156,90 +190,130 @@ async function fetchForProfile(url, signal) {
   }
 }
 
-// Deterministic GEO / content-farm heuristics.
-export function computeFlags(p) {
-  const flags = [];
-  const established = isEstablishedDomain(p.url);
+// Deterministic placement heuristics. Every detector below emits a SIGNAL KEY;
+// sourceScore.js decides what the combination is worth. No single detector can
+// convict a source on its own any more - that was the bug.
+//
+// Each flag also carries `weight` so a report can show exactly how much each
+// observation contributed, instead of an unexplained red badge.
+const FLAG_META = {
+  "non-public-url": {
+    label: "Citation points to a private or non-routable address",
+    detail: "This URL is not a public web source (loopback, intranet name, or raw IP address). The page was never fetched. A model citing an internal address is either hallucinating or repeating an injection payload from a page it read."
+  },
+  sponsored: { label: "Sponsored / advertorial content detected" },
+  "geo-question-headline": {
+    label: "Headline mimics a chatbot question (GEO pattern)",
+    detail: "The title is phrased like a user prompt. Content farms use question headlines so AI chatbots quote them. On its own this is weak - established outlets write question headlines too - so it is weighed alongside the other signals rather than treated as proof."
+  },
+  "prompt-shaped-headline": {
+    label: "Headline is shaped like a chatbot prompt",
+    detail: "Reads like the question a person would type into a chatbot, without the question mark. Weighted lightly on its own; dropping the question mark used to defeat this check entirely."
+  },
+  "think-tank-unverified": {
+    label: "Self-described think tank / observatory - verify registration and funding",
+    detail: "Fake think tanks are a documented influence pattern: they mimic neutral research names to get quoted by AI. Check whether the organisation actually exists and who funds it."
+  },
+  "ai-generated-text": { label: "Text shows signs of raw AI generation" },
+  "no-author": { label: "No named author", detail: "No author metadata found. Real reporting and research name their authors." },
+  "generic-author": {
+    label: "Byline names nobody",
+    detail: "The author field is a placeholder such as \"Admin\", \"Staff\" or \"Editorial Team\". Filling this field is the cheapest possible answer to an author check, so a generic value is treated as the gesture it is."
+  },
+  "no-about": { label: "No identifiable 'about' page", detail: "No visible about/contact/masthead link, which legitimate outlets almost always have." },
+  "domain-unarchived": {
+    label: "Domain has no Wayback Machine history at all",
+    detail: "The Wayback Machine holds no snapshot of this domain. Long-standing publishers are archived within months."
+  },
+  "domain-fresh": { label: "Domain first archived less than 90 days ago" },
+  "domain-new": { label: "Domain first archived less than a year ago" },
+  "domain-recent": { label: "Domain is only a few years old" },
+  "domain-shell": {
+    label: "Old registration, almost no publishing history",
+    detail: "The domain has existed for years but is archived in only a handful of months - the fingerprint of an aged domain bought off the shelf, which is the standard way to defeat a domain-age check."
+  },
+  "domain-thin-history": {
+    label: "Publishes too sporadically for its age",
+    detail: "A genuine outlet of this age is archived in most months. This one is not."
+  },
+  "domain-long-history": { label: "Continuously archived for years", positive: true },
+  "named-author": { label: "Names its author", positive: true },
+  "has-about": { label: "Has an about/contact page", positive: true },
+  established: { label: "Established publisher or primary source", positive: true }
+};
+
+/** Signal keys detected on a fetched page, before scoring. */
+export function detectSignals(p) {
+  const out = [];
+  const title = p.title || "";
   const d = domainOf(p.url);
 
-  // A citation pointing at localhost, an intranet name, or an IP literal was
-  // never a real source. It is also the shape of a prompt-injection payload
-  // trying to make the extension reach into the user's network, so it is
-  // surfaced as high risk rather than quietly dropped.
-  if (p.nonPublic) {
-    flags.push({
-      key: "non-public-url",
-      label: "Citation points to a private or non-routable address",
-      detail: "This URL is not a public web source (loopback, intranet name, or raw IP address). Facts Only refused to fetch it. A model citing an internal address is either hallucinating or repeating an injection payload from a page it read.",
-      severity: "high"
-    });
-    return { flags, established: false, highRisk: true };
+  if (looksLikeQuestionHeadline(title)) out.push("geo-question-headline");
+  else if (looksLikePromptShapedHeadline(title)) out.push("prompt-shaped-headline");
+
+  if (p.fetched) {
+    const author = classifyAuthor(p.author);
+    if (author === "none") out.push("no-author");
+    else if (author === "generic") out.push("generic-author");
+    else out.push("named-author");
+
+    if (p.aboutLink === false) out.push("no-about");
+    else if (p.aboutLink === true) out.push("has-about");
   }
 
-  if (established) {
-    flags.push({ key: "established", label: "Established publisher or primary source", severity: "info" });
-    return { flags, established, highRisk: false };
+  const nameBlob = `${title} ${p.siteName || ""} ${d}`;
+  if (/(think ?tank|institute|observatory|foundation|forum|watch|monitor|\u0645\u0639\u0647\u062f|\u0645\u0631\u0635\u062f|\u0645\u0624\u0633\u0633\u0629|\u0645\u0646\u062a\u062f\u0649|\u0645\u0631\u0643\u0632 \u0627\u0644\u062f\u0631\u0627\u0633\u0627\u062a)/i.test(nameBlob)) {
+    out.push("think-tank-unverified");
   }
-
-  const title = p.title || "";
-  const questionHeadline = looksLikeQuestionHeadline(title);
-  if (questionHeadline) {
-    flags.push({
-      key: "geo-question-headline",
-      label: "Headline mimics a chatbot question (GEO pattern)",
-      detail: `Title "${title}" is phrased like a user prompt. Content farms deliberately use question headlines so AI chatbots quote them. Verify this publisher carefully.`,
-      severity: "high"
-    });
-  }
-  if (p.fetched && !p.author) {
-    flags.push({
-      key: "no-author",
-      label: "No named author",
-      detail: "No author metadata found in the page. Real reporting and research name their authors.",
-      severity: "medium"
-    });
-  }
-  if (p.fetched && p.aboutLink === false) {
-    flags.push({
-      key: "no-about",
-      label: "No identifiable 'about' page",
-      detail: "The page has no visible about/contact/masthead link, which legitimate outlets almost always have.",
-      severity: "medium"
-    });
-  }
-  const nameBlob = `${title} ${p.siteName} ${d}`;
-  if (
-    /(think ?tank|institute|observatory|foundation|forum|watch|monitor|معهد|مرصد|مؤسسة|منتدى|مركز الدراسات)/i.test(nameBlob) &&
-    !established
-  ) {
-    flags.push({
-      key: "think-tank-unverified",
-      label: "Self-described think tank / observatory — verify registration and funding",
-      detail: "Fake think tanks are a documented influence pattern: they mimic neutral research names to get quoted by AI. Check whether the organisation actually exists and who funds it.",
-      severity: "medium"
-    });
-  }
-  if (/(sponsored|paid post|paid for by|promoted content|advertorial|محتوى مدفوع|إعلان ممول)/i.test(p.excerpt || "")) {
-    flags.push({
-      key: "sponsored",
-      label: "Sponsored / advertorial content detected",
-      severity: "high"
-    });
+  if (/(sponsored|paid post|paid for by|promoted content|advertorial|\u0645\u062d\u062a\u0648\u0649 \u0645\u062f\u0641\u0648\u0639|\u0625\u0639\u0644\u0627\u0646 \u0645\u0645\u0648\u0644)/i.test(p.excerpt || "")) {
+    out.push("sponsored");
   }
   if (p.excerpt && /(as an ai( language| assistant)? model)/i.test(p.excerpt)) {
-    flags.push({
-      key: "ai-generated-text",
-      label: "Text shows signs of raw AI generation",
-      severity: "medium"
-    });
+    out.push("ai-generated-text");
   }
-  // Domain-age signal (Wayback Machine): fresh or never-archived domains
-  // publishing "research" are a documented influence-campaign pattern.
-  // Single source of truth — domainAgeFlags() is also exercised directly by tests.
-  if (p.firstSeen !== undefined && p.firstSeen !== "error") {
-    flags.push(...domainAgeFlags(p.firstSeen, domainAgeDays(p.firstSeen)));
+
+  out.push(...archiveSignals(p.archive));
+  return out;
+}
+
+function toFlag(key, weight) {
+  const meta = FLAG_META[key] || { label: key };
+  // Severity is derived from the weight so the two can never drift apart.
+  const severity = meta.positive || weight < 0 ? "info" : weight >= 25 ? "high" : "medium";
+  return { key, label: meta.label, detail: meta.detail, weight, severity };
+}
+
+export function computeFlags(p) {
+  const established = isEstablishedDomain(p.url);
+
+  // A citation pointing at localhost, an intranet name, or an IP literal was
+  // never a real source, and is the shape of an injection payload trying to
+  // make the extension reach into the user's network. Short-circuit.
+  if (p.nonPublic) {
+    return {
+      flags: [toFlag("non-public-url", SIGNAL_WEIGHTS["non-public-url"])],
+      established: false,
+      highRisk: true,
+      score: SIGNAL_WEIGHTS["non-public-url"],
+      level: "high"
+    };
   }
-  return { flags, established, highRisk: flags.some((f) => f.severity === "high") };
+
+  // The allowlist is now only a short-circuit for primary sources - courts, UN
+  // bodies, government gazettes, wire services - not the definition of a real
+  // publisher. Everything else earns its standing from the evidence below.
+  if (established) {
+    return { flags: [toFlag("established", 0)], established: true, highRisk: false, score: 0, level: "clean" };
+  }
+
+  const scored = scoreSignals(detectSignals(p));
+  return {
+    flags: scored.contributions.map((c) => toFlag(c.key, c.weight)),
+    established,
+    highRisk: scored.level === "high",
+    score: scored.score,
+    level: scored.level
+  };
 }
 
 // Check whether an evidence quote actually appears on the fetched page.
@@ -297,6 +371,12 @@ Return JSON exactly in this shape:
   });
 }
 
+/**
+ * @param {*} provider
+ * @param {*} settings
+ * @param {string[]} urls
+ * @param {{fetchSources?: boolean, seedTitles?: Record<string,string>, signal?: AbortSignal}} [options]
+ */
 export async function profileSources(provider, settings, urls, { fetchSources = true, seedTitles = {}, signal } = {}) {
   const unique = [...new Set(urls.filter((u) => /^https?:\/\//.test(u)))].slice(0, 12);
   if (unique.length === 0) return [];
@@ -306,6 +386,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
   const fetched = await Promise.all(
     unique.map(async (url) => {
       const established = isEstablishedDomain(url);
+      /** @type {SourceProfile} */
       let p;
       if (!isPublic(url)) {
         // Never fetched, never sent to the Wayback API, never fed to the model.
@@ -317,12 +398,15 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
         p = await fetchForProfile(url, signal);
         if (!p.title && seed(url)) p.title = seed(url);
       }
-      // Domain-age lookup for non-established domains (keyless Wayback CDX API).
+      // Archive-history lookup for non-established domains (keyless Wayback CDX).
       if (!established) {
         try {
-          p.firstSeen = await fetchFirstSeen(domainOf(url), signal);
+          const prof = await fetchArchiveProfile(domainOf(url), signal);
+          p.firstSeen = prof ? prof.firstSeen : null;
+          p.archive = prof ? { ageDays: domainAgeDays(prof.firstSeen), months: prof.months } : null;
         } catch (e) {
           p.firstSeen = null;
+          p.archive = null;
         }
       }
       return p;
@@ -349,9 +433,12 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
     author: p.author || "",
     established: p.established,
     highRisk: p.highRisk,
+    placementScore: p.score,
+    placementLevel: p.level,
     flags: p.flags,
     excerpt: p.excerpt || "",
     firstArchived: formatFirstSeen(p.firstSeen),
+    archivedMonths: p.archive ? p.archive.months : null,
     publisher: llmProfiles ? llmProfiles[i].publisher : "",
     likelyFunding: llmProfiles ? llmProfiles[i].likelyFunding : "",
     stance: llmProfiles ? llmProfiles[i].stance : "",
