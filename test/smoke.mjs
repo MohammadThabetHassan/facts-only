@@ -7,7 +7,7 @@ import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
 import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
-import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen } from "../extension/engine/sourceProfiler.js";
+import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen, hasPaidDisclosure } from "../extension/engine/sourceProfiler.js";
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
@@ -713,6 +713,50 @@ console.log("\nplacement scoring:");
       });
       return r.established === true && r.highRisk === true && r.flags.some((f) => f.key === "sponsored");
     })());
+
+  // Found by probing the detector rather than the score: `sponsored` is DECISIVE
+  // and was a bare word match against 12k of whole-page text, so any page that
+  // merely CONTAINED the word was branded "This is paid content" with no way for
+  // evidence to argue it down. A twelve-year-old outlet with a named byline was
+  // convicted three different ways. A disclosure now has to lead its segment.
+  {
+    const outlet = {
+      url: "https://www.example-tribune.com/x", siteName: "The Tribune", fetched: true,
+      author: "Amina Rahman", aboutLink: true, archive: { ageDays: 365 * 12, months: 130 }
+    };
+    const branded = (page) => computeFlags({ ...outlet, ...page }).highRisk === true;
+
+    check("reporting ON paid placement is not itself branded paid content",
+      !branded({
+        title: "How networks sell sponsored coverage to influence chatbots",
+        excerpt: "Agencies sell sponsored placements to clients who want favourable answers. Editors said the practice of advertorial content is spreading."
+      }),
+      "the tool's own subject matter must not convict the outlets that cover it");
+
+    check("a 'Sponsored' ad-slot label in page furniture does not convict the article",
+      !branded({
+        title: "Central bank holds interest rates steady",
+        excerpt: "Home World Business Culture. Sponsored. The central bank left its benchmark rate unchanged. Advertisement."
+      }),
+      "the bare word is the label on someone else's ad slot, not a disclosure about this page");
+
+    check("an explainer defining 'advertorial' is not branded paid content",
+      !branded({
+        title: "What is an advertorial, and how do you spot one",
+        excerpt: "An advertorial is paid content designed to look like journalism."
+      }));
+
+    check("a disclosure that leads its segment is still caught",
+      branded({ title: "Five reasons this clinic leads the region", excerpt: "Sponsored: this article was paid for by the advertiser." }) &&
+      branded({ title: "The law explained", excerpt: "Sponsored content produced in partnership with our commercial team." }));
+
+    check("hasPaidDisclosure separates a label from a mention",
+      hasPaidDisclosure("Sponsored content produced with our commercial team.") &&
+      hasPaidDisclosure("Paid for by the Committee.") &&
+      !hasPaidDisclosure("Sponsored") &&
+      !hasPaidDisclosure("critics call the advertorial misleading") &&
+      !hasPaidDisclosure(""));
+  }
 
   check("an allowlisted publisher with nothing paid is still short-circuited clean",
     (() => {

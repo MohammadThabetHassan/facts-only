@@ -261,6 +261,42 @@ const FLAG_META = {
   established: { label: "Established publisher or primary source", positive: true }
 };
 
+// A paid-content disclosure is a LABEL attached to this article, not any
+// occurrence of the word.
+//
+// `excerpt` is 12k of whole-page text, so navigation, sidebars, ad-slot
+// furniture and body prose all land in it — and `sponsored` is DECISIVE, so a
+// bare word match could not be argued down by any amount of earned legitimacy.
+// A twelve-year-old outlet with a named byline was branded "This is paid
+// content" for three entirely legitimate pages: an investigation *into* paid
+// placement, an explainer defining the term, and an ordinary news article
+// carrying a "Sponsored" ad-slot label in the page furniture.
+//
+// So a disclosure has to look like one: disclosure phrasing (not the bare
+// word), and it has to LEAD its segment the way a real label does. Reporting
+// about the practice embeds the term mid-sentence; ad furniture is the bare
+// word standing alone. The cost is a genuine advertorial that discloses only
+// mid-sentence, which is the rarer and less damaging miss.
+const DISCLOSURE_LEAD =
+  /^(?:sponsored\s*(?:content|post|article|feature|story|by\b|[:—-])|paid\s*(?:post|content)\b|paid\s+for\s+by\b|promoted\s+content\b|advertorial\b|branded\s+content\b|محتوى مدفوع|إعلان ممول)/i;
+
+// The bare word on its own discloses nothing about *this* article: it is the
+// label on an ad slot somewhere else on the page.
+const AD_FURNITURE = /^(?:sponsored|advertisement|advertisements|promoted|ads?|إعلان)$/i;
+
+/**
+ * @param {string} excerpt
+ * @returns {boolean} true when the page discloses that THIS article was paid for.
+ */
+export function hasPaidDisclosure(excerpt) {
+  return String(excerpt || "")
+    .split(/[.\n\r|•·—]+/)
+    .some((seg) => {
+      const s = seg.trim();
+      return Boolean(s) && !AD_FURNITURE.test(s) && DISCLOSURE_LEAD.test(s);
+    });
+}
+
 /** Signal keys detected on a fetched page, before scoring. */
 export function detectSignals(p) {
   const out = [];
@@ -284,7 +320,7 @@ export function detectSignals(p) {
   if (/(think ?tank|institute|observatory|foundation|forum|watch|monitor|\u0645\u0639\u0647\u062f|\u0645\u0631\u0635\u062f|\u0645\u0624\u0633\u0633\u0629|\u0645\u0646\u062a\u062f\u0649|\u0645\u0631\u0643\u0632 \u0627\u0644\u062f\u0631\u0627\u0633\u0627\u062a)/i.test(nameBlob)) {
     out.push("think-tank-unverified");
   }
-  if (/(sponsored|paid post|paid for by|promoted content|advertorial|\u0645\u062d\u062a\u0648\u0649 \u0645\u062f\u0641\u0648\u0639|\u0625\u0639\u0644\u0627\u0646 \u0645\u0645\u0648\u0644)/i.test(p.excerpt || "")) {
+  if (hasPaidDisclosure(p.excerpt)) {
     out.push("sponsored");
   }
   if (p.excerpt && /(as an ai( language| assistant)? model)/i.test(p.excerpt)) {
