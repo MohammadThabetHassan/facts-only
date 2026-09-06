@@ -4,6 +4,48 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [1.2.0] - 2026-09-07
+
+### Changed - the evaluation now reports a held-out number
+
+SIGNAL_WEIGHTS was hand-set while looking at the 111-publisher corpus, which
+means a number measured on all of it was a fit, not a measurement. A reviewer
+would have been right to say so.
+
+The corpus is now split by a stable hash of the domain name - not by shuffling,
+not by index, so the split cannot drift toward whichever half flatters the
+result - and the **held-out half carries the headline**:
+
+|                | publishers | accused |
+| -------------- | ---------- | ------- |
+| tuning         | 71         | 0       |
+| **held out**   | **40**     | **0**   |
+| whole corpus   | 111        | 0       |
+
+No tuning/held-out gap. The tuning row stays printed in the output so a future
+gap is visible rather than found by someone else, and the discipline is written
+down: weights may be informed by the tuning half, and a worse held-out number
+gets published worse.
+
+### Security
+
+- **Closed a redirect bypass in the SSRF guard.** The guard validated the URL
+  requested, never the one reached; fetch follows redirects, so a public
+  https://evil.example/r answering 302 -> http://127.0.0.1:8080/admin walked
+  past it and its body was read into the next model prompt. res.url is now
+  re-validated before the body is touched. Documented as a mitigation, not a
+  fix: the request is issued before res.url can be seen, so a redirect remains
+  a blind probe - it just no longer exfiltrates.
+
+### Added
+
+- The E2E suite loads the real unpacked extension and asserts on its pages under
+  the MV3 content security policy - where the browser allows it. Several Chrome
+  builds ignore --load-extension in headless mode, including the one on the
+  development machine, so the suite reports SKIP there rather than passing. A
+  check that cannot run is not a check that passed, and docs/VERIFICATION.md now
+  carries it as a manual pre-release step.
+
 ## [1.1.0] — 2026-09-06
 
 The detector stopped being a set of plausible heuristics and became a measured

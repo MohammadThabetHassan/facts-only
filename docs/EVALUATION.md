@@ -22,17 +22,53 @@ without a key, a network, or trusting this file.
 
 ## Current results
 
-| | result | previous rule |
+Headline numbers are from the **held-out half** of the corpus — see
+[Tuning and held-out](#tuning-and-held-out) for why that distinction is the
+difference between a measurement and a fit.
+
+| | held-out result | previous rule |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | **0 / 111 (0%)** | 111 / 111 (100%) |
-| Legitimate publishers given any warning | **1 / 111 (0.9%)** | — |
+| Legitimate publishers accused of placement | **0 / 40 (0%)** | 40 / 40 (100%) |
+| Legitimate publishers given any warning | **0 / 40 (0%)** | — |
 | Adversary rungs detected (below the ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 | First rung that slips past | **none below the ceiling** | rung 1 |
+
+Across the whole 111-publisher corpus: **0 accused**, 1 given a lesser caution
+(documented below). The tuning half also scores 0 accused, so there is no
+tuning/held-out gap — which is the result you want, and the one you are only
+entitled to report if you looked.
 
 "Previous rule" is the binary rule this replaced: *any high-severity flag ⇒ high
 risk*, where a question-mark headline was high severity. It is kept in
 `eval/run.mjs` and scored on every run, so the improvement is measured rather
 than asserted.
+
+## Tuning and held-out
+
+`SIGNAL_WEIGHTS` was hand-set while looking at this corpus. A number measured on
+all of it would therefore be a **fit, not a measurement**, and a reviewer would
+be right to say so.
+
+So the corpus is split and the held-out half carries the headline:
+
+| | publishers | accused |
+| --- | --- | --- |
+| Tuning (weights may be informed by these) | 71 | 0 |
+| **Held out (the reported number)** | **40** | **0** |
+| Whole corpus | 111 | 0 |
+
+The split is by a **stable hash of the domain name** — not by shuffling, not by
+index. It must not move when outlets are added, reordered, or when the corpus is
+regenerated, otherwise "held out" quietly becomes whichever half flatters the
+result this week. Adding an outlet lands it in a bucket decided by its name alone.
+
+This only means anything with the discipline attached: weights may be informed by
+the tuning half; **if a held-out number comes back worse, it is published worse.**
+Tuning against the held-out half would make the whole exercise theatre.
+
+A large gap between the two rows would be the overfitting signal. There is none
+here — both are zero — but the tuning row stays printed in the output precisely so
+a future gap is visible rather than discovered by someone else.
 
 ## The legitimate corpus
 

@@ -94,7 +94,8 @@ histories collected by `eval/collect.mjs`).
 
 | | before | after |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | 111 / 111 (100%) | **0 / 111 (0%)** |
+| Legitimate publishers accused, held-out half | 40 / 40 (100%) | **0 / 40 (0%)** |
+| Legitimate publishers accused, whole corpus | 111 / 111 (100%) | **0 / 111 (0%)** |
 | Adversary rungs detected below the ceiling | 1 / 8 (12.5%) | **8 / 8 (100%)** |
 
 109 of the 111 publishers are **not** on any allowlist in this repository, and
@@ -111,3 +112,25 @@ ceiling: [EVALUATION.md](EVALUATION.md).
 **Not claimed:** recall against real influence campaigns. Naming real domains as
 influence operations on the strength of a heuristic is precisely what this tool
 refuses to do, so the negative class is synthetic and labelled as such.
+
+## 6. Still verified only by hand
+
+- **The extension origin.** Everything the automated E2E suite drives is served
+  over HTTP. Extension pages run under the Manifest V3 content security policy,
+  which is stricter. `test/e2e.mjs` contains the check and will run it wherever
+  the browser cooperates, but several Chrome builds ignore `--load-extension` in
+  headless mode and serve an error page for every `chrome-extension://` URL —
+  which is what happens on the development machine. The suite reports **SKIP**
+  there rather than passing, because a check that cannot run is not a check that
+  passed.
+
+  Until it runs somewhere, this is a manual step before any release:
+  `chrome://extensions` → Developer mode → Load unpacked → `extension/`, then
+  confirm (a) the install prompt does **not** request access to all sites,
+  (b) the first check prompts for host access, and (c) denying it yields
+  "we could not check who is behind these sources" rather than a crash or a
+  false all-clear.
+
+- **A live API run against the current code.** `scripts/live-check.mjs` exists
+  and has passed against an earlier revision; it has not been re-run since the
+  placement-scoring rewrite. It needs a key, which is the user's to supply.

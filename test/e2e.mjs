@@ -25,6 +25,7 @@ import { extname, join, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 const execFileAsync = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -76,6 +77,49 @@ function serve() {
   return new Promise((resolve) => server.listen(PORT, "127.0.0.1", () => resolve(server)));
 }
 
+// Chrome derives an unpacked extension's ID from the SHA-256 of its absolute
+// path: the first 32 hex characters, each mapped 0-f -> a-p. Knowing it lets us
+// address the extension's own pages without a UI.
+function unpackedExtensionId(dir) {
+  const hex = createHash("sha256").update(dir, "utf8").digest("hex").slice(0, 32);
+  return [...hex].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join("");
+}
+
+// Load the REAL extension and render one of its pages under the
+// chrome-extension:// origin.
+//
+// This is not the same test as the localhost one above, and that is the point:
+// extension pages run under the Manifest V3 content security policy, which is
+// far stricter than http://localhost. A page that works when served over HTTP
+// can still be refused here - and a manifest that Chrome rejects outright
+// produces an extension that simply is not there, which no amount of unit
+// testing catches.
+async function extensionDom(browser, page) {
+  const extDir = join(ROOT, "extension");
+  const id = unpackedExtensionId(extDir);
+  const profile = await mkdtemp(join(tmpdir(), "fo-ext-"));
+  try {
+    const { stdout } = await execFileAsync(
+      browser,
+      [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        `--user-data-dir=${profile}`,
+        `--load-extension=${extDir}`,
+        `--disable-extensions-except=${extDir}`,
+        "--virtual-time-budget=15000",
+        "--dump-dom",
+        `chrome-extension://${id}/${page}`
+      ],
+      { maxBuffer: 32 * 1024 * 1024, timeout: 180000 }
+    );
+    return stdout;
+  } finally {
+    await rm(profile, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 async function domOf(browser, path) {
   const profile = await mkdtemp(join(tmpdir(), "fo-e2e-"));
   try {
@@ -99,6 +143,7 @@ async function domOf(browser, path) {
 }
 
 let failures = 0;
+let skipped = 0;
 function check(name, cond, extra = "") {
   if (cond) console.log(`  ok    ${name}`);
   else {
@@ -148,9 +193,43 @@ try {
   const panel = await domOf(browser, "/extension/panel/panel.html");
   check("panel page loads its module graph", /Facts Only/.test(panel));
   check("panel exposes the keyless button", /id="sources"/.test(panel));
+
+  // --- the actual extension, loaded unpacked --------------------------------
+  // Everything above is served over HTTP. Extension pages run under the MV3
+  // content security policy instead, which is stricter, so a page that works
+  // over HTTP can still be refused there.
+  //
+  // Whether this can be automated depends on the browser: several Chrome builds
+  // ignore --load-extension in headless mode entirely and serve an error page
+  // for every chrome-extension:// URL. When that happens the honest outcome is
+  // SKIPPED, announced - not a pass (which would be a lie) and not a failure
+  // (which would be blaming the code for the environment). This path then stays
+  // on the manual checklist in docs/VERIFICATION.md.
+  console.log("\nreal extension, loaded unpacked:");
+  const extPanel = await extensionDom(browser, "panel/panel.html");
+  if (!/Facts Only/.test(extPanel)) {
+    skipped++;
+    console.log("  SKIP  headless Chrome did not load the unpacked extension in this environment");
+    console.log("        -> the extension origin is UNVERIFIED here; check it manually:");
+    console.log("           chrome://extensions -> Developer mode -> Load unpacked -> extension/");
+  } else {
+    check("Chrome accepts the manifest and serves the extension's own pages",
+      /Facts Only/.test(extPanel));
+    check("the ES module graph resolves under the MV3 content security policy",
+      /id="sources"/.test(extPanel) && /id="settings"/.test(extPanel));
+
+    const extPopup = await extensionDom(browser, "popup/popup.html");
+    check("the toolbar popup renders", /Facts Only/.test(extPopup));
+    check("the popup leads with the no-key path, not an API-key wall",
+      /No API key needed/i.test(extPopup), extPopup.slice(0, 300));
+  }
 } finally {
   server.close();
 }
 
-console.log(failures === 0 ? "\nE2E CHECKS PASSED" : `\n${failures} E2E CHECK(S) FAILED`);
+console.log(
+  failures === 0
+    ? `\nE2E CHECKS PASSED${skipped ? ` (${skipped} skipped - see above)` : ""}`
+    : `\n${failures} E2E CHECK(S) FAILED`
+);
 process.exit(failures === 0 ? 0 : 1);

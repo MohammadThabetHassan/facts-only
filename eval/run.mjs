@@ -130,6 +130,34 @@ const WORST_CASE_HEADLINES = [
   "Who is really paying for the pipeline?"
 ];
 
+// --- tuning / held-out split -------------------------------------------------
+//
+// SIGNAL_WEIGHTS were hand-set while looking at this corpus, which means a
+// number measured on all of it is a fit, not a measurement, and a reviewer is
+// entitled to say so.
+//
+// So the corpus is split deterministically and the HELD-OUT half carries the
+// headline. The split is by a stable hash of the domain, not by shuffling or by
+// index: it must not move when outlets are added, reordered, or when the file is
+// regenerated, or "held out" becomes whatever happens to flatter the result this
+// week. Adding an outlet lands it in a fixed bucket decided by its name alone.
+//
+// The discipline this only works with: weights may be informed by the TUNING
+// half. If a held-out number comes back worse, it gets published worse. Tuning
+// against the held-out half would make this theatre.
+function bucketOf(domain) {
+  // FNV-1a, the same hash the engine uses for cache keys. Any stable hash does;
+  // what matters is that it depends only on the name.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < domain.length; i++) {
+    h ^= domain.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h % 100;
+}
+/** ~40% held out. */
+const isHeldOut = (domain) => bucketOf(domain) >= 60;
+
 const fpRows = corpus.outlets.map((o, i) => {
   const title = WORST_CASE_HEADLINES[i % WORST_CASE_HEADLINES.length];
   const page = asProfile({
@@ -144,6 +172,7 @@ const fpRows = corpus.outlets.map((o, i) => {
   return {
     domain: o.domain,
     region: o.region,
+    heldOut: isHeldOut(o.domain),
     allowlisted: !!o.allowlisted,
     years: +(o.archive.ageDays / 365).toFixed(1),
     months: o.archive.months,
@@ -224,10 +253,19 @@ const sensitivity = PERTURBATIONS.map(([name, mode]) => {
 });
 
 // --- results ----------------------------------------------------------------
-const n = fpRows.length;
-const falseAccusations = fpRows.filter((r) => r.accused);
-const falseWarnings = fpRows.filter((r) => r.warned);
-const baselineFalse = fpRows.filter((r) => r.baselineAccused);
+const nAll = fpRows.length;
+const heldOutRows = fpRows.filter((r) => r.heldOut);
+const tuningRows = fpRows.filter((r) => !r.heldOut);
+
+// The headline is the held-out half. The tuning half is reported beside it, so a
+// large gap between the two is visible rather than hidden - that gap IS the
+// overfitting signal.
+const falseAccusations = heldOutRows.filter((r) => r.accused);
+const falseWarnings = heldOutRows.filter((r) => r.warned);
+const baselineFalse = heldOutRows.filter((r) => r.baselineAccused);
+const tuningAccused = tuningRows.filter((r) => r.accused);
+const allAccused = fpRows.filter((r) => r.accused);
+const n = heldOutRows.length;
 
 // Level 8 is the documented ceiling: an adversary indistinguishable from a real
 // publisher on these signals. Excluded from the detection rate, and stated
@@ -241,6 +279,10 @@ const results = {
   corpusCollectedAt: corpus.collectedAt,
   legitimate: {
     n,
+    corpusTotal: nAll,
+    tuningN: tuningRows.length,
+    tuningFalselyAccused: tuningAccused.length,
+    allFalselyAccused: allAccused.length,
     falselyAccused: falseAccusations.length,
     falselyAccusedRate: +(falseAccusations.length / n).toFixed(4),
     anyWarning: falseWarnings.length,
@@ -265,9 +307,11 @@ if (JSON_OUT) {
 } else {
   const pct = (x) => `${(x * 100).toFixed(1)}%`;
   console.log(`\nPLACEMENT DETECTOR EVALUATION`);
-  console.log(`corpus collected ${corpus.collectedAt.slice(0, 10)} · ${n} real publishers, real Wayback histories\n`);
+  console.log(`corpus collected ${corpus.collectedAt.slice(0, 10)} · ${nAll} real publishers, real Wayback histories\n`);
 
-  console.log(`FALSE POSITIVES  (worst case: every outlet given a question-shaped headline)`);
+  console.log(`FALSE POSITIVES  \u2014 HELD-OUT SET  (worst case: every outlet given a question-shaped headline)`);
+  console.log(`  ${nAll} publishers split by a stable hash of the domain: ${tuningRows.length} tuning, ${n} held out.`);
+  console.log(`  Weights may be informed by the tuning half only. These are the held-out numbers.\n`);
   console.log(`  accused of placement   ${String(falseAccusations.length).padStart(3)}/${n}   ${pct(falseAccusations.length / n)}`);
   console.log(`  any warning at all     ${String(falseWarnings.length).padStart(3)}/${n}   ${pct(falseWarnings.length / n)}`);
   console.log(`  previous binary rule   ${String(baselineFalse.length).padStart(3)}/${n}   ${pct(baselineFalse.length / n)}   <- what this replaced`);
@@ -275,7 +319,13 @@ if (JSON_OUT) {
     console.log(`  offenders: ${falseAccusations.map((r) => `${r.domain} (${r.score})`).join(", ")}`);
   }
 
-  console.log(`\n  by region:`);
+  console.log(`\n  for comparison (not the headline):`);
+  console.log(`    tuning half accused    ${String(tuningAccused.length).padStart(3)}/${tuningRows.length}   ${pct(tuningAccused.length / tuningRows.length)}`);
+  console.log(`    whole corpus accused   ${String(allAccused.length).padStart(3)}/${nAll}   ${pct(allAccused.length / nAll)}`);
+  console.log(`    whole corpus warned    ${String(fpRows.filter((r) => r.warned).length).padStart(3)}/${nAll}   ${pct(fpRows.filter((r) => r.warned).length / nAll)}`);
+  console.log(`    a large tuning/held-out gap would be the overfitting signal.`);
+
+  console.log(`\n  by region (whole corpus):`);
   const regions = [...new Set(fpRows.map((r) => r.region))];
   for (const region of regions) {
     const rows = fpRows.filter((r) => r.region === region);
@@ -314,7 +364,8 @@ if (JSON_OUT) {
 // --- CI gate ----------------------------------------------------------------
 // Thresholds are the contract. Loosening one should be a visible, argued commit.
 const GATES = [
-  ["no legitimate publisher is accused of placement", results.legitimate.falselyAccused === 0],
+  ["no HELD-OUT legitimate publisher is accused of placement", results.legitimate.falselyAccused === 0],
+  ["no legitimate publisher anywhere in the corpus is accused", results.legitimate.allFalselyAccused === 0],
   ["at most 10% of legitimate publishers get any warning", results.legitimate.anyWarning / n <= 0.1],
   ["every adversary rung below the ceiling is detected", results.adversary.detected === results.adversary.rungsScored],
   ["detection beats the rule it replaced", results.adversary.detectedRate > results.adversary.baselineDetectedRate],

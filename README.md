@@ -14,6 +14,7 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
 ![Tests: 147 offline checks](https://img.shields.io/badge/tests-147%20offline%20checks-brightgreen)
 ![False positives: 0 of 111](https://img.shields.io/badge/false%20positives-0%20%2F%20111%20publishers-brightgreen)
+![Held-out: 0 of 40](https://img.shields.io/badge/held--out-0%20%2F%2040%20accused-brightgreen)
 
 </div>
 
@@ -52,8 +53,15 @@ on a real newsroom.
 
 | | result | the rule this replaced |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | **0 / 111 (0%)** | 111 / 111 (100%) |
+| Legitimate publishers accused of placement (held-out half) | **0 / 40 (0%)** | 40 / 40 (100%) |
 | Adversary rungs detected (below the stated ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
+
+The weights were hand-set against this corpus, so the headline is measured on a
+**held-out half** the tuning never touched — 40 publishers, split by a stable hash
+of the domain so the split cannot drift toward whatever flatters the result.
+Across the whole corpus it is also 0 accused of 111, and the tuning half scores
+the same, so there is no overfitting gap. The tuning number stays printed beside
+it so a future gap is visible.
 
 The 111 publishers carry **real Wayback histories** and are chosen to be hostile
 to this tool's known weaknesses: weighted toward the press no allowlist covers
