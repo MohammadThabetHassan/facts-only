@@ -89,17 +89,20 @@ Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
 
 The claim "it detects manipulation" was, until this release, an assertion. It is
 now a measurement that runs on every commit: `npm run eval`, offline and
-deterministic against `eval/corpus.json` (50 real publishers, real Wayback
+deterministic against `eval/corpus.json` (111 real publishers, real Wayback
 histories collected by `eval/collect.mjs`).
 
 | | before | after |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | 50 / 50 (100%) | **0 / 50 (0%)** |
+| Legitimate publishers accused of placement | 111 / 111 (100%) | **0 / 111 (0%)** |
 | Adversary rungs detected below the ceiling | 1 / 8 (12.5%) | **8 / 8 (100%)** |
 
-48 of the 50 publishers are **not** on any allowlist in this repository, and
+109 of the 111 publishers are **not** on any allowlist in this repository, and
 each is scored as though it had published the exact headline shape the detector
-hunts for — a harder test than reality.
+hunts for — a harder test than reality. 22 of them are real research institutions
+whose names deliberately trip the "self-described think tank" heuristic; all 22
+score clean. One outlet (an alias hostname with no archive record at all) draws a
+caution; it is documented rather than curated away.
 
 Five thresholds gate CI, including "no legitimate publisher is accused of
 placement". Full method, corpus criteria, adversary ladder and the documented

@@ -2,69 +2,472 @@
   "_comment": [
     "Legitimate-publisher corpus for the false-positive measurement.",
     "",
-    "Chosen to be hostile to this tool's known weakness: the old detector could",
-    "only recognise legitimacy by membership of a 63-domain allowlist, which was",
-    "overwhelmingly Anglo-American and European. So this list is deliberately",
-    "weighted toward outlets that allowlist does NOT contain - South Asian,",
-    "African, Middle Eastern, Latin American, South-East Asian and European",
-    "national press, plus independent investigative and academic publishers.",
+    "Chosen to be hostile to this tool's known weaknesses.",
     "",
-    "Inclusion criterion is narrow and checkable: a publisher with a masthead, a",
-    "named editorial staff, and a multi-year publishing record. It is NOT a",
-    "claim that any of these outlets is unbiased - see docs/SOURCE-LISTS.md.",
-    "None of these domains is in ESTABLISHED unless marked allowlisted by the",
-    "collector, so almost every one of them has to earn its score from evidence."
+    "1. The old detector could only recognise legitimacy through a 63-domain",
+    "   allowlist that was overwhelmingly Anglo-American and European. So this",
+    "   list is weighted toward the press that allowlist does NOT contain:",
+    "   South Asian, African, Middle Eastern, Latin American, South-East Asian",
+    "   and European national press, plus independent investigative outlets.",
+    "",
+    "2. The 'think-tank-unverified' heuristic fires on names containing",
+    "   institute, observatory, foundation, forum, watch, monitor. Real research",
+    "   institutions are named exactly like that, so the 'Research institute'",
+    "   group below exists specifically to catch this heuristic defaming real",
+    "   organisations. Every entry there trips the name pattern by design.",
+    "",
+    "Inclusion criterion is narrow and checkable: a masthead or named staff, and",
+    "a multi-year publishing record. It is NOT a claim that any of these is",
+    "unbiased or accurate - see docs/SOURCE-LISTS.md."
   ],
   "outlets": [
-    { "domain": "dawn.com", "region": "South Asia" },
-    { "domain": "thehindu.com", "region": "South Asia" },
-    { "domain": "indianexpress.com", "region": "South Asia" },
-    { "domain": "thedailystar.net", "region": "South Asia" },
-    { "domain": "kathmandupost.com", "region": "South Asia" },
-    { "domain": "premiumtimesng.com", "region": "Africa" },
-    { "domain": "mg.co.za", "region": "Africa" },
-    { "domain": "nation.africa", "region": "Africa" },
-    { "domain": "theeastafrican.co.ke", "region": "Africa" },
-    { "domain": "dailymaverick.co.za", "region": "Africa" },
-    { "domain": "ahram.org.eg", "region": "Middle East" },
-    { "domain": "arabnews.com", "region": "Middle East" },
-    { "domain": "thenationalnews.com", "region": "Middle East" },
-    { "domain": "middleeasteye.net", "region": "Middle East" },
-    { "domain": "al-monitor.com", "region": "Middle East" },
-    { "domain": "hurriyetdailynews.com", "region": "Middle East" },
-    { "domain": "scmp.com", "region": "East Asia" },
-    { "domain": "japantimes.co.jp", "region": "East Asia" },
-    { "domain": "koreaherald.com", "region": "East Asia" },
-    { "domain": "straitstimes.com", "region": "South-East Asia" },
-    { "domain": "thejakartapost.com", "region": "South-East Asia" },
-    { "domain": "bangkokpost.com", "region": "South-East Asia" },
-    { "domain": "rappler.com", "region": "South-East Asia" },
-    { "domain": "buenosairesherald.com", "region": "Latin America" },
-    { "domain": "batimes.com.ar", "region": "Latin America" },
-    { "domain": "riotimesonline.com", "region": "Latin America" },
-    { "domain": "eltiempo.com", "region": "Latin America" },
-    { "domain": "elpais.com", "region": "Europe" },
-    { "domain": "spiegel.de", "region": "Europe" },
-    { "domain": "zeit.de", "region": "Europe" },
-    { "domain": "corriere.it", "region": "Europe" },
-    { "domain": "nrc.nl", "region": "Europe" },
-    { "domain": "irishtimes.com", "region": "Europe" },
-    { "domain": "kyivindependent.com", "region": "Europe" },
-    { "domain": "novayagazeta.eu", "region": "Europe" },
-    { "domain": "propublica.org", "region": "Investigative" },
-    { "domain": "bellingcat.com", "region": "Investigative" },
-    { "domain": "occrp.org", "region": "Investigative" },
-    { "domain": "icij.org", "region": "Investigative" },
-    { "domain": "themarkup.org", "region": "Investigative" },
-    { "domain": "revealnews.org", "region": "Investigative" },
-    { "domain": "theconversation.com", "region": "Academic" },
-    { "domain": "nature.com", "region": "Academic" },
-    { "domain": "sciencedirect.com", "region": "Academic" },
-    { "domain": "cambridge.org", "region": "Academic" },
-    { "domain": "brookings.edu", "region": "Policy" },
-    { "domain": "chathamhouse.org", "region": "Policy" },
-    { "domain": "crisisgroup.org", "region": "Policy" },
-    { "domain": "hrw.org", "region": "Policy" },
-    { "domain": "amnesty.org", "region": "Policy" }
+    {
+      "domain": "dawn.com",
+      "region": "South Asia"
+    },
+    {
+      "domain": "thehindu.com",
+      "region": "South Asia"
+    },
+    {
+      "domain": "indianexpress.com",
+      "region": "South Asia"
+    },
+    {
+      "domain": "thedailystar.net",
+      "region": "South Asia"
+    },
+    {
+      "domain": "kathmandupost.com",
+      "region": "South Asia"
+    },
+    {
+      "domain": "premiumtimesng.com",
+      "region": "Africa"
+    },
+    {
+      "domain": "mg.co.za",
+      "region": "Africa"
+    },
+    {
+      "domain": "nation.africa",
+      "region": "Africa"
+    },
+    {
+      "domain": "theeastafrican.co.ke",
+      "region": "Africa"
+    },
+    {
+      "domain": "dailymaverick.co.za",
+      "region": "Africa"
+    },
+    {
+      "domain": "ahram.org.eg",
+      "region": "Middle East"
+    },
+    {
+      "domain": "arabnews.com",
+      "region": "Middle East"
+    },
+    {
+      "domain": "thenationalnews.com",
+      "region": "Middle East"
+    },
+    {
+      "domain": "middleeasteye.net",
+      "region": "Middle East"
+    },
+    {
+      "domain": "al-monitor.com",
+      "region": "Middle East"
+    },
+    {
+      "domain": "hurriyetdailynews.com",
+      "region": "Middle East"
+    },
+    {
+      "domain": "scmp.com",
+      "region": "East Asia"
+    },
+    {
+      "domain": "japantimes.co.jp",
+      "region": "East Asia"
+    },
+    {
+      "domain": "koreaherald.com",
+      "region": "East Asia"
+    },
+    {
+      "domain": "straitstimes.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "thejakartapost.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "bangkokpost.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "rappler.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "buenosairesherald.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "batimes.com.ar",
+      "region": "Latin America"
+    },
+    {
+      "domain": "riotimesonline.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "eltiempo.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "elpais.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "spiegel.de",
+      "region": "Europe"
+    },
+    {
+      "domain": "zeit.de",
+      "region": "Europe"
+    },
+    {
+      "domain": "corriere.it",
+      "region": "Europe"
+    },
+    {
+      "domain": "nrc.nl",
+      "region": "Europe"
+    },
+    {
+      "domain": "irishtimes.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "kyivindependent.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "novayagazeta.eu",
+      "region": "Europe"
+    },
+    {
+      "domain": "propublica.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "bellingcat.com",
+      "region": "Investigative"
+    },
+    {
+      "domain": "occrp.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "icij.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "themarkup.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "revealnews.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "theconversation.com",
+      "region": "Academic"
+    },
+    {
+      "domain": "nature.com",
+      "region": "Academic"
+    },
+    {
+      "domain": "sciencedirect.com",
+      "region": "Academic"
+    },
+    {
+      "domain": "cambridge.org",
+      "region": "Academic"
+    },
+    {
+      "domain": "brookings.edu",
+      "region": "Policy"
+    },
+    {
+      "domain": "chathamhouse.org",
+      "region": "Policy"
+    },
+    {
+      "domain": "crisisgroup.org",
+      "region": "Policy"
+    },
+    {
+      "domain": "hrw.org",
+      "region": "Policy"
+    },
+    {
+      "domain": "amnesty.org",
+      "region": "Policy"
+    },
+    {
+      "domain": "tribune.com.pk",
+      "region": "South Asia"
+    },
+    {
+      "domain": "thedailystar.com.bd",
+      "region": "South Asia"
+    },
+    {
+      "domain": "himalayantimes.com",
+      "region": "South Asia"
+    },
+    {
+      "domain": "businessday.ng",
+      "region": "Africa"
+    },
+    {
+      "domain": "thecitizen.co.tz",
+      "region": "Africa"
+    },
+    {
+      "domain": "newtimes.co.rw",
+      "region": "Africa"
+    },
+    {
+      "domain": "egyptindependent.com",
+      "region": "Africa"
+    },
+    {
+      "domain": "dailynewsegypt.com",
+      "region": "Africa"
+    },
+    {
+      "domain": "thenational.scot",
+      "region": "Europe"
+    },
+    {
+      "domain": "politico.eu",
+      "region": "Europe"
+    },
+    {
+      "domain": "euobserver.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "balkaninsight.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "notesfrompoland.com",
+      "region": "Europe"
+    },
+    {
+      "domain": "hvg.hu",
+      "region": "Europe"
+    },
+    {
+      "domain": "delfi.lt",
+      "region": "Europe"
+    },
+    {
+      "domain": "vg.no",
+      "region": "Europe"
+    },
+    {
+      "domain": "dn.se",
+      "region": "Europe"
+    },
+    {
+      "domain": "hs.fi",
+      "region": "Europe"
+    },
+    {
+      "domain": "folha.uol.com.br",
+      "region": "Latin America"
+    },
+    {
+      "domain": "clarin.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "elfaro.net",
+      "region": "Latin America"
+    },
+    {
+      "domain": "animalpolitico.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "aristeguinoticias.com",
+      "region": "Latin America"
+    },
+    {
+      "domain": "vietnamnews.vn",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "khmertimeskh.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "malaymail.com",
+      "region": "South-East Asia"
+    },
+    {
+      "domain": "taipeitimes.com",
+      "region": "East Asia"
+    },
+    {
+      "domain": "chinafile.com",
+      "region": "East Asia"
+    },
+    {
+      "domain": "thediplomat.com",
+      "region": "East Asia"
+    },
+    {
+      "domain": "mediazona.by",
+      "region": "Investigative"
+    },
+    {
+      "domain": "theintercept.com",
+      "region": "Investigative"
+    },
+    {
+      "domain": "citizenlab.ca",
+      "region": "Investigative"
+    },
+    {
+      "domain": "lighthousereports.com",
+      "region": "Investigative"
+    },
+    {
+      "domain": "forbiddenstories.org",
+      "region": "Investigative"
+    },
+    {
+      "domain": "pewresearch.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "rand.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "cfr.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "carnegieendowment.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "sipri.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "iiss.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "odi.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "wri.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "reutersinstitute.politics.ox.ac.uk",
+      "region": "Research institute"
+    },
+    {
+      "domain": "hoover.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "epi.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "urban.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "ippr.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "bruegel.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "ecfr.eu",
+      "region": "Research institute"
+    },
+    {
+      "domain": "swp-berlin.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "clingendael.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "issafrica.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "orfonline.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "lowyinstitute.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "stimson.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "csis.org",
+      "region": "Research institute"
+    },
+    {
+      "domain": "mediamatters.org",
+      "region": "Media watch"
+    },
+    {
+      "domain": "niemanlab.org",
+      "region": "Media watch"
+    },
+    {
+      "domain": "cjr.org",
+      "region": "Media watch"
+    },
+    {
+      "domain": "poynter.org",
+      "region": "Media watch"
+    },
+    {
+      "domain": "rsf.org",
+      "region": "Media watch"
+    },
+    {
+      "domain": "cpj.org",
+      "region": "Media watch"
+    }
   ]
 }

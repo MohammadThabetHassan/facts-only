@@ -1,5 +1,5 @@
 {
-  "collectedAt": "2026-09-06T14:25:28.326Z",
+  "collectedAt": "2026-09-06T15:08:35.666Z",
   "note": "Real Wayback archive profiles. Regenerate with `node eval/collect.mjs` (resumable).",
   "outlets": [
     {
@@ -450,6 +450,555 @@
       "archive": {
         "ageDays": 10906,
         "months": 330
+      }
+    },
+    {
+      "domain": "tribune.com.pk",
+      "region": "South Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8790,
+        "months": 219
+      }
+    },
+    {
+      "domain": "thedailystar.com.bd",
+      "region": "South Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": null,
+        "months": 0
+      }
+    },
+    {
+      "domain": "himalayantimes.com",
+      "region": "South Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9048,
+        "months": 120
+      }
+    },
+    {
+      "domain": "businessday.ng",
+      "region": "Africa",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 3586,
+        "months": 95
+      }
+    },
+    {
+      "domain": "thecitizen.co.tz",
+      "region": "Africa",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7849,
+        "months": 207
+      }
+    },
+    {
+      "domain": "newtimes.co.rw",
+      "region": "Africa",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8972,
+        "months": 279
+      }
+    },
+    {
+      "domain": "egyptindependent.com",
+      "region": "Africa",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 5399,
+        "months": 178
+      }
+    },
+    {
+      "domain": "dailynewsegypt.com",
+      "region": "Africa",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 6710,
+        "months": 174
+      }
+    },
+    {
+      "domain": "thenational.scot",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 4297,
+        "months": 142
+      }
+    },
+    {
+      "domain": "politico.eu",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 4159,
+        "months": 138
+      }
+    },
+    {
+      "domain": "euobserver.com",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9406,
+        "months": 285
+      }
+    },
+    {
+      "domain": "balkaninsight.com",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 6904,
+        "months": 213
+      }
+    },
+    {
+      "domain": "notesfrompoland.com",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 4076,
+        "months": 123
+      }
+    },
+    {
+      "domain": "hvg.hu",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10851,
+        "months": 313
+      }
+    },
+    {
+      "domain": "delfi.lt",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9649,
+        "months": 297
+      }
+    },
+    {
+      "domain": "vg.no",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10844,
+        "months": 324
+      }
+    },
+    {
+      "domain": "dn.se",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10901,
+        "months": 329
+      }
+    },
+    {
+      "domain": "hs.fi",
+      "region": "Europe",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8299,
+        "months": 262
+      }
+    },
+    {
+      "domain": "folha.uol.com.br",
+      "region": "Latin America",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9097,
+        "months": 286
+      }
+    },
+    {
+      "domain": "clarin.com",
+      "region": "Latin America",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10903,
+        "months": 321
+      }
+    },
+    {
+      "domain": "elfaro.net",
+      "region": "Latin America",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10140,
+        "months": 312
+      }
+    },
+    {
+      "domain": "animalpolitico.com",
+      "region": "Latin America",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7621,
+        "months": 205
+      }
+    },
+    {
+      "domain": "aristeguinoticias.com",
+      "region": "Latin America",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 5254,
+        "months": 173
+      }
+    },
+    {
+      "domain": "vietnamnews.vn",
+      "region": "South-East Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 5443,
+        "months": 178
+      }
+    },
+    {
+      "domain": "malaymail.com",
+      "region": "South-East Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10087,
+        "months": 131
+      }
+    },
+    {
+      "domain": "taipeitimes.com",
+      "region": "East Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9781,
+        "months": 309
+      }
+    },
+    {
+      "domain": "chinafile.com",
+      "region": "East Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9827,
+        "months": 189
+      }
+    },
+    {
+      "domain": "thediplomat.com",
+      "region": "East Asia",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9455,
+        "months": 185
+      }
+    },
+    {
+      "domain": "mediazona.by",
+      "region": "Investigative",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 3740,
+        "months": 50
+      }
+    },
+    {
+      "domain": "theintercept.com",
+      "region": "Investigative",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7607,
+        "months": 154
+      }
+    },
+    {
+      "domain": "citizenlab.ca",
+      "region": "Investigative",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 3345,
+        "months": 111
+      }
+    },
+    {
+      "domain": "lighthousereports.com",
+      "region": "Investigative",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 3727,
+        "months": 51
+      }
+    },
+    {
+      "domain": "forbiddenstories.org",
+      "region": "Investigative",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 3233,
+        "months": 106
+      }
+    },
+    {
+      "domain": "pewresearch.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8449,
+        "months": 269
+      }
+    },
+    {
+      "domain": "rand.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10720,
+        "months": 317
+      }
+    },
+    {
+      "domain": "cfr.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9687,
+        "months": 310
+      }
+    },
+    {
+      "domain": "carnegieendowment.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8725,
+        "months": 278
+      }
+    },
+    {
+      "domain": "sipri.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10131,
+        "months": 299
+      }
+    },
+    {
+      "domain": "iiss.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9519,
+        "months": 295
+      }
+    },
+    {
+      "domain": "odi.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10087,
+        "months": 173
+      }
+    },
+    {
+      "domain": "wri.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10546,
+        "months": 322
+      }
+    },
+    {
+      "domain": "reutersinstitute.politics.ox.ac.uk",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7392,
+        "months": 213
+      }
+    },
+    {
+      "domain": "hoover.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10439,
+        "months": 310
+      }
+    },
+    {
+      "domain": "epi.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9685,
+        "months": 275
+      }
+    },
+    {
+      "domain": "urban.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10871,
+        "months": 325
+      }
+    },
+    {
+      "domain": "ippr.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9470,
+        "months": 273
+      }
+    },
+    {
+      "domain": "bruegel.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7823,
+        "months": 223
+      }
+    },
+    {
+      "domain": "ecfr.eu",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 6918,
+        "months": 202
+      }
+    },
+    {
+      "domain": "swp-berlin.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9290,
+        "months": 256
+      }
+    },
+    {
+      "domain": "clingendael.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 4496,
+        "months": 115
+      }
+    },
+    {
+      "domain": "issafrica.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 7620,
+        "months": 224
+      }
+    },
+    {
+      "domain": "orfonline.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8329,
+        "months": 211
+      }
+    },
+    {
+      "domain": "lowyinstitute.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8432,
+        "months": 258
+      }
+    },
+    {
+      "domain": "stimson.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10364,
+        "months": 317
+      }
+    },
+    {
+      "domain": "csis.org",
+      "region": "Research institute",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10847,
+        "months": 320
+      }
+    },
+    {
+      "domain": "mediamatters.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 9995,
+        "months": 282
+      }
+    },
+    {
+      "domain": "niemanlab.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 6546,
+        "months": 214
+      }
+    },
+    {
+      "domain": "cjr.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10903,
+        "months": 320
+      }
+    },
+    {
+      "domain": "poynter.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10750,
+        "months": 327
+      }
+    },
+    {
+      "domain": "rsf.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 8924,
+        "months": 290
+      }
+    },
+    {
+      "domain": "cpj.org",
+      "region": "Media watch",
+      "allowlisted": false,
+      "archive": {
+        "ageDays": 10902,
+        "months": 322
       }
     }
   ]

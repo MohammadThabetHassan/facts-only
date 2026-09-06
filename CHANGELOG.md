@@ -36,13 +36,14 @@ defeat age checks; continuous archiving cannot be bought retroactively.
 
 ### Added — accuracy is now a build gate
 
-`eval/` measures both failure modes offline and deterministically, against 50
-real publishers with real Wayback histories (48 not allowlisted) and a 9-rung
-adversary ladder. CI fails the build if the thresholds regress.
+`eval/` measures both failure modes offline and deterministically, against 111
+real publishers with real Wayback histories (109 not allowlisted, including 22
+research institutions whose names deliberately trip the think-tank heuristic) and
+a 9-rung adversary ladder. CI fails the build if the thresholds regress.
 
 | | before | after |
 | --- | --- | --- |
-| Legitimate publishers accused | 50/50 (100%) | **0/50 (0%)** |
+| Legitimate publishers accused | 111/111 (100%) | **0/111 (0%)** |
 | Adversary rungs detected | 1/8 (12.5%) | **8/8 (100%)** |
 
 Rung 8 — six years of continuous publishing — is **not** detected, is documented

@@ -24,8 +24,8 @@ without a key, a network, or trusting this file.
 
 | | result | previous rule |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | **0 / 50 (0%)** | 50 / 50 (100%) |
-| Legitimate publishers given any warning | **0 / 50 (0%)** | — |
+| Legitimate publishers accused of placement | **0 / 111 (0%)** | 111 / 111 (100%) |
+| Legitimate publishers given any warning | **1 / 111 (0.9%)** | — |
 | Adversary rungs detected (below the ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 | First rung that slips past | **none below the ceiling** | rung 1 |
 
@@ -36,7 +36,7 @@ than asserted.
 
 ## The legitimate corpus
 
-`eval/outlets.json` — 50 publishers, with **real Wayback archive histories**
+`eval/outlets.json` — 111 publishers, with **real Wayback archive histories**
 collected by `eval/collect.mjs` into `eval/corpus.json`.
 
 The list is deliberately hostile to this tool's known weakness. The old detector
@@ -46,23 +46,45 @@ suspect. That is a structural bias against exactly the independent and
 non-Western press that most needs not to be dismissed. So the corpus is weighted
 toward outlets that allowlist does **not** contain:
 
-| Region | Outlets | Accused |
+| Group | Outlets | Accused |
 | --- | --- | --- |
-| South Asia | 5 | 0 |
-| Africa | 5 | 0 |
+| South Asia | 8 | 0 |
+| Africa | 10 | 0 |
 | Middle East | 6 | 0 |
-| East Asia | 3 | 0 |
-| South-East Asia | 4 | 0 |
-| Latin America | 4 | 0 |
-| Europe | 8 | 0 |
-| Investigative | 6 | 0 |
+| East Asia | 6 | 0 |
+| South-East Asia | 6 | 0 |
+| Latin America | 9 | 0 |
+| Europe | 18 | 0 |
+| Investigative | 11 | 0 |
 | Academic | 4 | 0 |
 | Policy | 5 | 0 |
+| **Research institute** | **22** | **0** |
+| Media watch | 6 | 0 |
 
-**48 of the 50 are not on the allowlist.** They score clean because a long,
+The **Research institute** group exists to catch a specific way this tool could
+defame real organisations. `think-tank-unverified` fires on names containing
+*institute*, *observatory*, *foundation*, *forum*, *watch* or *monitor* — and
+that is exactly how RAND, Pew, SIPRI, Chatham House, Bruegel, the Lowy Institute
+and the Reuters Institute are named. All 22 score clean, because a name is worth
+20 points and three decades of continuous archiving is worth −30.
+
+**109 of the 111 are not on the allowlist.** They score clean because a long,
 continuously archived publishing history is itself evidence of an ordinary
 publisher — legitimacy is earned from the record, not from being on a list
 someone maintained by hand.
+
+### The one warning, and why it is left in
+
+`thedailystar.com.bd` scores 40 (*elevated* — a caution, not an accusation). The
+Wayback Machine has **no record of that hostname at all**: it is an alias of
+`thedailystar.net`, which is separately in the corpus and scores clean.
+
+The detector is behaving as designed — a hostname with no publishing history
+cannot be vouched for, and saying so is the honest output. It is left in the
+corpus rather than quietly removed, because a corpus curated until the number
+reads 0.0% measures the curator, not the detector. It is also a fair sample of
+the residual false-positive mode: **legitimate sites that the archive does not
+know about**, which in practice means new outlets and alias hostnames.
 
 Inclusion criterion is narrow and checkable: a masthead, named editorial staff,
 and a multi-year publishing record. It is **not** a claim that any of these
@@ -148,8 +170,9 @@ real newsroom.
 - **The corpus measures the archive signal most strongly**, because that is what
   the collector gathers. Page-level signals (byline, about page) are supplied as
   worst-case assumptions rather than crawled.
-- **50 outlets is small.** It is enough to have caught a 100% false-positive
-  rate; it is not enough to estimate a rate below a few percent.
+- **111 outlets is still small.** It is more than enough to have caught the 100%
+  false-positive rate of the previous rule, and enough to say the current rate is
+  under a couple of percent. It is not enough to distinguish 0.5% from 0.05%.
 - **No recall measurement against real campaigns**, for the reason given above.
   If a public, documented dataset of AI-targeted influence domains becomes
   available with permission to redistribute, it belongs here.

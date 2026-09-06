@@ -13,7 +13,7 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
 ![Tests: 143 offline checks](https://img.shields.io/badge/tests-143%20offline%20checks-brightgreen)
-![False positives: 0 of 50](https://img.shields.io/badge/false%20positives-0%20%2F%2050%20publishers-brightgreen)
+![False positives: 0 of 111](https://img.shields.io/badge/false%20positives-0%20%2F%20111%20publishers-brightgreen)
 
 </div>
 
@@ -52,16 +52,19 @@ on a real newsroom.
 
 | | result | the rule this replaced |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | **0 / 50 (0%)** | 50 / 50 (100%) |
+| Legitimate publishers accused of placement | **0 / 111 (0%)** | 111 / 111 (100%) |
 | Adversary rungs detected (below the stated ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 
-The 50 publishers carry **real Wayback histories** and are weighted toward the
-press no allowlist covers — South Asian, African, Middle Eastern, Latin
-American, South-East Asian, independent investigative. **48 of the 50 are not on
-any list inside this repo**; they score clean because a long, continuously
-archived publishing record is itself evidence of an ordinary publisher. Each one
-is scored as though it had published the exact headline shape the detector hunts
-for, which is harder than reality.
+The 111 publishers carry **real Wayback histories** and are chosen to be hostile
+to this tool's known weaknesses: weighted toward the press no allowlist covers
+(South Asian, African, Middle Eastern, Latin American, South-East Asian,
+independent investigative), plus **22 real research institutions whose names trip
+the "self-described think tank" heuristic on purpose** — RAND, Pew, SIPRI,
+Chatham House, Bruegel, the Lowy Institute. **109 of the 111 are not on any list
+inside this repo**; they score clean because a long, continuously archived
+publishing record is itself evidence of an ordinary publisher. Each one is scored
+as though it had published the exact headline shape the detector hunts for, which
+is harder than reality.
 
 The adversary is a campaign site plus each cheap change a real operator would
 make. The old rule lost at **rung 1: deleting one question mark.** Rung 6 is
