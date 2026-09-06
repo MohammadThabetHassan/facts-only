@@ -47,7 +47,8 @@ jobs:
       - name: Evaluate the placement detector
         run: node eval/run.mjs
 
-      - name: Type-check the engine (JSDoc types, no build step)
+      - name: Type-check and lint the engine (no build step, dev-only tooling)
         run: |
-          npm install --no-save typescript@5.6
+          npm install --no-save typescript@5.6 @types/node@22 eslint@9
           npx tsc -p jsconfig.json
+          npx eslint .

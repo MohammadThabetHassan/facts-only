@@ -38,7 +38,6 @@ let running = false;
 let currentAbort = null;
 let pendingSources = [];
 let pendingPage = "manual";
-let lastReport = null;
 
 
 // Fetching cited pages needs host access, which is now an OPTIONAL permission:
@@ -119,7 +118,6 @@ function afterReportRendered(report) {
       setTimeout(clearError, 2000);
     })
   });
-  lastReport = report;
 }
 
 async function run(text, sources = [], providerOverride = null, { ignoreCache = false } = {}) {

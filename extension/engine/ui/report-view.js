@@ -40,7 +40,6 @@ const TRUST_TONE = {
 };
 const QUOTE_TONE = { verified: "good", partial: "warn", "not-found": "bad", "page-not-fetched": "neutral", none: null };
 const VERDICTS = ["supported", "mixed", "contradicted", "unverifiable"];
-const STANCES = ["support", "contradict", "nuance"];
 
 function chip(text, tone) {
   const tt = TONE[tone] || TONE.neutral;

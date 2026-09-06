@@ -3,7 +3,7 @@
 // never loses a saved key. UI labels are localized (en/ar); changing the UI
 // language re-renders the form immediately.
 
-import { getSettings, saveSettings, DEFAULT_SETTINGS } from "./storage.js";
+import { getSettings, saveSettings } from "./storage.js";
 import { createProvider } from "../providers/index.js";
 import { t, resolveLocale, applyDirection } from "./i18n.js";
 

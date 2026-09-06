@@ -13,7 +13,7 @@ import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engi
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
 import { summarizeRisk } from "../extension/engine/explain.js";
 import { checkSources } from "../extension/engine/sourceCheck.js";
-import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS, HIGH_RISK_AT } from "../extension/engine/sourceScore.js";
+import { scoreSignals, classifyAuthor, SIGNAL_WEIGHTS, HIGH_RISK_AT } from "../extension/engine/sourceScore.js";
 
 let failures = 0;
 function check(name, cond, extra = "") {
@@ -168,7 +168,6 @@ try {
 
   // user abort mid-run must NOT be retried
   calls = 0;
-  const mid = new AbortController();
   globalThis.fetch = async (url, opts) => {
     calls++;
     return new Promise((resolve, reject) => {
