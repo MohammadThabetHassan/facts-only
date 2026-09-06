@@ -519,6 +519,29 @@ console.log("\nssrf guard:");
 {
   const profiled = await profileSources(null, {}, ["http://127.0.0.1:8080/admin"], { fetchSources: true });
   const s0 = profiled[0];
+  // A public URL that redirects to a private one used to walk straight past the
+  // guard: fetch follows redirects, and the guard only saw the URL we asked for.
+  {
+    const realFetch2 = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      url: "http://127.0.0.1:8080/admin", // where we actually landed
+      headers: { get: () => "text/html" },
+      text: async () => "<title>Internal admin</title><body>secrets</body>"
+    });
+    try {
+      const profiled = await profileSources(null, {}, ["https://public-looking.example/r"], { fetchSources: true });
+      const s0 = profiled[0];
+      check("a redirect to a private address is refused, not read",
+        s0.fetched === false && s0.highRisk === true, JSON.stringify(s0 && { fetched: s0.fetched, note: s0.fetchNote }));
+      check("the internal page body is never captured",
+        !JSON.stringify(profiled).includes("secrets"));
+    } finally {
+      globalThis.fetch = realFetch2;
+    }
+  }
+
   check("non-public citation is profiled but never fetched",
     profiled.length === 1 && s0.fetched === false, JSON.stringify(s0 && { fetched: s0.fetched }));
   check("non-public citation flagged high risk",

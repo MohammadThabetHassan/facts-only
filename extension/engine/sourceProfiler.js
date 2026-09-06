@@ -104,7 +104,8 @@ export async function fetchArchiveProfile(domain, signal) {
       12000,
       signal
     );
-    if (res.ok) {
+    // Fixed host today, but redirects are not ours to trust either.
+    if (res.ok && isPublicHttpUrl(res.url || "https://web.archive.org/")) {
       const rows = (await res.text())
         .split("\n")
         .map((r) => r.trim())
@@ -160,6 +161,24 @@ async function fetchForProfile(url, signal) {
   const base = { url, ok: false, title: "", siteName: "", author: "", excerpt: "", fetched: false };
   try {
     const res = await fetchWithTimeout(url, 10000, signal);
+
+    // The SSRF guard validated the URL we ASKED for. It cannot validate the one
+    // we ended up at: fetch follows redirects, so a perfectly public
+    // https://evil.example/r that answers 302 -> http://127.0.0.1:8080/admin
+    // walks straight past isPublicHttpUrl() and its body is read into the next
+    // model prompt. Re-check where we actually landed, before touching the body.
+    //
+    // Residual risk, and the reason this is a mitigation rather than a fix: the
+    // request itself has already been made by the time we can see res.url, so a
+    // redirect still works as a blind probe of the user's network. What it no
+    // longer does is exfiltrate - nothing internal is read, stored, or sent to a
+    // model. Browser fetch offers no way to vet a redirect target before it is
+    // followed (redirect:"manual" yields an opaque response cross-origin), so
+    // this is the strongest check available in this environment.
+    if (!isPublicHttpUrl(res.url || url)) {
+      return { ...base, nonPublic: true, note: "refused: redirected to a non-public address" };
+    }
+
     if (!res.ok) return { ...base, note: `HTTP ${res.status}` };
     const ct = res.headers.get("content-type") || "";
     if (!/text\/html|text\/plain|application\/xhtml/.test(ct)) {

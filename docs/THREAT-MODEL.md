@@ -84,7 +84,16 @@ defeats the obfuscated encodings (decimal `http://2130706433/`, hex, octal,
 IPv4-mapped IPv6) in a single rule. A refused citation is not silently dropped: it
 is surfaced in the report as a **high-risk** source flag, because a model citing an
 internal address is itself a detection event.
-**Residual risk:** DNS rebinding — a public hostname that resolves to a private
+**Redirect bypass (fixed 2026-09-07):** the guard validated the URL requested,
+not the one reached. `fetch` follows redirects, so a public
+`https://evil.example/r` answering `302 -> http://127.0.0.1:8080/admin` walked
+past the check and its body was read into the next model prompt. The final
+`res.url` is now re-validated before the body is touched.
+**Residual risk:** the request is still issued before `res.url` can be
+inspected, so a redirect remains usable as a blind probe; what it can no longer
+do is exfiltrate. Browser `fetch` gives no way to vet a redirect target before
+following it (`redirect:"manual"` is opaque cross-origin), so this is the
+strongest available check here. Also DNS rebinding — a public hostname that resolves to a private
 address — is invisible to a URL-level check. Blocking it needs resolution-time
 control the extension platform does not offer.
 
