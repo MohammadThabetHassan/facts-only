@@ -350,6 +350,17 @@ details.fl-collapsible > summary {
   color: var(--fl-accent);
 }
 
+/* RTL (Arabic UI) */
+[dir="rtl"] .fl-quote {
+  border-left: none;
+  border-right: 3px solid var(--fl-border);
+}
+[dir="rtl"] .fl-header,
+[dir="rtl"] .fl-actions,
+[dir="rtl"] .fl-btnrow {
+  flex-direction: row-reverse;
+}
+
 /* dark mode */
 @media (prefers-color-scheme: dark) {
   :root {

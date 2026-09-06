@@ -1,26 +1,28 @@
 // Shared settings form used by the popup, the side panel, and the web app.
 // All providers' fields stay in the DOM (shown/hidden) so switching providers
-// never loses a saved key.
+// never loses a saved key. UI labels are localized (en/ar); changing the UI
+// language re-renders the form immediately.
 
-import { getSettings, saveSettings } from "./storage.js";
+import { getSettings, saveSettings, DEFAULT_SETTINGS } from "./storage.js";
 import { createProvider } from "../providers/index.js";
+import { t, resolveLocale, applyDirection } from "./i18n.js";
 
 const PROVIDER_INFO = {
   gemini: {
-    label: "Gemini API (recommended — free, can search the web)",
-    hint: "Free key: aistudio.google.com/apikey → “Create API key”. Gemini can ground answers in live Google search results, which is what powers the independent evidence check."
+    label: "provider.gemini",
+    hint: "hint.gemini"
   },
   openrouter: {
-    label: "OpenRouter (free models, no web search)",
-    hint: "Key from openrouter.ai/keys. Add “:free” to a model name for free models. Free models cannot search the web, so evidence quality is lower."
+    label: "provider.openrouter",
+    hint: "hint.openrouter"
   },
   "openai-compat": {
-    label: "Custom OpenAI-compatible endpoint (advanced)",
-    hint: "Works with OpenAI, Groq, LM Studio, Ollama (OpenAI bridge)…"
+    label: "provider.compat",
+    hint: "hint.compat"
   },
   mock: {
-    label: "Demo mode (no key, canned results)",
-    hint: "Runs the full pipeline on stored demo data. Useful to see how reports look; it does not verify anything."
+    label: "provider.mock",
+    hint: "hint.mock"
   }
 };
 
@@ -50,125 +52,137 @@ function field(labelText, control, provider) {
 export function renderSettings(container) {
   container.innerHTML = "";
 
-  const providerSel = el("select", { id: "fl-provider" });
-  for (const [key, info] of Object.entries(PROVIDER_INFO)) {
-    providerSel.appendChild(el("option", { value: key, text: info.label }));
-  }
-
-  const inputs = {
-    geminiKey: el("input", { type: "password", placeholder: "Paste Gemini API key…" }),
-    geminiModel: el("input", { type: "text" }),
-    openrouterKey: el("input", { type: "password", placeholder: "Paste OpenRouter key…" }),
-    openrouterModel: el("input", { type: "text" }),
-    compatBase: el("input", { type: "text", placeholder: "https://api.openai.com/v1" }),
-    compatKey: el("input", { type: "password", placeholder: "Paste API key…" }),
-    compatModel: el("input", { type: "text" }),
-    grounding: el("input", { type: "checkbox" }),
-    maxClaims: el("input", { type: "number", min: "1", max: "8" })
-  };
-
-  const secondSel = el("select", { id: "fl-second" });
-  const SECOND_OPTIONS = [
-    ["none", "No second opinion (single-model verification)"],
-    ["gemini", "Gemini API"],
-    ["openrouter", "OpenRouter"],
-    ["openai-compat", "Custom OpenAI-compatible endpoint"]
-  ];
-  for (const [v, label] of SECOND_OPTIONS) secondSel.appendChild(el("option", { value: v, text: label }));
-
-  const secondHint = el("p", {
-    class: "fl-hint",
-    text: "Optional cross-check against AI monoculture: the checked claims are sent to a second, different provider and it is asked to find what the first review missed. Disagreements are shown in the report. It uses that provider's key/model fields above."
-  });
-
-  const hint = el("p", { class: "fl-hint" });
-  const status = el("p", { class: "fl-status" });
-  status.setAttribute("role", "status");
-
-  function refreshVisibility() {
-    const p = providerSel.value;
-    container.querySelectorAll(".fl-field[data-provider]").forEach((w) => {
-      w.style.display = p === "mock" ? "none" : w.dataset.provider === p ? "" : "none";
-    });
-    hint.textContent = PROVIDER_INFO[p].hint;
-  }
-
-  providerSel.addEventListener("change", refreshVisibility);
-
-  const saveBtn = el("button", { type: "button" }, [document.createTextNode("Save settings")]);
-  const testBtn = el("button", { type: "button", class: "secondary" }, [document.createTextNode("Test connection")]);
-
-  saveBtn.addEventListener("click", async () => {
-    await saveSettings(collect());
-    status.textContent = "Saved ✓";
-    setTimeout(() => (status.textContent = ""), 2500);
-  });
-
-  testBtn.addEventListener("click", async () => {
-    status.textContent = "Testing…";
-    try {
-      await saveSettings(collect());
-      const prov = createProvider(await getSettings());
-      const { text } = await prov.complete({
-        system: "You are a connectivity test.",
-        user: "Reply with exactly: OK",
-        task: "test",
-        temperature: 0
-      });
-      status.textContent = text.toLowerCase().includes("ok") ? "Connection works ✓" : `Unexpected reply: ${text.slice(0, 60)}`;
-    } catch (e) {
-      status.textContent = `Failed: ${String(e.message || e).slice(0, 140)}`;
-    }
-  });
-
-  container.appendChild(
-    el("div", { class: "fl-settings" }, [
-      field("Verification provider", providerSel),
-      field("Gemini API key", inputs.geminiKey, "gemini"),
-      field("Model", inputs.geminiModel, "gemini"),
-      field("OpenRouter API key", inputs.openrouterKey, "openrouter"),
-      field("Model", inputs.openrouterModel, "openrouter"),
-      field("Base URL", inputs.compatBase, "openai-compat"),
-      field("API key", inputs.compatKey, "openai-compat"),
-      field("Model", inputs.compatModel, "openai-compat"),
-      el("label", { class: "fl-check" }, [
-        inputs.grounding,
-        document.createTextNode(" Use Google Search grounding (Gemini) — check claims against the live web")
-      ]),
-      field("Max claims to check per run (1–8)", inputs.maxClaims),
-      el("div", { class: "fl-sep" }),
-      field("Second opinion provider (optional cross-check)", secondSel),
-      secondHint,
-      hint,
-      el("div", { class: "fl-btnrow" }, [saveBtn, testBtn]),
-      status,
-      el("p", {
-        class: "fl-hint fl-privacy",
-        text: "Your API key and settings stay on this device. The text you verify is sent only to the AI provider you choose."
-      })
-    ])
-  );
-
-  function collect() {
-    return {
-      provider: providerSel.value,
-      secondProvider: secondSel.value || "none",
-      geminiKey: inputs.geminiKey.value.trim(),
-      geminiModel: inputs.geminiModel.value.trim() || "gemini-2.5-flash",
-      openrouterKey: inputs.openrouterKey.value.trim(),
-      openrouterModel: inputs.openrouterModel.value.trim() || "google/gemini-2.5-flash",
-      compatBase: inputs.compatBase.value.trim() || "https://api.openai.com/v1",
-      compatKey: inputs.compatKey.value.trim(),
-      compatModel: inputs.compatModel.value.trim() || "gpt-4o-mini",
-      grounding: inputs.grounding.checked,
-      maxClaims: Math.min(Math.max(parseInt(inputs.maxClaims.value, 10) || 5, 1), 8)
-    };
-  }
-
   (async () => {
     const s = await getSettings();
+    const L = resolveLocale(s.language);
+
+    const providerSel = el("select", { id: "fl-provider" });
+    for (const [key, info] of Object.entries(PROVIDER_INFO)) {
+      providerSel.appendChild(el("option", { value: key, text: t(info.label, L) }));
+    }
+
+    const secondSel = el("select", { id: "fl-second" });
+    for (const [v, key] of [["none", "second.none"], ["gemini", "provider.gemini"], ["openrouter", "provider.openrouter"], ["openai-compat", "provider.compat"]]) {
+      secondSel.appendChild(el("option", { value: v, text: t(key, L) }));
+    }
+
+    const langSel = el("select", { id: "fl-language" });
+    for (const [v, key] of [["auto", "lang.auto"], ["en", "English"], ["ar", "العربية"]]) {
+      langSel.appendChild(el("option", { value: v, text: t(key, L) }));
+    }
+
+    const inputs = {
+      geminiKey: el("input", { type: "password", placeholder: "Paste Gemini API key…" }),
+      geminiModel: el("input", { type: "text" }),
+      openrouterKey: el("input", { type: "password", placeholder: "Paste OpenRouter key…" }),
+      openrouterModel: el("input", { type: "text" }),
+      compatBase: el("input", { type: "text", placeholder: "https://api.openai.com/v1" }),
+      compatKey: el("input", { type: "password", placeholder: "Paste API key…" }),
+      compatModel: el("input", { type: "text" }),
+      grounding: el("input", { type: "checkbox" }),
+      maxClaims: el("input", { type: "number", min: "1", max: "8" })
+    };
+
+    const hint = el("p", { class: "fl-hint" });
+    const secondHint = el("p", {
+      class: "fl-hint",
+      text: t("set.secondHint", L)
+    });
+    const status = el("p", { class: "fl-status" });
+    status.setAttribute("role", "status");
+
+    function refreshVisibility() {
+      const p = providerSel.value;
+      container.querySelectorAll(".fl-field[data-provider]").forEach((w) => {
+        w.style.display = p === "mock" ? "none" : w.dataset.provider === p ? "" : "none";
+      });
+      hint.textContent = PROVIDER_INFO[p] ? t(PROVIDER_INFO[p].hint, L) : "";
+    }
+
+    langSel.addEventListener("change", async () => {
+      await saveSettings({ ...s, language: langSel.value });
+      applyDirection(resolveLocale(langSel.value));
+      renderSettings(container); // re-render the whole form in the new locale
+    });
+
+    providerSel.addEventListener("change", refreshVisibility);
+
+    const saveBtn = el("button", { type: "button" }, [document.createTextNode(t("btn.save", L))]);
+    const testBtn = el("button", { type: "button", class: "secondary" }, [document.createTextNode(t("btn.test", L))]);
+
+    saveBtn.addEventListener("click", async () => {
+      await saveSettings(collect());
+      status.textContent = t("msg.saved", L);
+      setTimeout(() => (status.textContent = ""), 2500);
+    });
+
+    testBtn.addEventListener("click", async () => {
+      status.textContent = t("msg.testing", L);
+      try {
+        await saveSettings(collect());
+        const prov = createProvider(await getSettings());
+        const { text } = await prov.complete({
+          system: "You are a connectivity test.",
+          user: "Reply with exactly: OK",
+          task: "test",
+          temperature: 0
+        });
+        status.textContent = text.toLowerCase().includes("ok") ? t("msg.testOk", L) : `Unexpected reply: ${text.slice(0, 60)}`;
+      } catch (e) {
+        status.textContent = `Failed: ${String(e.message || e).slice(0, 140)}`;
+      }
+    });
+
+    container.appendChild(
+      el("div", { class: "fl-settings" }, [
+        field(t("set.provider", L), providerSel),
+        field(t("set.geminiKey", L), inputs.geminiKey, "gemini"),
+        field(t("set.model", L), inputs.geminiModel, "gemini"),
+        field(t("set.openrouterKey", L), inputs.openrouterKey, "openrouter"),
+        field(t("set.model", L), inputs.openrouterModel, "openrouter"),
+        field(t("set.compatBase", L), inputs.compatBase, "openai-compat"),
+        field(t("set.compatKey", L), inputs.compatKey, "openai-compat"),
+        field(t("set.model", L), inputs.compatModel, "openai-compat"),
+        el("label", { class: "fl-check" }, [
+          inputs.grounding,
+          document.createTextNode(t("set.grounding", L))
+        ]),
+        field(t("set.maxClaims", L), inputs.maxClaims),
+        el("div", { class: "fl-sep" }),
+        field(t("set.second", L), secondSel),
+        secondHint,
+        el("div", { class: "fl-sep" }),
+        field(t("set.language", L), langSel),
+        hint,
+        el("div", { class: "fl-btnrow" }, [saveBtn, testBtn]),
+        status,
+        el("p", {
+          class: "fl-hint fl-privacy",
+          text: t("set.privacy", L)
+        })
+      ])
+    );
+
+    function collect() {
+      return {
+        provider: providerSel.value,
+        secondProvider: secondSel.value || "none",
+        language: langSel.value || "auto",
+        geminiKey: inputs.geminiKey.value.trim(),
+        geminiModel: inputs.geminiModel.value.trim() || "gemini-2.5-flash",
+        openrouterKey: inputs.openrouterKey.value.trim(),
+        openrouterModel: inputs.openrouterModel.value.trim() || "google/gemini-2.5-flash",
+        compatBase: inputs.compatBase.value.trim() || "https://api.openai.com/v1",
+        compatKey: inputs.compatKey.value.trim(),
+        compatModel: inputs.compatModel.value.trim() || "gpt-4o-mini",
+        grounding: inputs.grounding.checked,
+        maxClaims: Math.min(Math.max(parseInt(inputs.maxClaims.value, 10) || 5, 1), 8)
+      };
+    }
+
     providerSel.value = s.provider;
     secondSel.value = s.secondProvider || "none";
+    langSel.value = s.language || "auto";
     inputs.geminiKey.value = s.geminiKey || "";
     inputs.geminiModel.value = s.geminiModel || "";
     inputs.openrouterKey.value = s.openrouterKey || "";
@@ -179,5 +193,6 @@ export function renderSettings(container) {
     inputs.grounding.checked = s.grounding !== false;
     inputs.maxClaims.value = s.maxClaims || 5;
     refreshVisibility();
+    applyDirection(L);
   })();
 }

@@ -8,6 +8,7 @@ import { lookupCache, saveToCache, settingsFingerprint } from "../engine/ui/cach
 import { verifyAnswer } from "../engine/pipeline.js";
 import { createProvider } from "../engine/providers/index.js";
 import { truncate, extractUrls } from "../engine/text.js";
+import { t, resolveLocale, applyDirection, applyI18n } from "../engine/ui/i18n.js";
 
 const $ = (id) => document.getElementById(id);
 const input = $("input");
@@ -18,6 +19,19 @@ const reportBox = $("report");
 const cacheBar = $("cachebar");
 
 renderSettings($("settings"));
+
+let currentLang = "en";
+(async () => {
+  currentLang = resolveLocale((await getSettings()).language);
+  applyDirection(currentLang);
+  applyI18n(document, currentLang);
+})();
+// Language changes in settings re-render the form; refresh the page chrome too.
+onChanged(["settings"], async () => {
+  currentLang = resolveLocale((await getSettings()).language);
+  applyDirection(currentLang);
+  applyI18n(document, currentLang);
+});
 
 let running = false;
 let currentAbort = null;
@@ -61,11 +75,11 @@ function showCacheBar(ts, rerun) {
   const mins = Math.max(1, Math.round((Date.now() - ts) / 60000));
   const note = document.createElement("span");
   note.className = "fl-dim";
-  note.textContent = `Loaded from cache (ran ${mins} min ago). `;
+  note.textContent = t("cache.loaded", currentLang, { mins }) + " ";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "secondary";
-  btn.textContent = "Re-run fresh";
+  btn.textContent = t("btn.rerun", currentLang);
   btn.addEventListener("click", rerun);
   cacheBar.appendChild(note);
   cacheBar.appendChild(btn);
@@ -74,10 +88,11 @@ function showCacheBar(ts, rerun) {
 
 function afterReportRendered(report) {
   renderReport(reportBox, report, {
+    lang: currentLang,
     onExport: () => exportReport(report),
     onCopy: () => navigator.clipboard.writeText(reportToMarkdown(report)).then(() => {
       clearError();
-      showError("Report copied to clipboard ✓");
+      showError(t("msg.copied", currentLang));
       setTimeout(clearError, 2000);
     })
   });
@@ -121,7 +136,7 @@ async function run(text, sources = [], providerOverride = null, { ignoreCache = 
     if (!providerOverride) await saveToCache(text, settingsFingerprint(settings), report);
   } catch (e) {
     if (e && (e.name === "AbortError" || /abort/i.test(String(e.message)))) {
-      showError("Verification cancelled. Nothing was saved.");
+      showError(t("msg.cancelled", currentLang));
     } else {
       showError(`Verification failed: ${String(e.message || e)}
 
@@ -183,7 +198,7 @@ async function renderHistory() {
 $("run").addEventListener("click", () => {
   const text = input.value.trim();
   if (text.length < 40) {
-    showError("Paste a longer answer (at least a couple of sentences) to verify.");
+    showError(t("msg.tooShort", currentLang));
     return;
   }
   // Merge links found in the pasted text (markdown or bare URLs) with any

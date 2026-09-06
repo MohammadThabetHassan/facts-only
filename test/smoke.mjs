@@ -9,6 +9,7 @@ import { stripHtml, truncate, hash32, domainOf, extractUrls, normText } from "..
 import { postJson } from "../extension/engine/http.js";
 import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuoteInPage, profileSources } from "../extension/engine/sourceProfiler.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
+import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
 
 let failures = 0;
 function check(name, cond, extra = "") {
@@ -232,6 +233,24 @@ check(
   })()
 );
 check("every trust key has a label", Object.keys(TRUST_SIGNALS).every((k) => !!TRUST_SIGNALS[k].label));
+
+// --- i18n (en/ar parity, fallback, formatting) --------------------------------
+console.log("i18n checks:");
+check("locales are exactly en + ar", locales().sort().join(",") === "ar,en", locales().join(","));
+const enKeys = keys("en").sort();
+const arKeys = keys("ar").sort();
+check("ar covers every en key", JSON.stringify(enKeys) === JSON.stringify(arKeys),
+  enKeys.filter((k) => !arKeys.includes(k)).concat(arKeys.filter((k) => !enKeys.includes(k))).join(","));
+check("every en value is a nonempty string", keys("en").every((k) => typeof t(k, "en") === "string" && t(k, "en").length > 0));
+check("t() returns the key itself when missing", t("__nonexistent__", "ar") === "__nonexistent__");
+check("t() formats {params}", (() => {
+  const s = t("m.coverage", "en", { checked: 3, total: 4, extra: 1 });
+  return s.includes("3") && s.includes("4") && s.includes("1");
+})());
+check("ar is RTL, en is not", isRtl("ar") === true && isRtl("en") === false);
+check("resolveLocale: explicit ar/en", resolveLocale("ar") === "ar" && resolveLocale("en") === "en");
+check("resolveLocale: unknown falls back to en", resolveLocale("xx") === "en");
+check("ar verdict labels differ from en (real translation)", t("verdict.supported", "ar") !== t("verdict.supported", "en"));
 
 // --- cache ------------------------------------------------------------------------
 console.log("cache checks:");

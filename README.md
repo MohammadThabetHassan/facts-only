@@ -91,6 +91,9 @@ page"), source warning flags, the bias & framing analysis, and an optional
 - 💾 **Cached & cancellable** — identical answers render instantly from cache
   (with a "re-run fresh" escape), and long runs can be cancelled mid-flight.
 - 🌗 **Light & dark** — follows your system theme.
+- 🌍 **English & Arabic UI** — RTL layout included; language follows the system or
+  is set manually. Model-generated report text stays in the language the
+  verification was performed in.
 
 ## Install (Chrome / Edge / Brave)
 

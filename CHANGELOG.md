@@ -4,6 +4,20 @@ All notable changes to FactLens are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [0.4.0] — 2026-09-06
+
+### Added
+- **Arabic UI (RTL)**: the full interface — settings, panel, web app, report
+  labels, verdict/stance/quote/trust chips — is now available in Arabic with
+  proper right-to-left layout. Language setting: Auto (follows system), English,
+  or العربية; `auto` follows the browser locale. Static UI strings are fully
+  translated; model-generated report text and heuristic flag details remain
+  English by design (documented in ARCHITECTURE.md).
+- **Store-ready packaging**: `scripts/package-extension.py` zips the extension
+  (31 files) into `dist/` for Chrome Web Store upload or manual distribution.
+- 9 new i18n tests (locale parity, fallback, parameter formatting, RTL flags) —
+  offline suite now at 82 checks.
+
 ## [0.3.0] — 2026-09-06
 
 ### Added

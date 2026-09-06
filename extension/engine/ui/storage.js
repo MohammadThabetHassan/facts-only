@@ -60,6 +60,7 @@ export function onChanged(keys, cb) {
 export const DEFAULT_SETTINGS = {
   provider: "gemini",
   secondProvider: "none",
+  language: "auto",
   geminiKey: "",
   geminiModel: "gemini-2.5-flash",
   openrouterKey: "",

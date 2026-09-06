@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FactLens — AI Answer Verifier",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
   "permissions": ["contextMenus", "storage", "sidePanel", "scripting"],
   "host_permissions": ["<all_urls>"],

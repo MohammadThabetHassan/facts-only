@@ -9,9 +9,9 @@
     <div class="fl-wrap">
       <header class="fl-header">
         <h1>🔍 FactLens</h1>
-        <span class="tag">AI-answer verifier</span>
+        <span class="tag" data-i18n="app.tagline">AI-answer verifier</span>
       </header>
-      <p class="fl-hint">
+      <p class="fl-hint" data-i18n="panel.hint">
         Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT,
         Gemini, Claude and Perplexity). FactLens splits it into claims, hunts for independent
         evidence, verifies quotes against the pages, and profiles every source for manipulation
@@ -19,16 +19,16 @@
       </p>
 
       <details class="fl-collapsible" id="settings-details">
-        <summary>⚙️ Settings &amp; API key</summary>
+        <summary data-i18n="settings.summary">⚙️ Settings &amp; API key</summary>
         <div id="settings" style="padding-top: 10px"></div>
       </details>
 
-      <textarea id="input" placeholder="Paste the AI answer you want to verify…"></textarea>
+      <textarea id="input" data-i18n-placeholder="input.placeholder" placeholder="Paste the AI answer you want to verify…"></textarea>
       <div class="fl-actions">
-        <button id="run" type="button">Verify answer</button>
-        <button id="cancel" type="button" class="secondary" hidden>Cancel</button>
-        <button id="demo" type="button" class="secondary">Try a demo</button>
-        <button id="clear" type="button" class="secondary">Clear</button>
+        <button id="run" type="button" data-i18n="btn.verify">Verify answer</button>
+        <button id="cancel" type="button" class="secondary" hidden data-i18n="btn.cancel">Cancel</button>
+        <button id="demo" type="button" class="secondary" data-i18n="btn.demo">Try a demo</button>
+        <button id="clear" type="button" class="secondary" data-i18n="btn.clear">Clear</button>
       </div>
 
       <div class="fl-bar" id="bar" hidden><div></div></div>
@@ -38,7 +38,7 @@
       <div id="report"></div>
 
       <details class="fl-collapsible" id="history-details" hidden>
-        <summary>🕘 Previous reports</summary>
+        <summary data-i18n="panel.history">🕘 Previous reports</summary>
         <div id="history" style="padding-top: 10px"></div>
       </details>
     </div>

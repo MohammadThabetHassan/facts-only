@@ -10,10 +10,18 @@ import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engi
 import { verifyAnswer } from "../extension/engine/pipeline.js";
 import { createProvider } from "../extension/engine/providers/index.js";
 import { extractUrls } from "../extension/engine/text.js";
+import { t, resolveLocale, applyDirection, applyI18n } from "../extension/engine/ui/i18n.js";
 
 const $ = (id) => document.getElementById(id);
 
 renderSettings($("settings"));
+
+let currentLang = "en";
+(async () => {
+  currentLang = resolveLocale((await getSettings()).language);
+  applyDirection(currentLang);
+  applyI18n(document, currentLang);
+})();
 
 let running = false;
 let currentAbort = null;
@@ -73,13 +81,14 @@ async function run(text, sources, providerOverride = null, { ignoreCache = false
       signal: currentAbort.signal
     });
     renderReport($("report"), report, {
+      lang: currentLang,
       onExport: () => downloadMd(report),
       onCopy: () => navigator.clipboard.writeText(reportToMarkdown(report))
     });
     await saveToCache(text, settingsFingerprint(settings), report);
   } catch (e) {
     if (e && (e.name === "AbortError" || /abort/i.test(String(e.message)))) {
-      $("error").textContent = "Verification cancelled. Nothing was saved.";
+      $("error").textContent = t("msg.cancelled", currentLang);
     } else {
       $("error").textContent = `Verification failed: ${String(e.message || e)}
 
