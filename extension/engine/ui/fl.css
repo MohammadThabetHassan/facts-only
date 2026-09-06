@@ -1,10 +1,13 @@
 :root {
   --fl-border: #e5e7eb;
   --fl-fg: #111827;
+  --fl-mid: #374151;
   --fl-dim: #6b7280;
   --fl-accent: #1d4ed8;
   --fl-accent-bg: #eff6ff;
   --fl-bg: #f9fafb;
+  --fl-card: #fff;
+  --fl-page: #fff;
 }
 
 * {
@@ -15,7 +18,7 @@ body {
   margin: 0;
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--fl-fg);
-  background: #fff;
+  background: var(--fl-page);
 }
 
 button {
@@ -46,7 +49,7 @@ textarea {
   padding: 7px 10px;
   border: 1px solid var(--fl-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--fl-card);
   color: var(--fl-fg);
 }
 
@@ -238,7 +241,7 @@ details.fl-collapsible > summary {
 }
 .fl-notes {
   font-size: 13px;
-  color: #374151;
+  color: var(--fl-mid);
   margin: 6px 0;
 }
 .fl-evidence {
@@ -286,7 +289,7 @@ details.fl-collapsible > summary {
   font-size: 12px;
   font-weight: 700;
   margin: 10px 0 4px;
-  color: #374151;
+  color: var(--fl-mid);
 }
 .fl-footer {
   margin-top: 20px;
@@ -308,4 +311,84 @@ details.fl-collapsible > summary {
 }
 .fl-history-item:hover {
   background: var(--fl-bg);
+}
+
+/* ---------- 0.3.0 additions ---------- */
+.fl-banner-counts {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 3px;
+  opacity: 0.9;
+}
+.fl-method {
+  font-size: 11.5px;
+  color: var(--fl-dim);
+  background: var(--fl-bg);
+  border: 1px solid var(--fl-border);
+  border-radius: 8px;
+  padding: 6px 9px;
+  margin: 0 0 10px;
+}
+.fl-sep {
+  border-top: 1px solid var(--fl-border);
+  margin: 4px 0;
+}
+.fl-agree {
+  font-size: 13px;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fl-progress li::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--fl-border);
+}
+.fl-progress li.active::before {
+  content: "▸";
+  color: var(--fl-accent);
+}
+
+/* dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fl-border: #374151;
+    --fl-fg: #e5e7eb;
+    --fl-mid: #d1d5db;
+    --fl-dim: #9ca3af;
+    --fl-accent: #60a5fa;
+    --fl-accent-bg: #1e3a8a;
+    --fl-bg: #1f2937;
+    --fl-card: #111827;
+    --fl-page: #0b1220;
+  }
+  body {
+    background: var(--fl-page);
+    color: var(--fl-fg);
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--fl-accent);
+  }
+  .fl-card {
+    background: var(--fl-card);
+  }
+  .fl-history-item {
+    background: var(--fl-card);
+    color: var(--fl-fg);
+    border-color: var(--fl-border);
+  }
+  .fl-quote {
+    border-left-color: var(--fl-border);
+  }
+  .fl-banner,
+  .fl-chip,
+  .fl-flag,
+  .fl-warn,
+  .fl-agree,
+  .fl-advice,
+  .fl-error {
+    filter: saturate(0.85) brightness(0.94);
+  }
 }

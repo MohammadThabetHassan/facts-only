@@ -9,7 +9,10 @@ function el(tag, attrs = {}, children = []) {
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
     else e.setAttribute(k, v);
   }
-  for (const c of children) if (c) e.appendChild(c);
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    e.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+  }
   return e;
 }
 
@@ -29,6 +32,14 @@ const TRUST_TONE = {
   "manipulated-sources": "bad",
   unverifiable: "neutral",
   "no-claims": "neutral"
+};
+const QUOTE_TONE = { verified: "good", partial: "warn", "not-found": "bad", "page-not-fetched": "neutral", none: null };
+const QUOTE_LABEL = {
+  verified: "quote verified on page",
+  partial: "quote partially found on page",
+  "not-found": "quote NOT found on page",
+  "page-not-fetched": "page not fetched — quote unchecked",
+  none: null
 };
 
 function chip(text, tone) {
@@ -51,20 +62,43 @@ function safeLink(url, text) {
   return el("a", { href: u.href, target: "_blank", rel: "noopener noreferrer", text: text || u.hostname });
 }
 
-export function renderReport(container, report, { onExport } = {}) {
+export function renderReport(container, report, { onExport, onCopy } = {}) {
   container.innerHTML = "";
 
-  // Trust banner
+  // Trust banner with the counts behind it
   const tone = TONE[TRUST_TONE[report.trustKey] || "neutral"];
+  const c = report.trustCounts || {};
+  const countsText = c.checked != null
+    ? `${c.supported || 0} supported · ${c.mixed || 0} mixed · ${c.contradicted || 0} contradicted · ${c.unverifiable || 0} unverifiable`
+    : "";
   container.appendChild(
     el("div", {
       class: "fl-banner",
       style: `background:${tone.bg};color:${tone.fg}`
     }, [
       el("strong", { text: report.trustLabel }),
-      el("span", { class: "fl-banner-sub", text: ` — verified with ${report.providerName}${report.page && report.page !== "manual" ? ` · from ${report.page}` : ""}` })
+      el("span", {
+        class: "fl-banner-sub",
+        text: ` — verified with ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""}${report.page && report.page !== "manual" ? ` · from ${report.page}` : ""}`
+      }),
+      countsText ? el("div", { class: "fl-banner-counts", text: countsText }) : null
     ])
   );
+
+  // Method / transparency line — what this verification actually did
+  const m = report.method;
+  if (m) {
+    const bits = [
+      m.searchUsed ? "live web search used" : "no live web search (model knowledge only)",
+      m.claimsChecked != null && m.additionalCheckable > 0
+        ? `${m.claimsChecked} of ~${m.claimsTotal} checkable claims examined (${m.additionalCheckable} not checked)`
+        : `${m.claimsChecked} claims examined`,
+      m.quotesVerified > 0 ? `${m.quotesVerified} quote(s) verified on their pages` : null,
+      m.quotesMissing > 0 ? `${m.quotesMissing} quote(s) NOT found on their pages` : null,
+      m.secondOpinionUsed ? "second-model cross-check: run" : "second-model cross-check: off"
+    ].filter(Boolean);
+    container.appendChild(el("p", { class: "fl-method", text: "Method: " + bits.join(" · ") }));
+  }
 
   if (report.summary) container.appendChild(el("p", { class: "fl-summary", text: report.summary }));
   if (report.readerAdvice) {
@@ -92,7 +126,11 @@ export function renderReport(container, report, { onExport } = {}) {
           safeLink(ev.url, ev.title || ev.url)
         ]);
         if (ev.publisher) li.appendChild(el("span", { class: "fl-dim", text: ` — ${ev.publisher}` }));
-        if (ev.quote) li.appendChild(el("blockquote", { class: "fl-quote", text: `“${ev.quote}”` }));
+        if (ev.quote) {
+          li.appendChild(el("blockquote", { class: "fl-quote", text: `“${ev.quote}”` }));
+          const tone = QUOTE_TONE[ev.quoteStatus];
+          if (tone) li.appendChild(chip(QUOTE_LABEL[ev.quoteStatus], tone));
+        }
         ul.appendChild(li);
       }
       card.appendChild(ul);
@@ -154,6 +192,44 @@ export function renderReport(container, report, { onExport } = {}) {
   }
   container.appendChild(biasBox);
 
+  // Second opinion (cross-model check)
+  const so = report.secondOpinion;
+  if (so) {
+    const soBox = el("section", { class: "fl-section" }, [
+      el("h3", { text: so.available ? `Second opinion — ${so.providerName}${so.model ? ` (${so.model})` : ""}` : "Second opinion" })
+    ]);
+    if (!so.available) {
+      soBox.appendChild(el("p", { class: "fl-dim", text: so.note || "Not configured." }));
+    } else {
+      if (so.disagreements === 0) {
+        soBox.appendChild(el("p", { class: "fl-agree", text: "The second model agreed with all first-review verdicts." }));
+      } else {
+        soBox.appendChild(el("p", { class: "fl-warn", text: `⚠ The second model DISAGREES on ${so.disagreements} claim(s) below — read both sides before deciding.` }));
+      }
+      for (const a of so.assessments) {
+        const claim = (report.claims || []).find((x) => x.id === a.id);
+        const card = el("div", { class: "fl-card" }, [
+          el("div", { class: "fl-card-head" }, [
+            chip(a.agrees === false ? "disagrees" : a.agrees === true ? "agrees" : "no match", a.agrees === false ? "bad" : a.agrees === true ? "good" : "neutral"),
+            chip(a.verdict, CLAIM_TONE[a.verdict] || "neutral"),
+            chip(`${a.confidence} confidence`, "neutral")
+          ]),
+          el("p", { class: "fl-claim-text", text: claim ? claim.text : `Claim #${a.id}` })
+        ]);
+        if (a.note) card.appendChild(el("p", { class: "fl-notes", text: a.note }));
+        soBox.appendChild(card);
+      }
+      if (so.missedContext && so.missedContext.length) {
+        soBox.appendChild(el("p", { class: "fl-subhead", text: "Context the second model says was missed:" }));
+        const ul = el("ul", {});
+        so.missedContext.forEach((x) => ul.appendChild(el("li", { text: x })));
+        soBox.appendChild(ul);
+      }
+      if (so.overallNote) soBox.appendChild(el("p", { class: "fl-notes", text: so.overallNote }));
+    }
+    container.appendChild(soBox);
+  }
+
   // Footer
   const foot = el("footer", { class: "fl-footer" }, [el("p", { class: "fl-dim", text: report.disclaimer })]);
   if (onExport) {
@@ -164,10 +240,15 @@ export function renderReport(container, report, { onExport } = {}) {
 
 export function reportToMarkdown(report) {
   const lines = [];
+  const m = report.method || {};
   lines.push(`# FactLens verification report`);
   lines.push(``);
-  lines.push(`- **Trust signal:** ${report.trustLabel}`);
-  lines.push(`- **Verified with:** ${report.providerName}`);
+  lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
+  lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchUsed ? "yes" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);
+  if (m.claimsChecked != null) {
+    lines.push(`- **Coverage:** ${m.claimsChecked} of ~${m.claimsTotal} checkable claims examined${m.additionalCheckable ? ` (${m.additionalCheckable} not checked)` : ""}`);
+  }
+  if (m.quotesVerified != null) lines.push(`- **Quote verification:** ${m.quotesVerified} verified on page, ${m.quotesMissing} not found`);
   lines.push(`- **Date:** ${report.createdAt}`);
   lines.push(``);
   lines.push(`**Summary:** ${report.summary}`);
@@ -179,7 +260,11 @@ export function reportToMarkdown(report) {
     lines.push(`### [${c.verdict} / ${c.confidence}] ${c.text}`);
     if (c.notes) lines.push(`${c.notes}`);
     for (const ev of c.evidence) {
-      lines.push(`- (${ev.stance}) [${ev.title || ev.url}](${ev.url})${ev.publisher ? ` — ${ev.publisher}` : ""}${ev.quote ? ` — “${ev.quote}”` : ""}`);
+      const qs = ev.quoteStatus === "verified" ? " ✔ quote verified on page"
+        : ev.quoteStatus === "partial" ? " ~ quote partially found on page"
+        : ev.quoteStatus === "not-found" ? " ⚠ quote NOT found on page"
+        : "";
+      lines.push(`- (${ev.stance}) [${ev.title || ev.url}](${ev.url})${ev.publisher ? ` — ${ev.publisher}` : ""}${ev.quote ? ` — “${ev.quote}”` : ""}${qs}`);
     }
   }
   lines.push(``);
@@ -200,6 +285,29 @@ export function reportToMarkdown(report) {
   list("Framing issues", report.bias.framingIssues);
   list("Missing context", report.bias.missingContext);
   list("Manipulation signals", report.bias.manipulationSignals);
+
+  const so = report.secondOpinion;
+  if (so) {
+    lines.push(``);
+    lines.push(`## Second opinion${so.available ? ` — ${so.providerName}` : ""}`);
+    if (!so.available) {
+      lines.push(`${so.note || "Not configured."}`);
+    } else {
+      for (const a of so.assessments) {
+        const claim = (report.claims || []).find((x) => x.id === a.id);
+        lines.push(`- [${a.agrees === false ? "DISAGREES" : a.agrees ? "agrees" : "—"}] ${claim ? claim.text : `#${a.id}`} → **${a.verdict}/${a.confidence}**${a.note ? ` — ${a.note}` : ""}`);
+      }
+      list("Missed context", so.missedContext);
+      if (so.overallNote) lines.push(``);
+      if (so.overallNote) lines.push(`${so.overallNote}`);
+    }
+  }
+
+  if (Array.isArray(report.trustBasis) && report.trustBasis.length) {
+    lines.push(``);
+    lines.push(`## How the trust signal was computed`);
+    report.trustBasis.forEach((b) => lines.push(`- ${b}`));
+  }
   lines.push(``);
   lines.push(`---`);
   lines.push(`_${report.disclaimer}_`);

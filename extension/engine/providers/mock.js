@@ -9,7 +9,8 @@ const CANNED = {
       { id: 1, text: "Country X's parliament passed the emergency law on 12 March 2025.", type: "fact", importance: "high" },
       { id: 2, text: "The law allows detention without trial for up to 90 days.", type: "fact", importance: "high" },
       { id: 3, text: "Over 40,000 people were affected in the first month.", type: "statistic", importance: "medium" }
-    ]
+    ],
+    additionalCheckable: 1
   },
   evidence: {
     verdict: "mixed",
@@ -72,6 +73,5 @@ export function createMockProvider() {
     const payload = CANNED[task] || { error: `mock: unknown task "${task}"` };
     return { text: JSON.stringify(payload), meta: { model: "mock" } };
   }
-
   return { name, supportsSearch, complete };
 }

@@ -6,17 +6,18 @@
     <title>FactLens — AI answer verifier</title>
     <link rel="stylesheet" href="../extension/engine/ui/fl.css" />
     <style>
-      body { background: #f3f4f6; }
+      body { background: var(--fl-bg); }
       .page { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
       .card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
+        background: var(--fl-card);
+        border: 1px solid var(--fl-border);
         border-radius: 14px;
         padding: 18px 20px;
         margin-bottom: 16px;
       }
-      .hero h1 { margin: 0 0 4px; font-size: 24px; }
-      .hero p { margin: 0; color: #6b7280; }
+      .hero h1 { margin: 0 0 4px; font-size: 24px; color: var(--fl-fg); }
+      .hero h1 .lens { color: var(--fl-accent); }
+      .hero p { margin: 0; color: var(--fl-dim); }
     </style>
   </head>
   <body>
@@ -39,6 +40,7 @@
         <textarea id="input" placeholder="Paste the AI answer you want to verify…" style="margin-top: 10px"></textarea>
         <div class="fl-actions">
           <button id="run" type="button">Verify answer</button>
+          <button id="cancel" type="button" class="secondary" hidden>Cancel</button>
           <button id="demo" type="button" class="secondary">Try a demo</button>
         </div>
         <div class="fl-bar" id="bar" hidden><div></div></div>

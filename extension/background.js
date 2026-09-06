@@ -17,30 +17,15 @@ function setupContextMenu() {
   });
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== "factlens-verify-selection") return;
-  const text = (info.selectionText || "").trim();
-  if (!text) return;
-  await enqueueJob({ text, sources: [], page: tab && tab.url ? tab.url : "selection" });
-  await openSidePanel(tab);
-});
+// IMPORTANT: chrome.sidePanel.open() is only honored inside a live user-gesture
+// context, which expires after awaiting storage writes. Always open the panel
+// FIRST, then queue the job — an already-open panel picks the job up via the
+// storage-change listener, and a freshly opened one reads it on load.
+function makeJob(payload) {
+  return { ...payload, ts: Date.now() };
+}
 
-chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (msg && msg.type === "fl:verify" && msg.payload) {
-    const tab = sender && sender.tab;
-    enqueueJob({
-      text: msg.payload.text || "",
-      sources: Array.isArray(msg.payload.sources) ? msg.payload.sources : [],
-      page: msg.payload.page || (tab && tab.url) || "chatbot"
-    })
-      .then(() => openSidePanel(tab))
-      .catch(() => {});
-  }
-  return false;
-});
-
-async function enqueueJob(payload) {
-  const job = { ...payload, ts: Date.now() };
+async function queueJob(job) {
   await chrome.storage.local.set({ [PENDING_KEY]: job, [JOB_EVENT_KEY]: { ts: job.ts } });
 }
 
@@ -55,3 +40,24 @@ async function openSidePanel(tab) {
     // the job is consumed the next time the panel opens.
   }
 }
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== "factlens-verify-selection") return;
+  const text = (info.selectionText || "").trim();
+  if (!text) return;
+  const job = makeJob({ text, sources: [], page: tab && tab.url ? tab.url : "selection" });
+  openSidePanel(tab).then(() => queueJob(job)).catch(() => {});
+});
+
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (msg && msg.type === "fl:verify" && msg.payload) {
+    const tab = sender && sender.tab;
+    const job = makeJob({
+      text: msg.payload.text || "",
+      sources: Array.isArray(msg.payload.sources) ? msg.payload.sources : [],
+      page: msg.payload.page || (tab && tab.url) || "chatbot"
+    });
+    openSidePanel(tab).then(() => queueJob(job)).catch(() => {});
+  }
+  return false;
+});

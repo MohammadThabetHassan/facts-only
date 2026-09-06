@@ -57,23 +57,40 @@ FactLens fights back by doing what the chatbot should have done:
 The headline verdicts are **computed by code** from the check results — a gamed or
 biased model cannot award itself a friendly rating.
 
+## What a report looks like
+
+![FactLens report in the web app](docs/screenshots/webapp-demo-report.png)
+
+The report shows: the trust banner **with the counts behind it**, a transparency
+line stating exactly what the verification did (live search? how many of the
+checkable claims? quotes verified?), per-claim verdicts with evidence links and
+**quote verification chips** ("quote verified on page" vs "quote NOT found on
+page"), source warning flags, the bias & framing analysis, and an optional
+**second-model opinion** that is asked to challenge the first review.
+
 ## Features
 
 - 🔎 **Verify anywhere** — one click under AI answers on ChatGPT, Gemini, Claude and
   Perplexity; right-click on any selected text; or paste into the side panel / web app.
-- 🌍 **Multilingual heuristics** — GEO headline detection and think-tank naming patterns
-  in English **and Arabic** (هل/ماذا/لماذا…, معهد/مرصد/مؤسسة), sponsored-content markers in
-  both.
+- 🧾 **Quote verification** — evidence quotes are checked against the fetched page
+  text; "not found" is flagged instead of silently trusted.
+- 🧭 **Second-model cross-check** — optionally send the checked claims to a second,
+  different AI provider and let it challenge the first review; disagreements are
+  shown in the report. (Mitigates single-model bias — the checker itself.)
+- 🌍 **Multilingual heuristics** — GEO headline detection and think-tank naming
+  patterns in English **and Arabic** (هل/ماذا/لماذا…, معهد/مرصد/مؤسسة), sponsored
+  content markers in both.
 - ⚖️ **Cross-partisan by design** — the established-publisher list spans wire services,
-  courts/UN bodies, academics, and newspapers from different editorial lines. Heuristic
-  PRs that favor one side are declined (see [CONTRIBUTING](CONTRIBUTING.md)).
+  courts/UN bodies, academics, and newspapers from different editorial lines, with
+  documented inclusion criteria ([SOURCE-LISTS.md](docs/SOURCE-LISTS.md)).
 - 🛡️ **Prompt-injection hardened** — fetched pages and analyzed answers are treated as
   untrusted data in every model prompt ([threat model](docs/THREAT-MODEL.md)).
-- 🔌 **Pluggable providers** — Gemini API (recommended: free tier + live Google Search
-  grounding), OpenRouter, any OpenAI-compatible endpoint, and an offline demo mode.
 - 🚫 **Zero dependencies, zero telemetry, no build step** — plain ES modules.
-- 🔁 **Resilient** — automatic retry with backoff on rate limits; a failed step degrades
-  the report, it never crashes it.
+- 🔁 **Resilient** — automatic retry with backoff on rate limits (user cancellation
+  is never retried); a failed step degrades the report, it never crashes it.
+- 💾 **Cached & cancellable** — identical answers render instantly from cache
+  (with a "re-run fresh" escape), and long runs can be cancelled mid-flight.
+- 🌗 **Light & dark** — follows your system theme.
 
 ## Install (Chrome / Edge / Brave)
 
@@ -88,11 +105,24 @@ biased model cannot award itself a friendly rating.
 OpenRouter and OpenAI-compatible endpoints also work, but free models there cannot
 search the web, so evidence quality is lower.
 
+## Usage
+
+- **On ChatGPT, Gemini, Claude, or Perplexity:** a blue "🔍 FactLens — verify this answer"
+  button appears under each AI response. Click it and the report opens in the side panel.
+- **Anywhere on the web:** select the text → right-click → **"FactLens: verify selected text"**
+  — the side panel opens automatically and runs.
+- **Manual:** open the side panel and paste any answer. Links in the pasted text
+  (markdown or bare URLs) are picked up as sources automatically.
+- Results for identical answers + settings are cached; press **Verify** again for a
+  fresh run, or **Cancel** mid-run to abort. Every report can be copied to the
+  clipboard or exported as Markdown.
+
 ## Development
 
 ```bash
-node test/smoke.mjs        # 30-check offline suite — no key, no network
-python scripts/generate_icons.py   # regenerate extension icons (pure stdlib)
+node test/smoke.mjs                        # 65-check offline suite — no key, no network
+python scripts/generate_icons.py           # regenerate extension icons (pure stdlib)
+python scripts/dev-server.py               # serve webapp/panel at localhost:8123 for manual testing
 ```
 
 There is nothing to build: load `extension/` unpacked and edit the files.
@@ -106,11 +136,12 @@ extension/          Manifest V3 extension (no build step)
   engine/           Shared verification engine (also used by the web app)
     providers/      gemini · openrouter · openai-compat · mock
     steps/          claims · evidence · bias · summary
-    ui/             storage · settings · report renderer (shared with webapp)
+    ui/             storage · settings · report renderer · cache (shared with webapp)
   content/          chatbot answer detection + Verify buttons
   panel/  popup/    side panel & settings UI
 webapp/             paste-text web app reusing the same engine
-docs/               ARCHITECTURE.md · THREAT-MODEL.md
+docs/               ARCHITECTURE.md · THREAT-MODEL.md · SOURCE-LISTS.md
+scripts/            icon generator · dev server
 test/smoke.mjs      offline pipeline test suite
 ```
 
@@ -126,9 +157,13 @@ test/smoke.mjs      offline pipeline test suite
 
 - Free-tier daily limits on Gemini's search-grounded requests.
 - Some sites block fetching; those sources are profiled from link text + model
-  knowledge only (marked in the report).
+  knowledge only (marked in the report). Quote chips then read
+  "page not fetched — quote unchecked".
+- Quote verification matches the quote against the extracted page text; a
+  "not found" flag can also mean the quote sits behind JavaScript or a paywall.
 - The verification model is itself an AI with blind spots — every claim in a report
-  carries links so readers can check the primary evidence.
+  carries links so readers can check the primary evidence. The optional second-model
+  cross-check reduces, but does not remove, this risk.
 
 ## Privacy
 

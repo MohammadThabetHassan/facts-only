@@ -5,9 +5,9 @@ import { postJson } from "../http.js";
 
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
-async function callGenerate({ model, key, body }) {
+async function callGenerate({ model, key, body, signal }) {
   const url = `${API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const res = await postJson(url, body, 90000);
+  const res = await postJson(url, body, 90000, {}, { retries: 2, signal });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     const err = new Error(`Gemini API error ${res.status}: ${errText.slice(0, 400)}`);
@@ -22,7 +22,7 @@ export function createGeminiProvider(settings) {
   const name = "gemini";
   const supportsSearch = settings.grounding !== false;
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2 }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.geminiKey || "").trim();
     if (!key) throw new Error("Missing Gemini API key. Open FactLens settings and paste your free key from aistudio.google.com.");
     const model = (settings.geminiModel || "gemini-2.5-flash").trim();
@@ -43,7 +43,7 @@ export function createGeminiProvider(settings) {
     let lastErr = null;
     for (const body of variants) {
       try {
-        const data = await callGenerate({ model, key, body });
+        const data = await callGenerate({ model, key, body, signal });
         const cand = (data.candidates && data.candidates[0]) || {};
         const text = ((cand.content && cand.content.parts) || [])
           .map((p) => p.text || "")

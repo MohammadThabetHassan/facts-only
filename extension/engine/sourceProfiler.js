@@ -7,7 +7,7 @@
 
 import { postJson, fetchWithTimeout } from "./http.js";
 import { extractJson } from "./json.js";
-import { stripHtml, truncate, domainOf } from "./text.js";
+import { stripHtml, truncate, domainOf, normText } from "./text.js";
 
 // Domains treated as established publishers / primary sources (positives).
 // NOTE: this list signals ESTABLISHMENT (editorial standards, accountability,
@@ -63,10 +63,10 @@ export function isEstablishedDomain(url) {
   return [...ESTABLISHED].some((e) => d === e || d.endsWith("." + e)) || /\.(gov|edu|int|mil)$/i.test(d);
 }
 
-async function fetchForProfile(url) {
+async function fetchForProfile(url, signal) {
   const base = { url, ok: false, title: "", siteName: "", author: "", excerpt: "", fetched: false };
   try {
-    const res = await fetchWithTimeout(url, 10000);
+    const res = await fetchWithTimeout(url, 10000, signal);
     if (!res.ok) return { ...base, note: `HTTP ${res.status}` };
     const ct = res.headers.get("content-type") || "";
     if (!/text\/html|text\/plain|application\/xhtml/.test(ct)) {
@@ -163,7 +163,24 @@ export function computeFlags(p) {
   return { flags, established, highRisk: flags.some((f) => f.severity === "high") };
 }
 
-async function llmProfileBatch(provider, settings, profiles) {
+// Check whether an evidence quote actually appears on the fetched page.
+// "not-found" is a soft warning: the quote may sit deeper than the extracted
+// excerpt or behind JS/paywall — it is displayed as such, never as proof of fakery.
+export function verifyQuoteInPage(quote, pageText) {
+  // Strip quote marks entirely: surrounding “…” in the quote and typographic
+  // quotes in the page are noise, not content.
+  const strip = (s) => s.replace(/["']/g, "");
+  const q = strip(normText(quote));
+  if (!q) return "none";
+  if (!pageText) return "page-not-fetched";
+  const p = strip(normText(pageText));
+  if (p.includes(q)) return "verified";
+  const head = q.split(" ").slice(0, 12).join(" ");
+  if (head.length >= 20 && p.includes(head)) return "partial";
+  return "not-found";
+}
+
+async function llmProfileBatch(provider, settings, profiles, signal) {
   const input = profiles
     .map((p, i) => `[${i + 1}] url: ${p.url}\ntitle: ${p.title || "(unknown)"}\nsite: ${p.siteName || domainOf(p.url)}\nexcerpt: ${truncate(p.excerpt, 700)}`)
     .join("\n\n");
@@ -180,7 +197,7 @@ ${input}
 
 Return JSON exactly in this shape:
 {"profiles":[{"n":1,"publisher":"...","likelyFunding":"...","stance":"...","credibility":"high|mixed|low|unknown","note":"..."}]}`;
-  const { text } = await provider.complete({ system, user, json: true, task: "sources", temperature: 0.2 });
+  const { text } = await provider.complete({ system, user, json: true, task: "sources", temperature: 0.2, signal });
   const parsed = extractJson(text);
   const byN = {};
   (Array.isArray(parsed.profiles) ? parsed.profiles : []).forEach((pr) => {
@@ -198,8 +215,8 @@ Return JSON exactly in this shape:
   });
 }
 
-export async function profileSources(provider, settings, urls, { fetchSources = true, seedTitles = {} } = {}) {
-  const unique = [...new Set(urls.filter((u) => /^https?:\/\//.test(u)))].slice(0, 10);
+export async function profileSources(provider, settings, urls, { fetchSources = true, seedTitles = {}, signal } = {}) {
+  const unique = [...new Set(urls.filter((u) => /^https?:\/\//.test(u)))].slice(0, 12);
   if (unique.length === 0) return [];
 
   const seed = (u) => truncate(String(seedTitles[u] || ""), 200);
@@ -208,7 +225,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
       if (!fetchSources) {
         return { url, ok: false, fetched: false, title: seed(url), siteName: "", author: "", excerpt: "", note: "fetch disabled — heuristics use link text only" };
       }
-      const p = await fetchForProfile(url);
+      const p = await fetchForProfile(url, signal);
       if (!p.title && seed(url)) p.title = seed(url);
       return p;
     })
@@ -219,7 +236,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
   let llmProfiles = null;
   if (provider) {
     try {
-      llmProfiles = await llmProfileBatch(provider, settings, withFlags);
+      llmProfiles = await llmProfileBatch(provider, settings, withFlags, signal);
     } catch (e) {
       llmProfiles = null; // non-fatal: heuristics still apply
     }
@@ -235,6 +252,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
     established: p.established,
     highRisk: p.highRisk,
     flags: p.flags,
+    excerpt: p.excerpt || "",
     publisher: llmProfiles ? llmProfiles[i].publisher : "",
     likelyFunding: llmProfiles ? llmProfiles[i].likelyFunding : "",
     stance: llmProfiles ? llmProfiles[i].stance : "",

@@ -4,9 +4,10 @@
 import { renderSettings } from "../engine/ui/settings-ui.js";
 import { renderReport, reportToMarkdown } from "../engine/ui/report-view.js";
 import { getSettings, set, get, remove, onChanged } from "../engine/ui/storage.js";
+import { lookupCache, saveToCache, settingsFingerprint } from "../engine/ui/cache.js";
 import { verifyAnswer } from "../engine/pipeline.js";
 import { createProvider } from "../engine/providers/index.js";
-import { truncate } from "../engine/text.js";
+import { truncate, extractUrls } from "../engine/text.js";
 
 const $ = (id) => document.getElementById(id);
 const input = $("input");
@@ -14,12 +15,15 @@ const progressBar = $("bar");
 const progressList = $("progress");
 const errorBox = $("error");
 const reportBox = $("report");
+const cacheBar = $("cachebar");
 
 renderSettings($("settings"));
 
 let running = false;
+let currentAbort = null;
 let pendingSources = [];
 let pendingPage = "manual";
+let lastReport = null;
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -35,9 +39,11 @@ function setProgress(p) {
   if (!p) {
     progressBar.hidden = true;
     progressList.innerHTML = "";
+    $("cancel").hidden = true;
     return;
   }
   progressBar.hidden = false;
+  $("cancel").hidden = false;
   progressBar.firstElementChild.style.width = `${p.pct}%`;
   let li = progressList.querySelector(`li[data-step="${p.step}"]`);
   if (!li) {
@@ -50,33 +56,82 @@ function setProgress(p) {
   li.textContent = `${p.pct}% — ${p.message}`;
 }
 
-async function run(text, sources = [], providerOverride = null) {
+function showCacheBar(ts, rerun) {
+  cacheBar.innerHTML = "";
+  const mins = Math.max(1, Math.round((Date.now() - ts) / 60000));
+  const note = document.createElement("span");
+  note.className = "fl-dim";
+  note.textContent = `Loaded from cache (ran ${mins} min ago). `;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "secondary";
+  btn.textContent = "Re-run fresh";
+  btn.addEventListener("click", rerun);
+  cacheBar.appendChild(note);
+  cacheBar.appendChild(btn);
+  cacheBar.hidden = false;
+}
+
+function afterReportRendered(report) {
+  renderReport(reportBox, report, {
+    onExport: () => exportReport(report),
+    onCopy: () => navigator.clipboard.writeText(reportToMarkdown(report)).then(() => {
+      clearError();
+      showError("Report copied to clipboard ✓");
+      setTimeout(clearError, 2000);
+    })
+  });
+  lastReport = report;
+}
+
+async function run(text, sources = [], providerOverride = null, { ignoreCache = false } = {}) {
   if (running) return;
   running = true;
   clearError();
+  cacheBar.hidden = true;
   reportBox.innerHTML = "";
   progressList.innerHTML = "";
   $("run").disabled = true;
+  currentAbort = new AbortController();
 
   try {
     const settings = await getSettings();
+
+    if (!providerOverride && !ignoreCache) {
+      const cached = await lookupCache(text, settingsFingerprint(settings));
+      if (cached) {
+        afterReportRendered(cached.report);
+        showCacheBar(cached.ts, () => run(text, sources, null, { ignoreCache: true }));
+        setProgress(null);
+        $("run").disabled = false;
+        running = false;
+        currentAbort = null;
+        return;
+      }
+    }
+
     const provider = providerOverride || createProvider(settings);
     const report = await verifyAnswer(
       { text, sources, page: pendingPage },
       settings,
-      { onProgress: setProgress, provider }
+      { onProgress: setProgress, provider, signal: currentAbort.signal }
     );
-    reportBox.innerHTML = "";
-    renderReport(reportBox, report, { onExport: () => exportReport(report) });
+    afterReportRendered(report);
     await saveHistory(report);
+    if (!providerOverride) await saveToCache(text, settingsFingerprint(settings), report);
   } catch (e) {
-    showError(`Verification failed: ${String(e.message || e)}
+    if (e && (e.name === "AbortError" || /abort/i.test(String(e.message)))) {
+      showError("Verification cancelled. Nothing was saved.");
+    } else {
+      showError(`Verification failed: ${String(e.message || e)}
 
 If this says the API key is missing, open “⚙️ Settings” above and paste a free Gemini key (aistudio.google.com/apikey), or switch the provider to Demo mode to see how reports look.`);
+    }
   } finally {
     setProgress(null);
     $("run").disabled = false;
     running = false;
+    currentAbort = null;
   }
 }
 
@@ -113,10 +168,11 @@ async function renderHistory() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "fl-history-item";
-    btn.textContent = `${item.trustLabel} — ${item.excerpt}`;
+    const when = new Date(item.ts).toLocaleString();
+    btn.textContent = `${item.trustLabel} — ${item.excerpt} (${when})`;
     btn.addEventListener("click", () => {
       reportBox.innerHTML = "";
-      renderReport(reportBox, item.report, { onExport: () => exportReport(item.report) });
+      afterReportRendered(item.report);
       reportBox.scrollIntoView({ behavior: "smooth" });
     });
     box.appendChild(btn);
@@ -130,14 +186,23 @@ $("run").addEventListener("click", () => {
     showError("Paste a longer answer (at least a couple of sentences) to verify.");
     return;
   }
-  run(text, pendingSources.slice());
+  // Merge links found in the pasted text (markdown or bare URLs) with any
+  // sources that came from the chatbot detector.
+  const extracted = extractUrls(text);
+  const merged = [...pendingSources];
+  for (const u of extracted) if (!merged.some((s) => s.url === u.url)) merged.push(u);
+  run(text, merged.slice());
+});
+
+$("cancel").addEventListener("click", () => {
+  if (currentAbort) currentAbort.abort();
 });
 
 $("demo").addEventListener("click", () => {
   const demoText =
-    "Country X's parliament passed the emergency law on 12 March 2025. According to the Global Security Observatory, the law allows detention without trial for up to 90 days, and over 40,000 people were affected in the first month. Critics say this is the harshest measure in a decade.";
+    "Country X's parliament passed the emergency law on 12 March 2025. According to the [Is the law a threat to human rights?](https://global-security-observatory.org/is-x-a-threat) report by the Global Security Observatory, the law allows detention without trial for up to 90 days, and over 40,000 people were affected in the first month. Critics say this is the harshest measure in a decade.";
   input.value = demoText;
-  pendingSources = [{ url: "https://global-security-observatory.org/is-x-a-threat", title: "Is the law a threat?" }];
+  pendingSources = extractUrls(demoText);
   pendingPage = "demo";
   run(demoText, pendingSources.slice(), createProvider({ provider: "mock", grounding: false }));
 });
@@ -147,6 +212,7 @@ $("clear").addEventListener("click", async () => {
   pendingSources = [];
   pendingPage = "manual";
   reportBox.innerHTML = "";
+  cacheBar.hidden = true;
   clearError();
   setProgress(null);
   await remove("pendingJob");

@@ -1,6 +1,6 @@
-// fetch helpers with timeout and automatic retry, shared by all providers
-// and the source profiler. Retry policy: 429/5xx and network errors are
-// retried with exponential backoff, honoring Retry-After when present.
+// fetch helpers with timeout, automatic retry, and external cancellation.
+// Retry policy: 429/5xx and network errors are retried with exponential backoff,
+// honoring Retry-After when present. An aborted external signal is NEVER retried.
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
@@ -14,17 +14,27 @@ function backoffMs(attempt, retryAfterHeader) {
   return Math.min(1200 * 2 ** attempt + Math.random() * 400, 30000);
 }
 
-export async function postJson(url, body, timeoutMs = 90000, headers = {}, { retries = 2 } = {}) {
+// Combine the per-request timeout with an optional external AbortSignal.
+function combineSignals(external, timeoutCtrl) {
+  if (!external) return timeoutCtrl.signal;
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+    return AbortSignal.any([timeoutCtrl.signal, external]);
+  }
+  return external; // very old engines: external signal wins, timeout degrades
+}
+
+export async function postJson(url, body, timeoutMs = 90000, headers = {}, { retries = 2, signal } = {}) {
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(new Error("timeout")), timeoutMs);
+    if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
+    const timeoutCtrl = new AbortController();
+    const timer = setTimeout(() => timeoutCtrl.abort(new Error("timeout")), timeoutMs);
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
-        signal: ctrl.signal
+        signal: combineSignals(signal, timeoutCtrl)
       });
       if (RETRYABLE_STATUS.has(res.status) && attempt < retries) {
         const retryAfter = res.headers.get("retry-after");
@@ -34,7 +44,7 @@ export async function postJson(url, body, timeoutMs = 90000, headers = {}, { ret
       }
       return res;
     } catch (e) {
-      // Network failure or timeout: retry, then surface the last error.
+      if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
       lastError = e;
       if (attempt < retries) {
         await sleep(backoffMs(attempt, null));
@@ -48,11 +58,16 @@ export async function postJson(url, body, timeoutMs = 90000, headers = {}, { ret
   throw lastError || new Error("request failed");
 }
 
-export async function fetchWithTimeout(url, timeoutMs = 10000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error("timeout")), timeoutMs);
+export async function fetchWithTimeout(url, timeoutMs = 10000, signal = undefined) {
+  if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
+  const timeoutCtrl = new AbortController();
+  const timer = setTimeout(() => timeoutCtrl.abort(new Error("timeout")), timeoutMs);
   try {
-    return await fetch(url, { redirect: "follow", signal: ctrl.signal, credentials: "omit" });
+    return await fetch(url, {
+      redirect: "follow",
+      credentials: "omit",
+      signal: combineSignals(signal, timeoutCtrl)
+    });
   } finally {
     clearTimeout(timer);
   }

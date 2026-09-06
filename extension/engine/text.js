@@ -86,3 +86,33 @@ export function hash32(s) {
   }
   return h.toString(16).padStart(8, "0");
 }
+
+// Normalize text for loose matching (quote-vs-page verification):
+// lowercase, unify quotes/dashes, collapse all whitespace.
+export function normText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u02bc]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Extract source links from arbitrary pasted text. Markdown links are matched
+// first so the anchor text becomes the title; bare URLs follow. Deduped.
+export function extractUrls(text) {
+  const out = [];
+  const seen = new Set();
+  const push = (url, title) => {
+    if (!isHttpUrl(url) || seen.has(url)) return;
+    seen.add(url);
+    out.push({ url, title: truncate(title || "", 140) });
+  };
+  const md = /\[([^\]]{1,140})\]\((https?:\/\/[^)\s]+)\)/g;
+  let m;
+  while ((m = md.exec(text))) push(m[2], m[1]);
+  const bare = /https?:\/\/[^\s<>"'`)\]}]+/g;
+  while ((m = bare.exec(text))) push(m[0].replace(/[.,;:!]+$/, ""), "");
+  return out;
+}

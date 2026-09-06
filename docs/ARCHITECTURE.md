@@ -35,25 +35,58 @@ step**. One engine, three frontends.
 ## Data flow
 
 ```
-verifyAnswer({text, sources, page}, settings, {provider, onProgress})
-  1. extractClaims()      → N ≤ maxClaims discrete claims
+verifyAnswer({text, sources, page}, settings, {provider, onProgress, signal})
+  1. extractClaims()      → N ≤ maxClaims discrete claims (+ "additionalCheckable"
+                            estimate so reports can disclose coverage)
   2. verifyClaim() ×N     → per-claim verdict + evidence links
                             (2 workers, 400 ms spacing: free-tier friendly)
   3. profileSources()     → fetch each unique URL (10 s timeout),
-                            heuristic flags, batched LLM publisher profile
+                            heuristic flags, batched LLM publisher profile,
+                            page excerpts retained for quote verification
+  3b. verifyQuoteInPage() → per evidence quote: verified / partial /
+                            not-found / page-not-fetched
   4. analyzeBias()        → framing/missing-context/counterargument
-  5. writeSummary()       → 2–3 sentence neutral summary
-  ⇒ report {trustKey ← computed in code, claims, sources, bias, summary}
+  5. runSecondOpinion()   → optional second-model cross-check (disagreements
+                            displayed, never folded into the trust signal)
+  6. writeSummary()       → 2–3 sentence neutral summary
+  ⇒ report {trustKey ← computeTrustSignal(), trustScore, trustCounts,
+            trustBasis, claims, sources, bias, secondOpinion,
+            method {searchUsed, quotesVerified, coverage…}}
 ```
+
+Cancellation: an external `AbortSignal` is threaded through every provider call
+and fetch; the pipeline re-checks it at each step boundary (`guard()`). Aborts are
+never retried by the HTTP layer.
 
 ## Design decisions
 
 ### The trust signal is computed in code
 `computeTrustSignal()` in `pipeline.js` derives the headline verdict
 (*well-supported / mixed / one-sided / contradicted / manipulated-sources /
-unverifiable*) deterministically from per-claim verdicts and source flags. The
-model only writes the prose around it. Rationale: an influenced model must not
-be able to award itself a friendly verdict.
+unverifiable*) deterministically from per-claim verdicts, confidence-weighted into
+a support score (denominator = claim count, so low confidence drags a claim toward
+neutral instead of being normalized away), plus source manipulation flags and the
+bias step. The decision order is a documented contract:
+
+1. contradicted with no/weak support → **contradicted**
+2. manipulation flags with score < 0.85 → **manipulated-sources**
+3. remaining contradiction with score < 0.6 → **contradicted**
+4. manipulation flags → **manipulated-sources**
+5. remaining contradiction → **mixed**
+6. one-sided framing with score < 0.7 → **one-sided**
+7. everything unverifiable → **unverifiable**
+8. score ≥ 0.75 → **well-supported**, else **mixed**
+
+The model only writes the prose around this. Every report ships the inputs
+(`trustScore`, `trustCounts`, `trustBasis`) so readers can audit the decision.
+
+### Quote verification closes the citation loop
+Evidence quotes are checked against the fetched page text (`verifyQuoteInPage`,
+normalized: case/quote-marks/whitespace). Statuses: `verified`, `partial`
+(first 12 words found), `not-found`, `page-not-fetched`, `none`. "not-found" is
+displayed as a warning chip, never as proof of fabrication — the quote may sit
+below the extracted excerpt or behind JS/paywall. The method line aggregates the
+counts so a report whose evidence is mostly "not found" visibly hangs by a thread.
 
 ### Independent evidence, not the answer's own sources
 The evidence step is prompted to search for **both** supporting and contradicting
@@ -78,10 +111,24 @@ models) automatically get reduced prompts and clearly lower evidence quality —
 stated in the settings UI, never hidden. `task` lets the mock provider and
 future local providers route per-step behavior.
 
+### Cross-model second opinion (anti-monoculture)
+A single model verifying itself is a structural weakness, so the pipeline can send
+the first review's claim verdicts to a **second, different provider** and instruct
+it to find what the first review missed (`runSecondOpinion`). Agreements and
+disagreements are displayed per claim. The second opinion **never** modifies the
+trust signal — that stays deterministic from the primary evidence — and a failing
+second provider degrades to a note in the report.
+
 ### Untrusted input discipline
 Anything that reached the model from outside (the answer, cited page excerpts)
 is framed as data with an explicit SECURITY instruction to ignore embedded
 directives. See `docs/THREAT-MODEL.md` for the reasoning and residual risks.
+
+### Caching lives above the engine
+`engine/ui/cache.js` keys reports by answer hash + settings fingerprint (provider,
+models, grounding, maxClaims, second provider), so changed settings re-run. The
+panel/webapp own cache reads/writes; the engine stays pure and the cache module
+accepts an injected storage for tests.
 
 ## Testing strategy
 

@@ -32,7 +32,10 @@ function el(tag, attrs = {}, children = []) {
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
     else e.setAttribute(k, v);
   }
-  for (const c of children) if (c) e.appendChild(c);
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    e.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+  }
   return e;
 }
 
@@ -63,6 +66,20 @@ export function renderSettings(container) {
     grounding: el("input", { type: "checkbox" }),
     maxClaims: el("input", { type: "number", min: "1", max: "8" })
   };
+
+  const secondSel = el("select", { id: "fl-second" });
+  const SECOND_OPTIONS = [
+    ["none", "No second opinion (single-model verification)"],
+    ["gemini", "Gemini API"],
+    ["openrouter", "OpenRouter"],
+    ["openai-compat", "Custom OpenAI-compatible endpoint"]
+  ];
+  for (const [v, label] of SECOND_OPTIONS) secondSel.appendChild(el("option", { value: v, text: label }));
+
+  const secondHint = el("p", {
+    class: "fl-hint",
+    text: "Optional cross-check against AI monoculture: the checked claims are sent to a second, different provider and it is asked to find what the first review missed. Disagreements are shown in the report. It uses that provider's key/model fields above."
+  });
 
   const hint = el("p", { class: "fl-hint" });
   const status = el("p", { class: "fl-status" });
@@ -119,6 +136,9 @@ export function renderSettings(container) {
         document.createTextNode(" Use Google Search grounding (Gemini) — check claims against the live web")
       ]),
       field("Max claims to check per run (1–8)", inputs.maxClaims),
+      el("div", { class: "fl-sep" }),
+      field("Second opinion provider (optional cross-check)", secondSel),
+      secondHint,
       hint,
       el("div", { class: "fl-btnrow" }, [saveBtn, testBtn]),
       status,
@@ -132,6 +152,7 @@ export function renderSettings(container) {
   function collect() {
     return {
       provider: providerSel.value,
+      secondProvider: secondSel.value || "none",
       geminiKey: inputs.geminiKey.value.trim(),
       geminiModel: inputs.geminiModel.value.trim() || "gemini-2.5-flash",
       openrouterKey: inputs.openrouterKey.value.trim(),
@@ -147,6 +168,7 @@ export function renderSettings(container) {
   (async () => {
     const s = await getSettings();
     providerSel.value = s.provider;
+    secondSel.value = s.secondProvider || "none";
     inputs.geminiKey.value = s.geminiKey || "";
     inputs.geminiModel.value = s.geminiModel || "";
     inputs.openrouterKey.value = s.openrouterKey || "";

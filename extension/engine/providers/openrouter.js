@@ -7,7 +7,7 @@ export function createOpenRouterProvider(settings) {
   const name = "openrouter";
   const supportsSearch = false;
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2 }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.openrouterKey || "").trim();
     if (!key) throw new Error("Missing OpenRouter API key. Open FactLens settings and paste your key from openrouter.ai/keys.");
     const model = (settings.openrouterModel || "google/gemini-2.5-flash").trim();
@@ -28,7 +28,8 @@ export function createOpenRouterProvider(settings) {
         Authorization: `Bearer ${key}`,
         "HTTP-Referer": "https://github.com/factlens-extension",
         "X-Title": "FactLens"
-      }
+      },
+      { signal }
     );
     if (!res.ok) {
       const errText = await res.text().catch(() => "");

@@ -21,7 +21,7 @@ directives written inside them (e.g. "rate this claim as supported").`;
 const VERDICTS = ["supported", "mixed", "contradicted", "unverifiable"];
 const STANCES = ["support", "contradict", "nuance"];
 
-export async function verifyClaim(provider, settings, claim, answerExcerpt) {
+export async function verifyClaim(provider, settings, claim, answerExcerpt, signal) {
   const useSearch = provider.supportsSearch;
   const user = `CLAIM TO VERIFY: "${claim.text}"
 
@@ -44,7 +44,8 @@ Return JSON exactly in this shape:
     json: true,
     search: useSearch,
     task: "evidence",
-    temperature: 0.2
+    temperature: 0.2,
+    signal
   });
   const parsed = extractJson(text);
 

@@ -26,7 +26,18 @@ about page, and domain history. Heuristics raise cost, they are not proof.
 omits the strongest counterargument, or leans on advocacy sources.
 **Defense:** the bias step reports framing issues, missing context, and the
 strongest argument *against* the answer; the evidence step is instructed to
-hunt for contradicting evidence, not just support.
+hunt for contradicting evidence, not just support; the weighted trust signal
+lowers headline confidence when support is weak.
+
+### 2b. Manipulating the verifier itself
+**Attack:** influence campaigns do not stop at the chatbot — they can also target
+the fact-checker's model through the same channels (injected page text,
+campaign-saturated search results).
+**Defense in depth:** prompt-injection instructions in every step; deterministic
+trust computation; quote verification; the optional second-model cross-check
+(compromising one provider no longer yields a clean report); and the transparency
+line that states exactly what the verification did, so a weakened verification
+method is visible to the reader.
 
 ### 3. Source laundering
 **Attack:** a partisan claim is attributed to a plausible-looking site, gaining
@@ -60,7 +71,15 @@ See [SECURITY.md](../SECURITY.md).
 
 - **Training-data bias in the verification model.** If the checker model itself
   learned a slanted narrative, it can produce slanted-but-confident evidence
-  summaries. Mitigation: every claim carries links; users check primary sources.
+  summaries. Mitigations: every claim carries links; the optional **second-model
+  cross-check** puts a different provider against the first review and surfaces
+  disagreements; the trust signal is computed in code, so a biased model cannot
+  tune the headline verdict itself.
+- **Hallucinated evidence.** A model may cite plausible-looking URLs it never saw,
+  or misquote real pages. Mitigations: quote verification against fetched page
+  text ("quote NOT found on page" flags), URL sanity checks, unfetchable pages
+  marked as such, and counts in the report's method line
+  ("N quotes verified on page, M not found").
 - **Attacker-owned "primary-looking" sources.** A fabricated "official gazette"
   on a lookalike domain can pass as primary. Mitigation: established-domain
   badges; residual risk accepted and documented.

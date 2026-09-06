@@ -13,8 +13,9 @@
       </header>
       <p class="fl-hint">
         Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT,
-        Gemini, Claude and Perplexity). FactLens splits it into claims, searches for independent
-        evidence, and profiles every source for manipulation patterns.
+        Gemini, Claude and Perplexity). FactLens splits it into claims, hunts for independent
+        evidence, verifies quotes against the pages, and profiles every source for manipulation
+        patterns.
       </p>
 
       <details class="fl-collapsible" id="settings-details">
@@ -25,12 +26,14 @@
       <textarea id="input" placeholder="Paste the AI answer you want to verify…"></textarea>
       <div class="fl-actions">
         <button id="run" type="button">Verify answer</button>
+        <button id="cancel" type="button" class="secondary" hidden>Cancel</button>
         <button id="demo" type="button" class="secondary">Try a demo</button>
         <button id="clear" type="button" class="secondary">Clear</button>
       </div>
 
       <div class="fl-bar" id="bar" hidden><div></div></div>
       <ul class="fl-progress" id="progress"></ul>
+      <div id="cachebar" hidden></div>
       <div id="error" hidden></div>
       <div id="report"></div>
 

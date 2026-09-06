@@ -6,7 +6,7 @@ export function createCompatProvider(settings) {
   const name = "openai-compat";
   const supportsSearch = false;
 
-  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2 }) {
+  async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.compatKey || "").trim();
     const base = (settings.compatBase || "https://api.openai.com/v1").replace(/\/+$/, "");
     if (!key) throw new Error("Missing API key for the custom OpenAI-compatible endpoint. Open FactLens settings.");
@@ -21,7 +21,7 @@ export function createCompatProvider(settings) {
     if (json) body.response_format = { type: "json_object" };
     const res = await postJson(`${base}/chat/completions`, body, 120000, {
       Authorization: `Bearer ${key}`
-    });
+    }, { signal });
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       throw new Error(`API error ${res.status}: ${errText.slice(0, 400)}`);

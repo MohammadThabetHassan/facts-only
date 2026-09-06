@@ -3,18 +3,22 @@
 const PREFIX = "fl_";
 
 const chromeAvailable = typeof chrome !== "undefined" && !!(chrome.storage && chrome.storage.local);
+const localStorageAvailable = typeof localStorage !== "undefined";
 
 export async function get(key, fallback = undefined) {
   if (chromeAvailable) {
     const res = await chrome.storage.local.get(PREFIX + key);
     return res[PREFIX + key] !== undefined ? res[PREFIX + key] : fallback;
   }
-  try {
-    const raw = localStorage.getItem(PREFIX + key);
-    return raw === null ? fallback : JSON.parse(raw);
-  } catch (e) {
-    return fallback;
+  if (localStorageAvailable) {
+    try {
+      const raw = localStorage.getItem(PREFIX + key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch (e) {
+      return fallback;
+    }
   }
+  return fallback; // non-browser environment (e.g. Node tests) without injected storage
 }
 
 export async function set(obj) {
@@ -24,14 +28,16 @@ export async function set(obj) {
     await chrome.storage.local.set(out);
     return;
   }
-  for (const [k, v] of Object.entries(obj)) {
-    localStorage.setItem(PREFIX + k, JSON.stringify(v));
+  if (localStorageAvailable) {
+    for (const [k, v] of Object.entries(obj)) {
+      localStorage.setItem(PREFIX + k, JSON.stringify(v));
+    }
   }
 }
 
 export async function remove(key) {
   if (chromeAvailable) return chrome.storage.local.remove(PREFIX + key);
-  localStorage.removeItem(PREFIX + key);
+  if (localStorageAvailable) localStorage.removeItem(PREFIX + key);
 }
 
 export function onChanged(keys, cb) {
@@ -53,6 +59,7 @@ export function onChanged(keys, cb) {
 
 export const DEFAULT_SETTINGS = {
   provider: "gemini",
+  secondProvider: "none",
   geminiKey: "",
   geminiModel: "gemini-2.5-flash",
   openrouterKey: "",
