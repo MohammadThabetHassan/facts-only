@@ -1,6 +1,6 @@
 // Storage adapter: chrome.storage.local in the extension, localStorage elsewhere (webapp).
 
-const PREFIX = "fl_";
+const PREFIX = "ts_";
 
 const chromeAvailable = typeof chrome !== "undefined" && !!(chrome.storage && chrome.storage.local);
 const localStorageAvailable = typeof localStorage !== "undefined";

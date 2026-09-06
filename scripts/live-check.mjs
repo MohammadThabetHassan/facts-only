@@ -1,11 +1,11 @@
 // Live verification pass: runs ONE small, real verification through the full
-// FactLens pipeline against a real AI provider.
+// Touchstone pipeline against a real AI provider.
 //
 // Usage (from the repo root):
-//   FACTLENS_GEMINI_KEY=… node scripts/live-check.mjs
-//   FACTLENS_PROVIDER=openrouter FACTLENS_OPENROUTER_KEY=… FACTLENS_OPENROUTER_MODEL=auto-free \
+//   TOUCHSTONE_GEMINI_KEY=… node scripts/live-check.mjs
+//   TOUCHSTONE_PROVIDER=openrouter TOUCHSTONE_OPENROUTER_KEY=… TOUCHSTONE_OPENROUTER_MODEL=auto-free \
 //     node scripts/live-check.mjs
-//   FACTLENS_SECOND_PROVIDER=openrouter FACTLENS_SECOND_KEY=… …   # + cross-model check
+//   TOUCHSTONE_SECOND_PROVIDER=openrouter TOUCHSTONE_SECOND_KEY=… …   # + cross-model check
 //
 // The key is read from the environment only — it is never written to a file,
 // never logged, and nothing is persisted. Exits 0 when the live run completes,
@@ -13,30 +13,30 @@
 
 import { verifyAnswer } from "../extension/engine/pipeline.js";
 
-const PROVIDER = process.env.FACTLENS_PROVIDER || "gemini";
-const KEY = process.env.FACTLENS_GEMINI_KEY;
-const OR_KEY = process.env.FACTLENS_OPENROUTER_KEY;
-const SECOND_PROVIDER = process.env.FACTLENS_SECOND_PROVIDER || "none";
-const SECOND_KEY = process.env.FACTLENS_SECOND_KEY;
+const PROVIDER = process.env.TOUCHSTONE_PROVIDER || "gemini";
+const KEY = process.env.TOUCHSTONE_GEMINI_KEY;
+const OR_KEY = process.env.TOUCHSTONE_OPENROUTER_KEY;
+const SECOND_PROVIDER = process.env.TOUCHSTONE_SECOND_PROVIDER || "none";
+const SECOND_KEY = process.env.TOUCHSTONE_SECOND_KEY;
 
 if (PROVIDER === "gemini" && !KEY) {
-  console.error(`Missing FACTLENS_GEMINI_KEY.
+  console.error(`Missing TOUCHSTONE_GEMINI_KEY.
 
 Get a free key (2 minutes):
   1. https://aistudio.google.com/apikey
   2. "Create API key" → copy
-  3. Run:  FACTLENS_GEMINI_KEY=your-key node scripts/live-check.mjs
-     (Windows PowerShell:  $env:FACTLENS_GEMINI_KEY="your-key"; node scripts/live-check.mjs)
+  3. Run:  TOUCHSTONE_GEMINI_KEY=your-key node scripts/live-check.mjs
+     (Windows PowerShell:  $env:TOUCHSTONE_GEMINI_KEY="your-key"; node scripts/live-check.mjs)
 
-OpenRouter: FACTLENS_PROVIDER=openrouter FACTLENS_OPENROUTER_KEY=your-or-key \
-FACTLENS_OPENROUTER_MODEL=auto-free node scripts/live-check.mjs
+OpenRouter: TOUCHSTONE_PROVIDER=openrouter TOUCHSTONE_OPENROUTER_KEY=your-or-key \
+TOUCHSTONE_OPENROUTER_MODEL=auto-free node scripts/live-check.mjs
 `);
   process.exit(1);
 }
 if (PROVIDER === "openrouter" && !OR_KEY) {
-  console.error(`Missing FACTLENS_OPENROUTER_KEY.
+  console.error(`Missing TOUCHSTONE_OPENROUTER_KEY.
 
-Run:  FACTLENS_PROVIDER=openrouter FACTLENS_OPENROUTER_KEY=your-or-key FACTLENS_OPENROUTER_MODEL=auto-free node scripts/live-check.mjs
+Run:  TOUCHSTONE_PROVIDER=openrouter TOUCHSTONE_OPENROUTER_KEY=your-or-key TOUCHSTONE_OPENROUTER_MODEL=auto-free node scripts/live-check.mjs
 `);
   process.exit(1);
 }
@@ -44,9 +44,9 @@ Run:  FACTLENS_PROVIDER=openrouter FACTLENS_OPENROUTER_KEY=your-or-key FACTLENS_
 const settings = {
   provider: PROVIDER,
   geminiKey: KEY || "",
-  geminiModel: process.env.FACTLENS_GEMINI_MODEL || "gemini-2.5-flash",
-  openrouterKey: process.env.FACTLENS_OPENROUTER_KEY || "",
-  openrouterModel: process.env.FACTLENS_OPENROUTER_MODEL || "auto-free",
+  geminiModel: process.env.TOUCHSTONE_GEMINI_MODEL || "gemini-2.5-flash",
+  openrouterKey: process.env.TOUCHSTONE_OPENROUTER_KEY || "",
+  openrouterModel: process.env.TOUCHSTONE_OPENROUTER_MODEL || "auto-free",
   grounding: PROVIDER === "gemini" ? true : false,
   maxClaims: 2,
   secondProvider: SECOND_PROVIDER,

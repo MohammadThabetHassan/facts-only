@@ -1,4 +1,4 @@
-// FactLens side panel: paste an answer (or receive one from the detector /
+// Touchstone side panel: paste an answer (or receive one from the detector /
 // context menu) and run the verification pipeline.
 
 import { renderSettings } from "../engine/ui/settings-ui.js";
@@ -74,7 +74,7 @@ function showCacheBar(ts, rerun) {
   cacheBar.innerHTML = "";
   const mins = Math.max(1, Math.round((Date.now() - ts) / 60000));
   const note = document.createElement("span");
-  note.className = "fl-dim";
+  note.className = "ts-dim";
   note.textContent = t("cache.loaded", currentLang, { mins }) + " ";
   const btn = document.createElement("button");
   btn.type = "button";
@@ -156,7 +156,7 @@ function exportReport(report) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `factlens-report-${new Date().toISOString().slice(0, 10)}.md`;
+  a.download = `touchstone-report-${new Date().toISOString().slice(0, 10)}.md`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
@@ -182,7 +182,7 @@ async function renderHistory() {
   for (const item of history) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "fl-history-item";
+    btn.className = "ts-history-item";
     const when = new Date(item.ts).toLocaleString();
     btn.textContent = `${item.trustLabel} — ${item.excerpt} (${when})`;
     btn.addEventListener("click", () => {

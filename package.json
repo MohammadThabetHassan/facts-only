@@ -1,7 +1,39 @@
 {
-  "name": "factlens",
-  "version": "0.5.0",
+  "name": "touchstone",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "FactLens — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling."
+  "description": "Touchstone — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
+  "license": "MIT",
+  "author": "Mohammad Thabet Hassan",
+  "homepage": "https://github.com/MohammadThabetHassan/touchstone#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohammadThabetHassan/touchstone.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MohammadThabetHassan/touchstone/issues"
+  },
+  "keywords": [
+    "fact-checking",
+    "misinformation",
+    "generative-engine-optimization",
+    "influence-operations",
+    "browser-extension",
+    "chrome-extension",
+    "firefox-addon",
+    "llm",
+    "ai-safety",
+    "osint"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/smoke.mjs",
+    "live": "node scripts/live-check.mjs",
+    "build:firefox": "python scripts/build-firefox.py",
+    "package": "python scripts/package-extension.py",
+    "dev": "python scripts/dev-server.py"
+  }
 }

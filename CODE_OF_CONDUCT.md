@@ -2,7 +2,7 @@
 
 ## Our standard
 
-The goal of FactLens is to make information harder to manipulate. That work
+The goal of Touchstone is to make information harder to manipulate. That work
 requires participation from people across every political, national and
 religious line. Harassment, personal attacks, and advocacy dressed up as
 "verification" undermine that goal and are not tolerated.

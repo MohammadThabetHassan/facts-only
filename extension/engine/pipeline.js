@@ -1,9 +1,10 @@
-// FactLens pipeline orchestrator.
+// Touchstone pipeline orchestrator.
 // Input: an AI answer (+ any cited links). Output: a structured verification report.
 // The trust signal is computed deterministically in code from step outputs —
 // never written by the model.
 
 import { createProvider } from "./providers/index.js";
+import { extractJson } from "./json.js";
 import { extractClaims } from "./steps/claims.js";
 import { verifyClaim } from "./steps/evidence.js";
 import { analyzeBias } from "./steps/bias.js";
@@ -96,7 +97,10 @@ Return JSON exactly in this shape:
  "missedContext":["important context the first review or the original answer omitted"],
  "overallNote":"one sentence: how reliable is the first review overall?"}`;
     const { text, meta } = await second.complete({ system, user, json: true, search: second.supportsSearch, task: "second-opinion", temperature: 0.2, signal });
-    const parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+    // Tolerant extraction: free models very often wrap JSON in ```json fences,
+    // which a raw slice-and-parse silently fails on (the whole second opinion was
+    // then reported as "failed" rather than rendered).
+    const parsed = extractJson(text);
     const V = ["supported", "mixed", "contradicted", "unverifiable"];
     const assessments = (Array.isArray(parsed.assessments) ? parsed.assessments : [])
       .filter((a) => a && V.includes(a.verdict))
@@ -263,6 +267,6 @@ export async function verifyAnswer(input, settings, { onProgress = () => {}, pro
     summary: summary.summary,
     readerAdvice: summary.readerAdvice,
     disclaimer:
-      "FactLens provides evidence and flags, not a verdict. AI systems — including the one doing this analysis — can be wrong or biased. Check the linked primary sources yourself before deciding what is true."
+      "Touchstone provides evidence and flags, not a verdict. AI systems — including the one doing this analysis — can be wrong or biased. Check the linked primary sources yourself before deciding what is true."
   };
 }

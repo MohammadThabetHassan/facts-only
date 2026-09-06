@@ -58,7 +58,7 @@ export async function postJson(url, body, timeoutMs = 90000, headers = {}, { ret
   throw lastError || new Error("request failed");
 }
 
-export async function fetchWithTimeout(url, timeoutMs = 10000, signal = undefined) {
+export async function fetchWithTimeout(url, timeoutMs = 10000, signal = undefined, init = {}) {
   if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
   const timeoutCtrl = new AbortController();
   const timer = setTimeout(() => timeoutCtrl.abort(new Error("timeout")), timeoutMs);
@@ -66,6 +66,7 @@ export async function fetchWithTimeout(url, timeoutMs = 10000, signal = undefine
     return await fetch(url, {
       redirect: "follow",
       credentials: "omit",
+      ...init,
       signal: combineSignals(signal, timeoutCtrl)
     });
   } finally {

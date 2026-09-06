@@ -5,9 +5,9 @@
 //      These are the fingerprints of campaigns built to feed AI chatbots.
 //   b) An LLM batch pass that profiles the publisher: who runs it, funding, stance.
 
-import { postJson, fetchWithTimeout } from "./http.js";
+import { fetchWithTimeout } from "./http.js";
 import { extractJson } from "./json.js";
-import { stripHtml, truncate, domainOf, normText } from "./text.js";
+import { stripHtml, truncate, domainOf, normText, isPublicHttpUrl } from "./text.js";
 
 // Domains treated as established publishers / primary sources (positives).
 // NOTE: this list signals ESTABLISHMENT (editorial standards, accountability,
@@ -162,6 +162,20 @@ export function computeFlags(p) {
   const established = isEstablishedDomain(p.url);
   const d = domainOf(p.url);
 
+  // A citation pointing at localhost, an intranet name, or an IP literal was
+  // never a real source. It is also the shape of a prompt-injection payload
+  // trying to make the extension reach into the user's network, so it is
+  // surfaced as high risk rather than quietly dropped.
+  if (p.nonPublic) {
+    flags.push({
+      key: "non-public-url",
+      label: "Citation points to a private or non-routable address",
+      detail: "This URL is not a public web source (loopback, intranet name, or raw IP address). Touchstone refused to fetch it. A model citing an internal address is either hallucinating or repeating an injection payload from a page it read.",
+      severity: "high"
+    });
+    return { flags, established: false, highRisk: true };
+  }
+
   if (established) {
     flags.push({ key: "established", label: "Established publisher or primary source", severity: "info" });
     return { flags, established, highRisk: false };
@@ -221,21 +235,9 @@ export function computeFlags(p) {
   }
   // Domain-age signal (Wayback Machine): fresh or never-archived domains
   // publishing "research" are a documented influence-campaign pattern.
-  const age = domainAgeDays(p.firstSeen);
-  if (p.firstSeen === "none") {
-    flags.push({
-      key: "domain-unarchived",
-      label: "Domain has no Wayback Machine history at all",
-      detail: "The Wayback Machine holds no snapshot of this domain. Long-standing publishers are archived within months; a never-archived domain publishing 'research' is a strong influence-campaign signal (not proof on its own).",
-      severity: "medium"
-    });
-  } else if (age != null && age < 90) {
-    flags.push({
-      key: "domain-fresh",
-      label: `Domain first archived only ${age} days ago`,
-      detail: "Fresh domains publishing research are a documented pattern in influence campaigns. Cross-check the publisher's registration, funding, and authors.",
-      severity: "medium"
-    });
+  // Single source of truth — domainAgeFlags() is also exercised directly by tests.
+  if (p.firstSeen !== undefined && p.firstSeen !== "error") {
+    flags.push(...domainAgeFlags(p.firstSeen, domainAgeDays(p.firstSeen)));
   }
   return { flags, established, highRisk: flags.some((f) => f.severity === "high") };
 }
@@ -298,12 +300,17 @@ Return JSON exactly in this shape:
 export async function profileSources(provider, settings, urls, { fetchSources = true, seedTitles = {}, signal } = {}) {
   const unique = [...new Set(urls.filter((u) => /^https?:\/\//.test(u)))].slice(0, 12);
   if (unique.length === 0) return [];
+  const isPublic = (u) => isPublicHttpUrl(u);
 
   const seed = (u) => truncate(String(seedTitles[u] || ""), 200);
   const fetched = await Promise.all(
     unique.map(async (url) => {
       const established = isEstablishedDomain(url);
       let p;
+      if (!isPublic(url)) {
+        // Never fetched, never sent to the Wayback API, never fed to the model.
+        return { url, ok: false, fetched: false, title: seed(url), siteName: "", author: "", excerpt: "", nonPublic: true, note: "refused: not a public web address" };
+      }
       if (!fetchSources) {
         p = { url, ok: false, fetched: false, title: seed(url), siteName: "", author: "", excerpt: "", note: "fetch disabled — heuristics use link text only" };
       } else {

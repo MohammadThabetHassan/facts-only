@@ -3,9 +3,9 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-06 (v0.4.0, commit `69cf59d` + detector drift fix)
+Last updated: 2026-09-06 (v1.0.0, the FactLens → Touchstone rename)
 
-## 1. Offline test suite — PASSING (73 checks)
+## 1. Offline test suite — PASSING (97 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -16,7 +16,9 @@ established list) · quote-vs-page verification statuses · HTTP retry (429 with
 retried) · deterministic trust-signal contract (weighting, decision order, basis
 lines) · result cache (fingerprint, eviction) · provider response parsing
 (Gemini parts/grounding, JSON-mime fallback retry, OpenRouter shape, missing-key
-error quality) · full pipeline on the mock provider (claims, verdicts, quote
+error quality) · the SSRF guard on model-supplied URLs (loopback, RFC1918, cloud
+metadata, encoded IP literals, bare intranet names, non-http schemes) and the
+high-risk flag raised for a refused citation · full pipeline on the mock provider (claims, verdicts, quote
 statuses, source flags, bias, second-opinion degradation, method metadata) ·
 cancellation.
 
@@ -27,14 +29,14 @@ profile), driving the actual UI rather than unit shims:
 
 | Flow | Result |
 | --- | --- |
-| Web app: settings render (all providers, second-opinion select), demo run produces full report | PASS (screenshot `docs/screenshots/webapp-demo-report.png`) |
-| Panel page: demo + paste flow, history recording, cache bar with "Re-run fresh" | PASS (screenshot `docs/screenshots/panel-demo-report.png`) |
+| Web app: settings render (all providers, second-opinion select), demo run produces full report | PASS (screenshot `docs/screenshots/webapp-report.png`) |
+| Panel page: demo + paste flow, history recording, cache bar with "Re-run fresh" | PASS (screenshot `docs/screenshots/panel-report.png`) |
 | Cache: second identical run loads from cache with note; fresh run bypasses | PASS |
 | Cancel: mid-run cancel stops the pipeline, shows "Verification cancelled", re-enables the button, saves nothing | PASS |
 | **Real extension:** Developer mode → Load unpacked → card loads with icon, v0.3.0, no errors | PASS |
 | **Real extension:** toolbar popup settings → provider switch → save | PASS |
-| **Real extension:** select text on example.com → context menu "FactLens: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
-| **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 FactLens — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
+| **Real extension:** select text on example.com → context menu "Touchstone: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
+| **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 Touchstone — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
 | **Firefox (155):** build-firefox.py → Load Temporary Add-on → sidebar panel renders → demo run completes with full report ("Manipulated sources detected") | PASS |
 
 ### Selector drift caught and fixed (2026-09-06)
@@ -51,7 +53,7 @@ Three real defects were found by these E2E passes and fixed (a broken webapp
 module graph, a report-renderer crash on string children, and `sidePanel.open()`
 losing the user-gesture context after awaited storage writes) — see CHANGELOG 0.3.0.
 
-## 3. Live network validation — PASSING (2026-09-06, v0.4.0)
+## 3. Live network validation — PASSING (2026-09-06)
 
 - **Live generation pass:** executed with a real free-tier Gemini key
   (`scripts/live-check.mjs`, key via environment variable, never stored).
@@ -66,7 +68,7 @@ losing the user-gesture context after awaited storage writes) — see CHANGELOG 
   pages are JS-heavy or block automated fetching); the chips surface this to
   the reader instead of silently trusting the quotes.
 
-Last updated: 2026-09-06 (v0.4.0 + live pass, see section 3)
+Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
 
 ## 4. Explicitly not verified / known gaps
 

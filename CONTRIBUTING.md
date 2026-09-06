@@ -1,4 +1,4 @@
-# Contributing to FactLens
+# Contributing to Touchstone
 
 Thanks for helping build a tool that makes AI answers harder to manipulate.
 This project is deliberately **dependency-free vanilla JavaScript** — no build
@@ -11,7 +11,7 @@ You need only a browser and (for tests) Node.js 18+:
 
 ```bash
 git clone <your fork>
-cd factlens
+cd touchstone
 node test/smoke.mjs        # offline test suite — must pass before every PR
 ```
 
@@ -22,7 +22,7 @@ requires no API key.
 
 ## Ground rules
 
-1. **FactLens reports evidence, never verdicts.** Do not add features that claim
+1. **Touchstone reports evidence, never verdicts.** Do not add features that claim
    to output "the truth". This is a core design constraint, not a style choice.
 2. **The trust signal is computed in code** (`engine/pipeline.js`), not written
    by the model. Keep it that way.

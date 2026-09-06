@@ -116,3 +116,50 @@ export function extractUrls(text) {
   while ((m = bare.exec(text))) push(m[0].replace(/[.,;:!]+$/, ""), "");
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// SSRF guard for model-supplied URLs.
+//
+// Evidence URLs come from an LLM, and the LLM's input includes untrusted web
+// pages. In the extension the fetch runs from a privileged context with
+// <all_urls> and no CORS, i.e. from *inside* the user's network. A hallucinated
+// or injected `http://192.168.1.1/`, `http://127.0.0.1:8080/admin` or
+// `http://169.254.169.254/latest/meta-data/` would therefore be fetched, and its
+// body would then be pasted into the next model prompt as a page "excerpt" —
+// an exfiltration path, not just a probe.
+//
+// Rule: a citable source is a public DNS name. We require a dotted hostname and
+// reject every IP literal. Rejecting IP literals outright (rather than
+// range-matching) also defeats the obfuscated encodings — decimal
+// (http://2130706433/), octal, hex, and IPv4-mapped IPv6 — in one rule.
+// Residual risk: DNS rebinding, which this cannot see. See docs/THREAT-MODEL.md.
+
+const BLOCKED_HOST_SUFFIXES = [".local", ".localhost", ".internal", ".home.arpa", ".lan"];
+
+export function isPublicHttpUrl(u) {
+  let url;
+  try {
+    url = new URL(u);
+  } catch (e) {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (url.username || url.password) return false; // credentials-in-URL
+
+  // IPv6 literals arrive bracketed; no source is ever cited as one.
+  if (url.hostname.startsWith("[")) return false;
+
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  if (!host || host === "localhost") return false;
+  if (BLOCKED_HOST_SUFFIXES.some((s) => host.endsWith(s))) return false;
+
+  // Reject anything that is not a dotted DNS name: bare intranet names
+  // ("http://wiki/") and all-numeric hosts (decimal-encoded IPs) fail here.
+  if (!host.includes(".")) return false;
+  const labels = host.split(".");
+  if (labels.some((l) => l.length === 0)) return false;
+  const tld = labels[labels.length - 1];
+  if (!/^[a-z][a-z0-9-]*$/.test(tld)) return false; // a real TLD never starts with a digit
+
+  return true;
+}

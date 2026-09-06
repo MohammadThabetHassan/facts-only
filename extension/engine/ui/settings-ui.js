@@ -42,7 +42,7 @@ function el(tag, attrs = {}, children = []) {
 }
 
 function field(labelText, control, provider) {
-  const wrap = el("div", { class: "fl-field" });
+  const wrap = el("div", { class: "ts-field" });
   if (provider) wrap.dataset.provider = provider;
   wrap.appendChild(el("label", { text: labelText }));
   wrap.appendChild(control);
@@ -56,17 +56,17 @@ export function renderSettings(container) {
     const s = await getSettings();
     const L = resolveLocale(s.language);
 
-    const providerSel = el("select", { id: "fl-provider" });
+    const providerSel = el("select", { id: "ts-provider" });
     for (const [key, info] of Object.entries(PROVIDER_INFO)) {
       providerSel.appendChild(el("option", { value: key, text: t(info.label, L) }));
     }
 
-    const secondSel = el("select", { id: "fl-second" });
+    const secondSel = el("select", { id: "ts-second" });
     for (const [v, key] of [["none", "second.none"], ["gemini", "provider.gemini"], ["openrouter", "provider.openrouter"], ["openai-compat", "provider.compat"]]) {
       secondSel.appendChild(el("option", { value: v, text: t(key, L) }));
     }
 
-    const langSel = el("select", { id: "fl-language" });
+    const langSel = el("select", { id: "ts-language" });
     for (const [v, key] of [["auto", "lang.auto"], ["en", "English"], ["ar", "العربية"]]) {
       langSel.appendChild(el("option", { value: v, text: t(key, L) }));
     }
@@ -83,17 +83,17 @@ export function renderSettings(container) {
       maxClaims: el("input", { type: "number", min: "1", max: "8" })
     };
 
-    const hint = el("p", { class: "fl-hint" });
+    const hint = el("p", { class: "ts-hint" });
     const secondHint = el("p", {
-      class: "fl-hint",
+      class: "ts-hint",
       text: t("set.secondHint", L)
     });
-    const status = el("p", { class: "fl-status" });
+    const status = el("p", { class: "ts-status" });
     status.setAttribute("role", "status");
 
     function refreshVisibility() {
       const p = providerSel.value;
-      container.querySelectorAll(".fl-field[data-provider]").forEach((w) => {
+      container.querySelectorAll(".ts-field[data-provider]").forEach((w) => {
         w.style.display = p === "mock" ? "none" : w.dataset.provider === p ? "" : "none";
       });
       hint.textContent = PROVIDER_INFO[p] ? t(PROVIDER_INFO[p].hint, L) : "";
@@ -134,7 +134,7 @@ export function renderSettings(container) {
     });
 
     container.appendChild(
-      el("div", { class: "fl-settings" }, [
+      el("div", { class: "ts-settings" }, [
         field(t("set.provider", L), providerSel),
         field(t("set.geminiKey", L), inputs.geminiKey, "gemini"),
         field(t("set.model", L), inputs.geminiModel, "gemini"),
@@ -143,21 +143,21 @@ export function renderSettings(container) {
         field(t("set.compatBase", L), inputs.compatBase, "openai-compat"),
         field(t("set.compatKey", L), inputs.compatKey, "openai-compat"),
         field(t("set.model", L), inputs.compatModel, "openai-compat"),
-        el("label", { class: "fl-check" }, [
+        el("label", { class: "ts-check" }, [
           inputs.grounding,
           document.createTextNode(t("set.grounding", L))
         ]),
         field(t("set.maxClaims", L), inputs.maxClaims),
-        el("div", { class: "fl-sep" }),
+        el("div", { class: "ts-sep" }),
         field(t("set.second", L), secondSel),
         secondHint,
-        el("div", { class: "fl-sep" }),
+        el("div", { class: "ts-sep" }),
         field(t("set.language", L), langSel),
         hint,
-        el("div", { class: "fl-btnrow" }, [saveBtn, testBtn]),
+        el("div", { class: "ts-btnrow" }, [saveBtn, testBtn]),
         status,
         el("p", {
-          class: "fl-hint fl-privacy",
+          class: "ts-hint ts-privacy",
           text: t("set.privacy", L)
         })
       ])

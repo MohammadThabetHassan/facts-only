@@ -6,7 +6,7 @@
 // ranks them for general-purpose fact-checking, and falls back down the list
 // when a model is unavailable or rate-limited.
 
-import { postJson } from "../http.js";
+import { postJson, fetchWithTimeout } from "../http.js";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
 
@@ -49,9 +49,13 @@ let cachedCandidates = null;
 let cachedAt = 0;
 const CACHE_TTL = 60 * 60 * 1000;
 
-async function freeModelCandidates(key) {
+async function freeModelCandidates(key, signal) {
   if (cachedCandidates && Date.now() - cachedAt < CACHE_TTL) return cachedCandidates;
-  const res = await fetch(MODELS_URL, { headers: { Authorization: `Bearer ${key}` } });
+  // Bare fetch() here could hang the whole run and ignored Cancel; the shared
+  // helper gives it the same timeout and abort semantics as every other call.
+  const res = await fetchWithTimeout(MODELS_URL, 15000, signal, {
+    headers: { Authorization: `Bearer ${key}` }
+  });
   if (!res.ok) throw new Error(`OpenRouter models listing failed (${res.status})`);
   const data = await res.json();
   cachedCandidates = pickFreeModels(data.data || []);
@@ -80,8 +84,8 @@ export function createOpenRouterProvider(settings) {
       120000,
       {
         Authorization: `Bearer ${key}`,
-        "HTTP-Referer": "https://github.com/MohammadThabetHassan/factlens",
-        "X-Title": "FactLens"
+        "HTTP-Referer": "https://github.com/MohammadThabetHassan/touchstone",
+        "X-Title": "Touchstone"
       },
       { signal, retries: 1 }
     );
@@ -98,12 +102,12 @@ export function createOpenRouterProvider(settings) {
 
   async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.openrouterKey || "").trim();
-    if (!key) throw new Error("Missing OpenRouter API key. Open FactLens settings and paste your key from openrouter.ai/keys.");
+    if (!key) throw new Error("Missing OpenRouter API key. Open Touchstone settings and paste your key from openrouter.ai/keys.");
     const configured = (settings.openrouterModel || "google/gemini-2.5-flash").trim();
 
     let models = [configured];
     if (configured === "auto-free") {
-      const candidates = await freeModelCandidates(key);
+      const candidates = await freeModelCandidates(key, signal);
       models = candidates.slice(0, 4); // try up to 4 free models down the ranking
     }
 

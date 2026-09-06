@@ -35,7 +35,7 @@ class Server(socketserver.ThreadingTCPServer):
 
 if __name__ == "__main__":
     with Server(("127.0.0.1", PORT), Handler) as httpd:
-        print(f"FactLens dev server → http://127.0.0.1:{PORT}/webapp/index.html")
+        print(f"Touchstone dev server → http://127.0.0.1:{PORT}/webapp/index.html")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

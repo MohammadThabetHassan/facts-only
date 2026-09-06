@@ -1,6 +1,6 @@
 # Architecture
 
-FactLens is deliberately simple: **vanilla ES modules, zero dependencies, no build
+Touchstone is deliberately simple: **vanilla ES modules, zero dependencies, no build
 step**. One engine, three frontends.
 
 ## Module map

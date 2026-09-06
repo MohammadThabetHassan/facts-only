@@ -44,7 +44,7 @@ const STANCES = ["support", "contradict", "nuance"];
 function chip(text, tone) {
   const tt = TONE[tone] || TONE.neutral;
   return el("span", {
-    class: "fl-chip",
+    class: "ts-chip",
     text,
     style: `background:${tt.bg};color:${tt.fg}`
   });
@@ -68,20 +68,24 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   // Trust banner with the counts behind it
   const tone = TONE[TRUST_TONE[report.trustKey] || "neutral"];
   const c = report.trustCounts || {};
-  const countsText = c.checked != null
-    ? `${c.supported || 0} ${t("verdict.supported", L)} · ${c.mixed || 0} ${t("verdict.mixed", L)} · ${c.contradicted || 0} ${t("verdict.contradicted", L)} · ${c.unverifiable || 0} ${t("verdict.unverifiable", L)}`
-    : "";
+  // Each "<number> <label>" pair is its own bidi-isolated node. Built as one
+  // string, an RTL locale reorders the Latin digits across the separators and
+  // the counts read as nonsense ("0 mixed 1" instead of "1 mixed").
+  const countNodes = c.checked == null ? [] : VERDICTS.flatMap((v, i) => {
+    const part = el("bdi", { class: "ts-count", text: `${c[v] || 0} ${t("verdict." + v, L)}` });
+    return i === 0 ? [part] : [document.createTextNode(" · "), part];
+  });
   container.appendChild(
     el("div", {
-      class: "fl-banner",
+      class: "ts-banner",
       style: `background:${tone.bg};color:${tone.fg}`
     }, [
       el("strong", { text: t("trust." + report.trustKey, L) !== "trust." + report.trustKey ? t("trust." + report.trustKey, L) : report.trustLabel }),
       el("span", {
-        class: "fl-banner-sub",
+        class: "ts-banner-sub",
         text: ` — ${t("rep.verifiedWith", L)} ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""}${report.page && report.page !== "manual" ? ` · ${report.page}` : ""}`
       }),
-      countsText ? el("div", { class: "fl-banner-counts", text: countsText }) : null
+      countNodes.length ? el("div", { class: "ts-banner-counts" }, countNodes) : null
     ])
   );
 
@@ -97,37 +101,37 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       m.quotesMissing > 0 ? t("m.quotesMissing", L, { n: m.quotesMissing }) : null,
       m.secondOpinionUsed ? t("m.secondOn", L) : t("m.secondOff", L)
     ].filter(Boolean);
-    container.appendChild(el("p", { class: "fl-method", text: `${t("rep.method", L)} ${bits.join(" · ")}` }));
+    container.appendChild(el("p", { class: "ts-method", text: `${t("rep.method", L)} ${bits.join(" · ")}` }));
   }
 
-  if (report.summary) container.appendChild(el("p", { class: "fl-summary", text: report.summary }));
+  if (report.summary) container.appendChild(el("p", { class: "ts-summary", text: report.summary }));
   if (report.readerAdvice) {
-    container.appendChild(el("p", { class: "fl-advice" }, [el("strong", { text: t("rep.nextStep", L) }), document.createTextNode(report.readerAdvice)]));
+    container.appendChild(el("p", { class: "ts-advice" }, [el("strong", { text: t("rep.nextStep", L) }), document.createTextNode(report.readerAdvice)]));
   }
 
   // Claims
-  const claimsBox = el("section", { class: "fl-section" }, [el("h3", { text: t("rep.claims", L, { n: report.claims.length }) })]);
+  const claimsBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.claims", L, { n: report.claims.length }) })]);
   for (const cl of report.claims) {
-    const card = el("div", { class: "fl-card" }, [
-      el("div", { class: "fl-card-head" }, [
+    const card = el("div", { class: "ts-card" }, [
+      el("div", { class: "ts-card-head" }, [
         chip(t("verdict." + cl.verdict, L), CLAIM_TONE[cl.verdict] || "neutral"),
-        chip(t("rep.confidence", L, { v: cl.confidence }), "neutral"),
-        chip(cl.type, "neutral")
+        chip(t("rep.confidence", L, { v: t("conf." + cl.confidence, L) }), "neutral"),
+        chip(t("type." + cl.type, L), "neutral")
       ]),
-      el("p", { class: "fl-claim-text", text: cl.text })
+      el("p", { class: "ts-claim-text", text: cl.text })
     ]);
-    if (cl.notes) card.appendChild(el("p", { class: "fl-notes", text: cl.notes }));
+    if (cl.notes) card.appendChild(el("p", { class: "ts-notes", text: cl.notes }));
     if (cl.evidence.length) {
-      const ul = el("ul", { class: "fl-evidence" });
+      const ul = el("ul", { class: "ts-evidence" });
       for (const ev of cl.evidence) {
         const li = el("li", {}, [
           chip(t("stance." + ev.stance, L), ev.stance === "support" ? "good" : ev.stance === "contradict" ? "bad" : "neutral"),
           " ",
           safeLink(ev.url, ev.title || ev.url)
         ]);
-        if (ev.publisher) li.appendChild(el("span", { class: "fl-dim", text: ` — ${ev.publisher}` }));
+        if (ev.publisher) li.appendChild(el("span", { class: "ts-dim", text: ` — ${ev.publisher}` }));
         if (ev.quote) {
-          li.appendChild(el("blockquote", { class: "fl-quote", text: `“${ev.quote}”` }));
+          li.appendChild(el("blockquote", { class: "ts-quote", text: `“${ev.quote}”` }));
           const qTone = QUOTE_TONE[ev.quoteStatus];
           if (qTone) li.appendChild(chip(t("quote." + ev.quoteStatus, L), qTone));
         }
@@ -135,7 +139,7 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       }
       card.appendChild(ul);
     } else {
-      card.appendChild(el("p", { class: "fl-dim", text: t("rep.noEvidence", L) }));
+      card.appendChild(el("p", { class: "ts-dim", text: t("rep.noEvidence", L) }));
     }
     claimsBox.appendChild(card);
   }
@@ -143,24 +147,24 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
 
   // Sources
   const flagged = report.sources.filter((s) => s.flags.some((f) => f.severity !== "info"));
-  const srcBox = el("section", { class: "fl-section" }, [el("h3", { text: t("rep.sources", L, { n: report.sources.length }) })]);
-  if (!report.sources.length) srcBox.appendChild(el("p", { class: "fl-dim", text: t("rep.noEvidence", L) }));
+  const srcBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.sources", L, { n: report.sources.length }) })]);
+  if (!report.sources.length) srcBox.appendChild(el("p", { class: "ts-dim", text: t("rep.noEvidence", L) }));
   for (const s of report.sources) {
-    const card = el("div", { class: "fl-card" }, [
-      el("div", { class: "fl-card-head" }, [
+    const card = el("div", { class: "ts-card" }, [
+      el("div", { class: "ts-card-head" }, [
         safeLink(s.url, s.title || s.siteName || s.url),
         s.established ? chip("established", "good") : null,
         s.credibility && s.credibility !== "unknown" ? chip(`${s.credibility} credibility`, s.credibility === "high" ? "good" : s.credibility === "low" ? "bad" : "warn") : null
       ])
     ]);
-    if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "fl-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
-    if (s.firstArchived) card.appendChild(el("p", { class: "fl-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
-    if (s.publisher) card.appendChild(el("p", { class: "fl-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
+    if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "ts-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
+    if (s.firstArchived) card.appendChild(el("p", { class: "ts-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
+    if (s.publisher) card.appendChild(el("p", { class: "ts-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
     for (const f of s.flags) {
       if (f.severity === "info") continue;
       card.appendChild(
         el("p", {
-          class: `fl-flag ${f.severity}`,
+          class: `ts-flag ${f.severity}`,
           text: `⚠ ${f.label}${f.detail ? ` — ${f.detail}` : ""}`
         })
       );
@@ -168,19 +172,19 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
     srcBox.appendChild(card);
   }
   if (flagged.length) {
-    srcBox.appendChild(el("p", { class: "fl-warn", text: t("rep.warnSources", L, { n: flagged.length }) }));
+    srcBox.appendChild(el("p", { class: "ts-warn", text: t("rep.warnSources", L, { n: flagged.length }) }));
   }
   container.appendChild(srcBox);
 
   // Bias
   const b = report.bias;
-  const biasBox = el("section", { class: "fl-section" }, [el("h3", { text: t("rep.bias", L) })]);
+  const biasBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.bias", L) })]);
   if (b.strongestCounterargument) {
     biasBox.appendChild(el("p", {}, [el("strong", { text: t("rep.strongest", L) }), document.createTextNode(b.strongestCounterargument)]));
   }
   const list = (title, items) => {
     if (!items || !items.length) return;
-    biasBox.appendChild(el("p", { class: "fl-subhead", text: title }));
+    biasBox.appendChild(el("p", { class: "ts-subhead", text: title }));
     const ul = el("ul", {});
     items.forEach((it) => ul.appendChild(el("li", { text: it })));
     biasBox.appendChild(ul);
@@ -189,50 +193,50 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   list("Missing context", b.missingContext);
   list("Manipulation signals", b.manipulationSignals);
   if (!b.strongestCounterargument && !b.framingIssues.length && !b.missingContext.length && !b.manipulationSignals.length) {
-    biasBox.appendChild(el("p", { class: "fl-dim", text: t("rep.noBias", L) }));
+    biasBox.appendChild(el("p", { class: "ts-dim", text: t("rep.noBias", L) }));
   }
   container.appendChild(biasBox);
 
   // Second opinion (cross-model check)
   const so = report.secondOpinion;
   if (so) {
-    const soBox = el("section", { class: "fl-section" }, [
+    const soBox = el("section", { class: "ts-section" }, [
       el("h3", { text: `${t("rep.second", L)}${so.available ? ` — ${so.providerName}${so.model ? ` (${so.model})` : ""}` : ""}` })
     ]);
     if (!so.available) {
-      soBox.appendChild(el("p", { class: "fl-dim", text: so.note || "—" }));
+      soBox.appendChild(el("p", { class: "ts-dim", text: so.note || "—" }));
     } else {
       if (so.disagreements === 0) {
-        soBox.appendChild(el("p", { class: "fl-agree", text: t("rep.secondAgree", L) }));
+        soBox.appendChild(el("p", { class: "ts-agree", text: t("rep.secondAgree", L) }));
       } else {
-        soBox.appendChild(el("p", { class: "fl-warn", text: t("rep.secondDisagree", L, { n: so.disagreements }) }));
+        soBox.appendChild(el("p", { class: "ts-warn", text: t("rep.secondDisagree", L, { n: so.disagreements }) }));
       }
       for (const a of so.assessments) {
         const claim = (report.claims || []).find((x) => x.id === a.id);
-        const card = el("div", { class: "fl-card" }, [
-          el("div", { class: "fl-card-head" }, [
+        const card = el("div", { class: "ts-card" }, [
+          el("div", { class: "ts-card-head" }, [
             chip(a.agrees === false ? "disagrees" : a.agrees === true ? "agrees" : "no match", a.agrees === false ? "bad" : a.agrees === true ? "good" : "neutral"),
             chip(t("verdict." + a.verdict, L), CLAIM_TONE[a.verdict] || "neutral"),
-            chip(t("rep.confidence", L, { v: a.confidence }), "neutral")
+            chip(t("rep.confidence", L, { v: t("conf." + a.confidence, L) }), "neutral")
           ]),
-          el("p", { class: "fl-claim-text", text: claim ? claim.text : `#${a.id}` })
+          el("p", { class: "ts-claim-text", text: claim ? claim.text : `#${a.id}` })
         ]);
-        if (a.note) card.appendChild(el("p", { class: "fl-notes", text: a.note }));
+        if (a.note) card.appendChild(el("p", { class: "ts-notes", text: a.note }));
         soBox.appendChild(card);
       }
       if (so.missedContext && so.missedContext.length) {
-        soBox.appendChild(el("p", { class: "fl-subhead", text: t("rep.missedCtx", L) }));
+        soBox.appendChild(el("p", { class: "ts-subhead", text: t("rep.missedCtx", L) }));
         const ul = el("ul", {});
         so.missedContext.forEach((x) => ul.appendChild(el("li", { text: x })));
         soBox.appendChild(ul);
       }
-      if (so.overallNote) soBox.appendChild(el("p", { class: "fl-notes", text: so.overallNote }));
+      if (so.overallNote) soBox.appendChild(el("p", { class: "ts-notes", text: so.overallNote }));
     }
     container.appendChild(soBox);
   }
 
   // Footer
-  const foot = el("footer", { class: "fl-footer" }, [el("p", { class: "fl-dim", text: report.disclaimer })]);
+  const foot = el("footer", { class: "ts-footer" }, [el("p", { class: "ts-dim", text: report.disclaimer })]);
   if (onExport) {
     foot.appendChild(el("button", { type: "button", class: "secondary", onclick: onExport }, [document.createTextNode(t("btn.export", L))]));
   }
@@ -245,7 +249,7 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
 export function reportToMarkdown(report) {
   const lines = [];
   const m = report.method || {};
-  lines.push(`# FactLens verification report`);
+  lines.push(`# Touchstone verification report`);
   lines.push(``);
   lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
   lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchUsed ? "yes" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);

@@ -1,4 +1,4 @@
-// FactLens web app: same engine as the extension, paste-text workflow.
+// Touchstone web app: same engine as the extension, paste-text workflow.
 // Cited links are extracted from the pasted text (markdown or bare URLs) so
 // source profiling works here too; cross-origin page fetching may still be
 // blocked by CORS, in which case profiling degrades to link text + LLM knowledge.
@@ -16,9 +16,12 @@ const $ = (id) => document.getElementById(id);
 
 renderSettings($("settings"));
 
+// ?lang=en|ar overrides the stored preference for this page load, so the app can
+// be linked in a specific language (and so the RTL screenshot is reproducible).
+const langOverride = new URLSearchParams(location.search).get("lang");
 let currentLang = "en";
 (async () => {
-  currentLang = resolveLocale((await getSettings()).language);
+  currentLang = resolveLocale(langOverride || (await getSettings()).language);
   applyDirection(currentLang);
   applyI18n(document, currentLang);
 })();
@@ -64,17 +67,25 @@ async function run(text, sources, providerOverride = null, { ignoreCache = false
       const cached = await lookupCache(text, settingsFingerprint(settings));
       if (cached) {
         const mins = Math.max(1, Math.round((Date.now() - cached.ts) / 60000));
+        // Same options as a fresh render — a cached report used to lose its
+        // language and its Copy button.
         renderReport($("report"), cached.report, {
-          onExport: () => downloadMd(cached.report)
+          lang: currentLang,
+          onExport: () => downloadMd(cached.report),
+          onCopy: () => navigator.clipboard.writeText(reportToMarkdown(cached.report))
         });
         const note = document.createElement("p");
-        note.className = "fl-hint";
+        note.className = "ts-hint";
         note.textContent = `Loaded from cache (ran ${mins} min ago) — press “Verify answer” again to force a fresh run.`;
         $("report").prepend(note);
         lastRunWasCached = true;
         return;
       }
     }
+    // Past the cache branch this is a real run, so the next Verify press should
+    // be allowed to hit the cache again. Without this reset the flag latched on
+    // after the first hit and every later run bypassed the cache forever.
+    lastRunWasCached = false;
     const provider = providerOverride || createProvider(settings);
     const report = await verifyAnswer({ text, sources, page: "webapp" }, settings, {
       onProgress: setProgress,
@@ -109,7 +120,7 @@ function downloadMd(report) {
   const blob = new Blob([reportToMarkdown(report)], { type: "text/markdown;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `factlens-report-${new Date().toISOString().slice(0, 10)}.md`;
+  a.download = `touchstone-report-${new Date().toISOString().slice(0, 10)}.md`;
   a.click();
 }
 
@@ -128,9 +139,18 @@ $("cancel").addEventListener("click", () => {
   if (currentAbort) currentAbort.abort();
 });
 
-$("demo").addEventListener("click", () => {
+function runDemo() {
   const demoText =
     "Country X's parliament passed the emergency law on 12 March 2025. According to the [Is the law a threat to human rights?](https://global-security-observatory.org/is-x-a-threat) report by the Global Security Observatory, the law allows detention without trial for up to 90 days, and over 40,000 people were affected in the first month. Critics say this is the harshest measure in a decade.";
   $("input").value = demoText;
   run(demoText, extractUrls(demoText), createProvider({ provider: "mock", grounding: false }));
-});
+}
+
+$("demo").addEventListener("click", runDemo);
+
+// ?demo=1 runs the sample report on load. Handy for sharing a link that shows
+// what the tool produces, and it makes the documentation screenshots
+// reproducible (see scripts/capture-screenshots.py).
+const params = new URLSearchParams(location.search);
+if (params.get("shot") === "1") document.body.classList.add("ts-shot");
+if (params.get("demo") === "1") runDemo();

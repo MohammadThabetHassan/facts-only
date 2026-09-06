@@ -19,12 +19,12 @@ const EN = {
 
   // panel / page chrome
   "app.tagline": "AI-answer verifier",
-  "panel.hint": "Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT, Gemini, Claude and Perplexity). FactLens splits it into claims, hunts for independent evidence, verifies quotes against the pages, and profiles every source for manipulation patterns.",
+  "panel.hint": "Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT, Gemini, Claude and Perplexity). Touchstone splits it into claims, hunts for independent evidence, verifies quotes against the pages, and profiles every source for manipulation patterns.",
   "panel.history": "🕘 Previous reports",
   "input.placeholder": "Paste the AI answer you want to verify…",
   "settings.summary": "⚙️ Settings & API key",
-  "webapp.hero.title": "🔍 FactLens",
-  "webapp.hero.text": "Paste an AI chatbot answer. FactLens breaks it into claims, searches independently for supporting and contradicting evidence, and flags sources that look like influence campaigns or content farms. It gives you evidence — not a verdict.",
+  "webapp.hero.title": "🔍 Touchstone",
+  "webapp.hero.text": "Paste an AI chatbot answer. Touchstone breaks it into claims, searches independently for supporting and contradicting evidence, and flags sources that look like influence campaigns or content farms. It gives you evidence — not a verdict.",
   "webapp.tip": "Tip: the browser extension version can also fetch and profile cited web pages — use it on ChatGPT, Gemini, Claude and Perplexity for the strongest checks.",
 
   // messages
@@ -87,6 +87,17 @@ const EN = {
   "rep.missedCtx": "Context the second model says was missed:",
   "rep.confidence": "{v} confidence",
 
+  // confidence levels and claim types — interpolated into chips, so they need
+  // their own entries; before this they leaked raw English into Arabic reports.
+  "conf.high": "high",
+  "conf.medium": "medium",
+  "conf.low": "low",
+  "type.fact": "fact",
+  "type.statistic": "statistic",
+  "type.attribution": "attribution",
+  "type.causal": "causal",
+  "type.prediction": "prediction",
+
   // verdict / stance / trust / quote labels
   "verdict.supported": "supported",
   "verdict.mixed": "mixed",
@@ -120,12 +131,12 @@ const AR = {
   "btn.rerun": "إعادة التشغيل من جديد",
 
   "app.tagline": "مدقّق إجابات الذكاء الاصطناعي",
-  "panel.hint": "الصق إجابة ذكاء اصطناعي أدناه (أو استخدم «تحقق من النص المحدد» / زر التحقق في ChatGPT وGemini وClaude وPerplexity). يُقسّم FactLens الإجابة إلى ادعاءات، ويبحث عن أدلة مستقلة، ويتأكد من الاقتباسات مقابل صفحاتها، ويفحص كل مصدر بحثاً عن أنماط التلاعب.",
+  "panel.hint": "الصق إجابة ذكاء اصطناعي أدناه (أو استخدم «تحقق من النص المحدد» / زر التحقق في ChatGPT وGemini وClaude وPerplexity). يُقسّم Touchstone الإجابة إلى ادعاءات، ويبحث عن أدلة مستقلة، ويتأكد من الاقتباسات مقابل صفحاتها، ويفحص كل مصدر بحثاً عن أنماط التلاعب.",
   "panel.history": "🕘 التقارير السابقة",
   "input.placeholder": "الصق إجابة الذكاء الاصطناعي التي تريد التحقق منها…",
   "settings.summary": "⚙️ الإعدادات ومفتاح الـ API",
-  "webapp.hero.title": "🔍 FactLens",
-  "webapp.hero.text": "الصق إجابة من روبوت محادثة. يُقسّمها FactLens إلى ادعاءات، ويبحث بشكل مستقل عن أدلة مؤيدة ومعارضة، ويشير إلى المصادر التي تبدو حملات تأثير أو مزارع محتوى. يمنحك أدلة — وليس حكماً.",
+  "webapp.hero.title": "🔍 Touchstone",
+  "webapp.hero.text": "الصق إجابة من روبوت محادثة. يُقسّمها Touchstone إلى ادعاءات، ويبحث بشكل مستقل عن أدلة مؤيدة ومعارضة، ويشير إلى المصادر التي تبدو حملات تأثير أو مزارع محتوى. يمنحك أدلة — وليس حكماً.",
   "webapp.tip": "نصيحة: إضافة المتصفح تستطيع أيضاً جلب صفحات المصادر المُستشهد بها وفحصها — استخدمها على ChatGPT وGemini وClaude وPerplexity للحصول على أقوى فحص.",
 
   "msg.cancelled": "تم إلغاء التحقق. لم يُحفظ أي شيء.",
@@ -184,6 +195,15 @@ const AR = {
   "rep.secondDisagree": "⚠ يختلف النموذج الثاني بشأن {n} ادعاءات أدناه — اقرأ الجانبين قبل أن تقرر.",
   "rep.missedCtx": "سياق يقول النموذج الثاني إنه مفقود:",
   "rep.confidence": "ثقة {v}",
+
+  "conf.high": "عالية",
+  "conf.medium": "متوسطة",
+  "conf.low": "منخفضة",
+  "type.fact": "واقعة",
+  "type.statistic": "إحصاء",
+  "type.attribution": "إسناد",
+  "type.causal": "سببية",
+  "type.prediction": "تنبؤ",
 
   "verdict.supported": "مؤكَّد",
   "verdict.mixed": "مختلط",

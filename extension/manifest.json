@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "FactLens — AI Answer Verifier",
-  "version": "0.5.0",
+  "name": "Touchstone — AI Answer Verifier",
+  "version": "1.0.0",
   "description": "Stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
   "permissions": ["contextMenus", "storage", "sidePanel", "scripting"],
   "host_permissions": ["<all_urls>"],
@@ -16,7 +16,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "FactLens settings",
+    "default_title": "Touchstone settings",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

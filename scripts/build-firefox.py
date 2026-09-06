@@ -15,7 +15,7 @@ EXTENSION = ROOT / "extension"
 OUT = ROOT / "firefox-build"
 
 CHROME_ONLY_KEYS = {"side_panel"}
-GECKO_ID = "factlens@mohammadthabethassan.dev"
+GECKO_ID = "touchstone@mohammadthabethassan.dev"
 
 
 def firefoxify(manifest):
@@ -31,11 +31,11 @@ def firefoxify(manifest):
     if "side_panel" in m:
         panel = m.pop("side_panel")
         m["sidebar_action"] = {
-            "default_title": "FactLens",
+            "default_title": "Touchstone",
             "default_panel": panel.get("default_path", "panel/panel.html")
         }
 
-    # gecko id + minimum version (MV3 stable parts used by FactLens)
+    # gecko id + minimum version (MV3 stable parts used by Touchstone)
     m.setdefault("browser_specific_settings", {})
     m["browser_specific_settings"]["gecko"] = {
         "id": GECKO_ID,

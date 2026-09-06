@@ -1,15 +1,18 @@
 <div align="center">
 
-# 🔍 FactLens
+<img src="docs/logo.svg" width="88" height="88" alt="">
+
+# Touchstone
 
 **Stress-test AI chatbot answers instead of trusting them.**
 
 Independent evidence search · claim-by-claim verdicts · manipulation-pattern source profiling
 
-[![CI](https://github.com/MohammadThabetHassan/factlens/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/factlens/actions/workflows/ci.yml)
+[![CI](https://github.com/MohammadThabetHassan/touchstone/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/touchstone/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![No dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
-![No telemetry](https://img.shields.io/badge/telemetry-none-brightgreen)
+![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
+![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
+![Tests: 97 offline checks](https://img.shields.io/badge/tests-97%20offline%20checks-brightgreen)
 
 </div>
 
@@ -22,11 +25,40 @@ published 500,000+ words of question-titled reports designed to be the first thi
 ChatGPT and Google AI cite on Gaza. Researchers call this technique
 **Generative Engine Optimization (GEO)** — SEO, but for AI answers.
 
-FactLens fights back by doing what the chatbot should have done:
+Touchstone does what the chatbot should have done: it re-checks the answer against
+evidence it goes and finds for itself.
 
-> **FactLens never outputs "true" or "lie."** It produces evidence, verdict-per-claim with
-> links, and source warnings — the final judgment stays with the reader. Any tool claiming
-> to output "the truth" would itself become a single point of manipulation.
+> A touchstone does not tell you what a metal is. You rub the metal on the stone and read
+> the streak yourself. **Touchstone never outputs "true" or "false."** It produces
+> evidence, a verdict per claim with links, and source warnings — the judgment stays with
+> the reader. Any tool claiming to output "the truth" would itself become a single point
+> of manipulation.
+
+## What a report looks like
+
+<div align="center">
+  <img src="docs/screenshots/report.png" width="740" alt="A Touchstone report: a red 'Manipulated sources detected' banner with the counts behind it, a method line disclosing that no live search ran and that 3 of about 4 claims were checked, then per-claim cards — one supported, one contradicted — each with evidence links, quotes, and quote-verification chips.">
+</div>
+
+Every report shows the trust banner **with the counts behind it**, a transparency line
+stating exactly what the verification did (live search? how many of the checkable claims?
+quotes verified?), per-claim verdicts with evidence links and **quote-verification chips**
+("quote verified on page" vs "quote NOT found on page"), source warning flags, the bias
+and framing analysis, and an optional **second-model opinion** asked to challenge the
+first review.
+
+<details>
+<summary>The full web app, and the Arabic RTL layout</summary>
+
+<div align="center">
+  <img src="docs/screenshots/webapp-full.png" width="700" alt="The Touchstone web app with the paste box and a rendered report below it.">
+  <br><br>
+  <img src="docs/screenshots/report-arabic-rtl.png" width="700" alt="The same report rendered in Arabic with a right-to-left layout.">
+</div>
+
+Screenshots are generated, not hand-cropped: `python scripts/capture-screenshots.py`.
+
+</details>
 
 ## How it works
 
@@ -44,7 +76,8 @@ FactLens fights back by doing what the chatbot should have done:
  ③ SOURCE PROFILER  every source gets:
         │           • code heuristics: question-shaped headlines (GEO),
         │             no named author, unregistered "think tank",
-        │             sponsored content, raw AI-generated text
+        │             sponsored content, raw AI-generated text,
+        │             domain first archived <90 days ago
         │           • AI publisher profile: funding, stance, credibility
         ▼
  ④ BIAS ANALYSIS    framing issues, missing context, strongest argument
@@ -54,102 +87,111 @@ FactLens fights back by doing what the chatbot should have done:
                     per-claim verdicts, source warnings, Markdown export
 ```
 
-The headline verdicts are **computed by code** from the check results — a gamed or
-biased model cannot award itself a friendly rating.
-
-## What a report looks like
-
-![FactLens report in the web app](docs/screenshots/webapp-demo-report.png)
-
-The report shows: the trust banner **with the counts behind it**, a transparency
-line stating exactly what the verification did (live search? how many of the
-checkable claims? quotes verified?), per-claim verdicts with evidence links and
-**quote verification chips** ("quote verified on page" vs "quote NOT found on
-page"), source warning flags, the bias & framing analysis, and an optional
-**second-model opinion** that is asked to challenge the first review.
+The headline verdict is **computed by code** from the check results — a gamed or biased
+model cannot award itself a friendly rating. The decision order and thresholds are part of
+a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered by tests.
 
 ## Features
 
 - 🔎 **Verify anywhere** — one click under AI answers on ChatGPT, Gemini, Claude and
-  Perplexity; right-click on any selected text; or paste into the side panel / web app.
-- 🧾 **Quote verification** — evidence quotes are checked against the fetched page
-  text; "not found" is flagged instead of silently trusted.
+  Perplexity; right-click on any selected text; or paste into the side panel or web app.
+- 🧾 **Quote verification** — evidence quotes are checked against the fetched page text;
+  "not found" is flagged instead of silently trusted.
 - 🧭 **Second-model cross-check** — optionally send the checked claims to a second,
-  different AI provider and let it challenge the first review; disagreements are
-  shown in the report. Verified live: Gemini 2.5 Flash (grounded primary) +
-  OpenRouter free model agree on claims and surface missed context. (Mitigates
-  single-model bias — the checker itself.)
-- 🧮 **Auto-free OpenRouter models** — set the model to `auto-free` and the
-  provider discovers currently-available free models, ranks them for
-  fact-checking, and falls back down the list on failures or rate limits.
-- 🏛️ **Domain-age detection** — every non-established source domain is checked
-  against the Wayback Machine (keyless): domains first archived <90 days ago —
-  or never archived at all — are flagged as influence-campaign signals.
-- 🌍 **Multilingual heuristics** — GEO headline detection and think-tank naming
-  patterns in English **and Arabic** (هل/ماذا/لماذا…, معهد/مرصد/مؤسسة), sponsored
-  content markers in both.
+  different provider and let it challenge the first review; disagreements are shown in the
+  report. This mitigates single-model bias, including in the checker itself.
+- 🏛️ **Domain-age detection** — every non-established source domain is checked against the
+  Wayback Machine (keyless): domains first archived under 90 days ago, or never archived
+  at all, are flagged as influence-campaign signals.
+- 🌍 **Multilingual heuristics** — GEO headline detection and think-tank naming patterns in
+  English **and Arabic** (هل/ماذا/لماذا…, معهد/مرصد/مؤسسة), sponsored-content markers in both.
 - ⚖️ **Cross-partisan by design** — the established-publisher list spans wire services,
-  courts/UN bodies, academics, and newspapers from different editorial lines, with
-  documented inclusion criteria ([SOURCE-LISTS.md](docs/SOURCE-LISTS.md)).
-- 🛡️ **Prompt-injection hardened** — fetched pages and analyzed answers are treated as
-  untrusted data in every model prompt ([threat model](docs/THREAT-MODEL.md)).
+  courts and UN bodies, academic venues, and newspapers from different editorial lines,
+  with documented inclusion criteria ([SOURCE-LISTS.md](docs/SOURCE-LISTS.md)).
+- 🛡️ **Hardened against the attack it studies** — fetched pages and analyzed answers are
+  treated as untrusted data in every model prompt, and model-supplied URLs are refused
+  unless they are public web addresses, so a page cannot steer the extension into the
+  user's own network ([threat model](docs/THREAT-MODEL.md)).
+- 🧮 **Auto-free OpenRouter models** — set the model to `auto-free` and the provider
+  discovers currently-available free models, ranks them for fact-checking, and falls back
+  down the list on failures or rate limits.
 - 🚫 **Zero dependencies, zero telemetry, no build step** — plain ES modules.
-- 🔁 **Resilient** — automatic retry with backoff on rate limits (user cancellation
-  is never retried); a failed step degrades the report, it never crashes it.
-- 💾 **Cached & cancellable** — identical answers render instantly from cache
-  (with a "re-run fresh" escape), and long runs can be cancelled mid-flight.
-- 🌗 **Light & dark** — follows your system theme.
-- 🌍 **English & Arabic UI** — RTL layout included; language follows the system or
-  is set manually. Model-generated report text stays in the language the
-  verification was performed in.
+- 🔁 **Resilient** — automatic retry with backoff on rate limits (user cancellation is
+  never retried); a failed step degrades the report, it never crashes it.
+- 💾 **Cached and cancellable** — identical answers render instantly from cache (with a
+  "re-run fresh" escape), and long runs can be cancelled mid-flight.
+- 🌗 **Light and dark**, following the system theme.
+- 🌍 **English and Arabic UI**, RTL layout included.
 
-## Install (Chrome / Edge / Brave / **Firefox**)
+## Install
+
+**Chrome / Edge / Brave**
 
 1. Clone or download this repository.
-2. **Chrome/Edge/Brave:** open `chrome://extensions` → enable **Developer mode** →
-   **Load unpacked** → select the `extension/` folder.
-   **Firefox (128+):** run `python scripts/build-firefox.py`, then
-   `about:debugging` → **Load Temporary Add-on…** → select
-   `firefox-build/manifest.json` (temporary install; see the roadmap for signed builds).
-3. Click the FactLens icon → paste a **free Gemini API key**
+2. Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the
+   `extension/` folder.
+
+**Firefox 128+**
+
+1. `npm run build:firefox` (or `python scripts/build-firefox.py`).
+2. Open `about:debugging` → **Load Temporary Add-on…** → select
+   `firefox-build/manifest.json`. This is a temporary install; see the roadmap for signed
+   builds.
+
+**Then, in either browser**
+
+3. Click the Touchstone icon → paste a free Gemini API key
    ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) → **Save** →
    **Test connection**.
-4. No key yet? Click **"Try a demo"** for a full sample report (canned data).
+4. No key yet? Click **Try a demo** for a full sample report built from canned data.
 
-OpenRouter and OpenAI-compatible endpoints also work, but free models there cannot
-search the web, so evidence quality is lower.
+OpenRouter and OpenAI-compatible endpoints also work, but free models there cannot search
+the web, so evidence quality is lower.
 
 ## Usage
 
-- **On ChatGPT, Gemini, Claude, or Perplexity:** a blue "🔍 FactLens — verify this answer"
-  button appears under each AI response. Click it and the report opens in the side panel.
-- **Anywhere on the web:** select the text → right-click → **"FactLens: verify selected text"**
-  — the side panel opens automatically and runs.
-- **Manual:** open the side panel and paste any answer. Links in the pasted text
-  (markdown or bare URLs) are picked up as sources automatically.
-- Results for identical answers + settings are cached; press **Verify** again for a
-  fresh run, or **Cancel** mid-run to abort. Every report can be copied to the
-  clipboard or exported as Markdown.
+- **On ChatGPT, Gemini, Claude, or Perplexity:** a blue "🔍 Touchstone — verify this
+  answer" button appears under each AI response. Click it and the report opens in the side
+  panel.
+- **Anywhere on the web:** select the text → right-click → **Touchstone: verify selected
+  text**. The side panel opens automatically and runs.
+- **Manual:** open the side panel and paste any answer. Links in the pasted text (markdown
+  or bare URLs) are picked up as sources automatically.
+- Results are cached per answer and settings; press **Verify** again for a fresh run, or
+  **Cancel** mid-run to abort. Every report can be copied to the clipboard or exported as
+  Markdown.
+
+The web app also takes URL parameters: `?demo=1` runs the sample report on load, and
+`?lang=ar` renders it in Arabic.
 
 ## Development
 
+There is no build step and there are no dependencies — load `extension/` unpacked and edit
+the files.
+
 ```bash
-node test/smoke.mjs                        # 91-check offline suite — no key, no network
-python scripts/build-firefox.py            # build the Firefox add-on directory
-python scripts/package-extension.py        # store-ready zip of the Chrome extension
-python scripts/dev-server.py               # serve webapp/panel at localhost:8123 for manual testing
-FACTLENS_GEMINI_KEY=… node scripts/live-check.mjs   # one REAL end-to-end run (costs ~5 free-tier calls)
+npm test                  # 97-check offline suite: no key, no network
+npm run dev               # serve webapp + panel at localhost:8123
+npm run build:firefox     # build the Firefox add-on directory
+npm run package           # store-ready zip of the Chrome extension
 ```
 
-The offline suite covers the whole pipeline with a mock provider; `live-check.mjs`
-is the companion for a real API pass — it runs a small answer with two checkable
-claims through Gemini with Google Search grounding, prints the report with quote
-statuses, and applies sanity gates (grounding used, evidence returned, not all
-unverifiable). The key is read from the environment only and never stored.
+Each script is a plain `node` or `python` invocation if you would rather not use npm — see
+`package.json`.
 
-There is nothing to build: load `extension/` unpacked and edit the files.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (evidence-not-verdicts,
-code-computed trust signal, tested heuristics, cross-partisanship).
+For a real end-to-end pass against the live API:
+
+```bash
+TOUCHSTONE_GEMINI_KEY=... node scripts/live-check.mjs
+```
+
+That runs one small answer with two checkable claims through Gemini with Google Search
+grounding, prints the report with quote statuses, and applies sanity gates (grounding was
+used, evidence was returned, not everything came back unverifiable). It costs roughly five
+free-tier calls. The key is read from the environment only and is never stored.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules: evidence not verdicts, a
+code-computed trust signal, tested heuristics, and cross-partisanship.
 
 ## Repository layout
 
@@ -162,48 +204,53 @@ extension/          Manifest V3 extension (no build step)
   content/          chatbot answer detection + Verify buttons
   panel/  popup/    side panel & settings UI
 webapp/             paste-text web app reusing the same engine
-docs/               ARCHITECTURE.md · THREAT-MODEL.md · SOURCE-LISTS.md
-scripts/            icon generator · dev server
+docs/               ARCHITECTURE.md · THREAT-MODEL.md · SOURCE-LISTS.md · VERIFICATION.md
+scripts/            icon generator · dev server · packaging · screenshot capture
 test/smoke.mjs      offline pipeline test suite
 ```
 
 ## Roadmap
 
-- [ ] Domain-age / Wayback-first-seen checks for source profiling
-- [ ] UI translations (Arabic first)
-- [ ] Firefox port (Manifest V2/V3 differences)
-- [ ] Credibility notes from Wikipedia/Wayback instead of model memory
+- [x] Domain-age / Wayback-first-seen checks for source profiling
+- [x] UI translations (Arabic first)
+- [x] Firefox port
+- [ ] Signed Firefox add-on and a Chrome Web Store listing
+- [ ] Credibility notes from Wikipedia and Wayback instead of model memory
 - [ ] Optional local-model provider (e.g. via Ollama)
+- [ ] Narrow `<all_urls>` to an optional permission requested on first fetch
 
 ## Known limitations
 
-- Free-tier daily limits on Gemini's search-grounded requests.
-- Some sites block fetching; those sources are profiled from link text + model
-  knowledge only (marked in the report). Quote chips then read
-  "page not fetched — quote unchecked".
-- Quote verification matches the quote against the extracted page text; a
-  "not found" flag can also mean the quote sits behind JavaScript or a paywall.
-- The verification model is itself an AI with blind spots — every claim in a report
-  carries links so readers can check the primary evidence. The optional second-model
-  cross-check reduces, but does not remove, this risk.
+- Free-tier daily limits apply to Gemini's search-grounded requests.
+- Some sites block fetching; those sources are profiled from link text and model knowledge
+  only, and marked as such. Quote chips then read "page not fetched — quote unchecked".
+- Quote verification matches the quote against the extracted page text, so a "not found"
+  flag can also mean the quote sits behind JavaScript or a paywall.
+- Model-generated report text (summaries, publisher profiles) stays in the language the
+  verification ran in; only the UI chrome is translated.
+- The verification model is itself an AI with blind spots. Every claim in a report carries
+  links so readers can check the primary evidence, and the optional second-model
+  cross-check reduces — but does not remove — this risk.
 
 ## Privacy
 
-API keys and settings never leave your device (browser-local storage). Text is sent
-only to the AI provider you configure; fetches use `credentials: "omit"`.
+API keys and settings never leave your device (browser-local storage). Text is sent only
+to the AI provider you configure. Page fetches use `credentials: "omit"`, and the API key
+travels in a request header rather than a URL, so it stays out of browser history and
+proxy logs.
 
 ## Governance
 
-- [Contributing](CONTRIBUTING.md) — ground rules and how to add heuristics/providers
+- [Contributing](CONTRIBUTING.md) — ground rules, and how to add heuristics or providers
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md) — prompt injection, key handling, evasion reports
-- [Threat model](docs/THREAT-MODEL.md) — what FactLens defends against, and what it doesn't
+- [Threat model](docs/THREAT-MODEL.md) — what Touchstone defends against, and what it does not
 - [Verification log](docs/VERIFICATION.md) — what is tested, how, and what remains
 - [Changelog](CHANGELOG.md)
 
 ## License
 
-[MIT](LICENSE) © FactLens contributors
+[MIT](LICENSE) © 2026 Mohammad Thabet Hassan
 
 ## Acknowledgements
 

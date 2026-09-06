@@ -1,8 +1,70 @@
 # Changelog
 
-All notable changes to FactLens are documented here.
+All notable changes to Touchstone are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
+
+## [1.0.0] — 2026-09-06
+
+Renamed from **FactLens** to **Touchstone**. A touchstone does not tell you what a
+metal is — you read the streak yourself — which is exactly the contract this tool
+has always had with its reader.
+
+### Security
+- **SSRF guard on model-supplied URLs.** Evidence URLs come from an LLM whose input
+  includes untrusted web pages, and the extension fetches them from a privileged
+  `<all_urls>` context with no CORS — i.e. from inside the user's network, with the
+  response body then fed back into the next prompt. Every URL now passes
+  `isPublicHttpUrl()` first: `http(s)` with a dotted DNS hostname only. Loopback,
+  `.local`/`.internal`/`.lan`, bare intranet names, credentials-in-URL and all IP
+  literals (including decimal/hex/IPv4-mapped encodings) are refused, never fetched,
+  and never sent to the Wayback API or the model. A refused citation is surfaced as a
+  **high-risk** source flag rather than dropped. See THREAT-MODEL.md §6.
+- **API key moved out of the request URL.** The Gemini key travelled as a `?key=`
+  query parameter, which lands in browser history, devtools, and proxy logs; it is
+  now sent in the `x-goog-api-key` header.
+
+### Fixed
+- **Second-model cross-check failed on chatty models.** It was the one step parsing
+  the model's JSON with a raw `JSON.parse` over a `indexOf("{")`…`lastIndexOf("}")`
+  slice instead of the shared `extractJson()`. That slice breaks whenever the model
+  adds prose containing a brace after the JSON, or emits a second object — and the
+  whole cross-check was then reported as "failed" rather than rendered. Now uses
+  `extractJson()` like every other step. (Code fences alone were already handled by
+  both, so this was chatty-model output, not fenced output.)
+- **Web app cache was disabled after its first hit.** The `lastRunWasCached` latch
+  was set on a cache hit and never cleared, so every subsequent Verify press forced
+  a fresh run for the rest of the session.
+- **Cached reports rendered with fewer features than fresh ones** — they lost the
+  language setting and the Copy button.
+- **Arabic reports reordered the verdict counts.** "1 supported · 0 mixed" was built
+  as one string, so bidi reordering detached each Latin digit from its Arabic label.
+  Each count is now a bidi-isolated `<bdi>` node.
+- **Confidence and claim-type chips were never translated** — an Arabic report showed
+  "ثقة HIGH" and "FACT". Both now have `conf.*` and `type.*` locale keys.
+- OpenRouter's free-model catalog lookup used a bare `fetch()` with no timeout and
+  no abort signal, so it could hang a run and ignored Cancel.
+- Removed a dead `postJson` import and de-duplicated the domain-age flag logic,
+  which existed both inside `computeFlags` and in the exported `domainAgeFlags`.
+
+### Added
+- `scripts/capture-screenshots.py` — regenerates `docs/screenshots/` from the live
+  UI with headless Chrome at 2x, cropping to card boundaries. Documentation images
+  are now a build artifact instead of a manual chore that silently goes stale.
+- Web app URL parameters: `?demo=1` runs the sample report on load, `?lang=ar`
+  overrides the UI language, `?shot=1` is the capture view.
+- `docs/logo.svg` — vector twin of the shipped extension icon.
+- npm scripts (`test`, `dev`, `build:firefox`, `package`, `live`) and full package
+  metadata.
+
+### Changed
+- The demo now produces **three distinct outcomes** — supported, contradicted and
+  unverifiable, with different evidence for each — instead of repeating one canned
+  block under every claim, which made the sample report look broken.
+- Offline suite grown from 91 to **97 checks** (SSRF guard and refused-citation
+  behaviour).
+- CSS custom properties and class names, storage keys, and message types moved from
+  the `fl-`/`fl_` prefix to `ts-`/`ts_`.
 
 ## [0.5.0] — 2026-09-06
 

@@ -1,11 +1,11 @@
 // Offline smoke test: runs unit checks and the full pipeline with the mock
 // provider (no network, no API key).
-// Run: node test/smoke.mjs   (from the factlens/ directory)
+// Run: node test/smoke.mjs   (from the touchstone/ directory)
 
 import { verifyAnswer, computeTrustSignal, TRUST_SIGNALS } from "../extension/engine/pipeline.js";
 import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
-import { stripHtml, truncate, hash32, domainOf, extractUrls, normText } from "../extension/engine/text.js";
+import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
 import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen } from "../extension/engine/sourceProfiler.js";
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
@@ -26,6 +26,12 @@ console.log("unit checks:");
 check("stripHtml removes tags", stripHtml("<p>Hello <b>world</b></p>").includes("Hello world"));
 check("extractJson survives fences", extractJson('```json\n{"a":1}\n```').a === 1);
 check("extractJson survives prose", extractJson('Sure! Here you go: {"a":[1,2],"b":"x"} hope it helps').a.length === 2);
+// Regression: the second-opinion step used to slice indexOf("{")..lastIndexOf("}"),
+// which a brace in TRAILING prose, or a second object, silently corrupts.
+check("extractJson stops at the first complete object (trailing brace in prose)",
+  extractJson('{"a":1}\nNote: see item {b}').a === 1);
+check("extractJson stops at the first complete object (two objects)",
+  extractJson('{"a":1}\n{"b":2}').a === 1);
 check("truncate", truncate("abcdef", 4).length === 4);
 check("hash32 stable", hash32("test") === hash32("test"));
 check("domainOf strips www", domainOf("https://www.example.org/x") === "example.org");
@@ -451,6 +457,50 @@ check("second opinion same-provider → unavailable with note", report.secondOpi
     aborted = e.name === "AbortError" || /abort/i.test(e.message || "");
   }
   check("pipeline honors pre-aborted signal", aborted);
+}
+
+// --- SSRF guard: model-supplied URLs are fetched from a privileged context ----
+console.log("\nssrf guard:");
+{
+  const allowed = [
+    "https://reuters.com/article/x",
+    "http://example.org/a",
+    "https://sub.domain.co.uk/path?q=1"
+  ];
+  const blocked = [
+    "http://localhost:8080/admin",
+    "http://127.0.0.1/",
+    "https://127.0.0.1:8443/x",
+    "http://169.254.169.254/latest/meta-data/",  // cloud metadata
+    "http://192.168.1.1/",
+    "http://10.0.0.5/internal",
+    "http://[::1]/",                             // IPv6 loopback
+    "http://2130706433/",                        // decimal-encoded 127.0.0.1
+    "http://0x7f000001/",                        // hex-encoded 127.0.0.1
+    "http://wiki/",                              // bare intranet name
+    "http://printer.local/",
+    "https://db.internal/dump",
+    "http://user:pass@example.org/",             // credentials in URL
+    "file:///etc/passwd",
+    "javascript:alert(1)"
+  ];
+  check("SSRF guard allows public http(s) sources", allowed.every(isPublicHttpUrl),
+    JSON.stringify(allowed.filter((u) => !isPublicHttpUrl(u))));
+  check("SSRF guard blocks loopback, private, metadata, encoded and non-http URLs",
+    blocked.every((u) => !isPublicHttpUrl(u)),
+    JSON.stringify(blocked.filter(isPublicHttpUrl)));
+}
+
+// A non-public citation must be refused AND surfaced as a high-risk signal,
+// not silently dropped — a model citing 127.0.0.1 is itself a detection event.
+{
+  const profiled = await profileSources(null, {}, ["http://127.0.0.1:8080/admin"], { fetchSources: true });
+  const s0 = profiled[0];
+  check("non-public citation is profiled but never fetched",
+    profiled.length === 1 && s0.fetched === false, JSON.stringify(s0 && { fetched: s0.fetched }));
+  check("non-public citation flagged high risk",
+    !!s0 && s0.highRisk === true && s0.flags.some((f) => f.key === "non-public-url"),
+    JSON.stringify(s0 && s0.flags));
 }
 
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);

@@ -6,8 +6,10 @@ import { postJson } from "../http.js";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function callGenerate({ model, key, body, signal }) {
-  const url = `${API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const res = await postJson(url, body, 90000, {}, { retries: 2, signal });
+  // The key goes in a header, never in the query string: URLs end up in browser
+  // history, devtools network panes, proxy logs, and crash reports — headers do not.
+  const url = `${API_BASE}/${encodeURIComponent(model)}:generateContent`;
+  const res = await postJson(url, body, 90000, { "x-goog-api-key": key }, { retries: 2, signal });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     const err = new Error(`Gemini API error ${res.status}: ${errText.slice(0, 400)}`);
@@ -24,7 +26,7 @@ export function createGeminiProvider(settings) {
 
   async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.geminiKey || "").trim();
-    if (!key) throw new Error("Missing Gemini API key. Open FactLens settings and paste your free key from aistudio.google.com.");
+    if (!key) throw new Error("Missing Gemini API key. Open Touchstone settings and paste your free key from aistudio.google.com.");
     const model = (settings.geminiModel || "gemini-2.5-flash").trim();
     const useGrounding = search && supportsSearch;
 
