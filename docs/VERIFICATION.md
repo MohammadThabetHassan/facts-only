@@ -3,7 +3,7 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-06 (v0.3.0, commit `d18cc8e`)
+Last updated: 2026-09-06 (v0.4.0, commit `69cf59d` + detector drift fix)
 
 ## 1. Offline test suite — PASSING (73 checks)
 
@@ -34,6 +34,17 @@ profile), driving the actual UI rather than unit shims:
 | **Real extension:** Developer mode → Load unpacked → card loads with icon, v0.3.0, no errors | PASS |
 | **Real extension:** toolbar popup settings → provider switch → save | PASS |
 | **Real extension:** select text on example.com → context menu "FactLens: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
+| **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 FactLens — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
+
+### Selector drift caught and fixed (2026-09-06)
+
+The logged-out ChatGPT DOM (2026 redesign) no longer uses
+`data-message-author-role="assistant"`; it uses hashed CSS-module classes
+(`wUdOQ_assistantMessage`). The detector now matches the stable suffix —
+`[class*="assistantMessage"]:not([class*="Actions"])` — alongside the original
+logged-in selector. Found during live E2E, fixed, and re-verified in the same
+session. This is exactly the drift class CONTRIBUTING.md asks contributors to
+watch: one selector line, fixed within minutes of detection.
 
 Three real defects were found by these E2E passes and fixed (a broken webapp
 module graph, a report-renderer crash on string children, and `sidePanel.open()`

@@ -7,7 +7,13 @@
   const HOST_CONFIGS = [
     {
       test: /(^|\.)chatgpt\.com$|(^|\.)chat\.openai\.com$/,
-      messageSelectors: ['[data-message-author-role="assistant"]'],
+      messageSelectors: [
+        // logged-in DOM
+        '[data-message-author-role="assistant"]',
+        // logged-out DOM (2026 redesign): hashed classes, e.g. "wUdOQ_assistantMessage".
+        // Match the stable suffix, exclude the actions bar that also contains it.
+        '[class*="assistantMessage"]:not([class*="Actions"])'
+      ],
       buttonContainer: (el) => el.closest("article") || el.parentElement || el
     },
     {
