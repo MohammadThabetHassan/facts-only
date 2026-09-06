@@ -25,6 +25,7 @@ let currentLang = "en";
 
 let running = false;
 let currentAbort = null;
+let lastRunWasCached = false;
 
 function setProgress(p) {
   const bar = $("bar");
@@ -70,6 +71,7 @@ async function run(text, sources, providerOverride = null, { ignoreCache = false
         note.className = "fl-hint";
         note.textContent = `Loaded from cache (ran ${mins} min ago) — press “Verify answer” again to force a fresh run.`;
         $("report").prepend(note);
+        lastRunWasCached = true;
         return;
       }
     }
@@ -118,7 +120,8 @@ $("run").addEventListener("click", () => {
     $("error").hidden = false;
     return;
   }
-  run(text, extractUrls(text));
+  // A cached run is replaced by a fresh run when Verify is pressed again.
+  run(text, extractUrls(text), null, { ignoreCache: lastRunWasCached });
 });
 
 $("cancel").addEventListener("click", () => {
