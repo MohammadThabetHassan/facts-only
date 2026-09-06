@@ -11,6 +11,15 @@
   </head>
   <body>
     <h1>🔍 Facts Only settings</h1>
+    <!-- A key is optional, and saying so here matters: the reader this tool is
+         written for will abandon it at a settings screen that opens with
+         "paste an API key". The keyless check answers the question most of them
+         actually came with. -->
+    <p class="fo-hint" data-i18n="popup.noKeyNeeded">
+      <strong>No API key needed to start.</strong> Open the side panel and use
+      <em>&ldquo;Check sources only&rdquo;</em> to see who is behind the sources an
+      answer cites. A key adds claim-by-claim evidence checking.
+    </p>
     <div id="settings"></div>
     <script type="module" src="popup.js"></script>
   </body>

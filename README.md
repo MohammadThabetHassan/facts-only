@@ -244,7 +244,7 @@ the files.
 
 ```bash
 npm test                  # 143-check offline suite: no key, no network
-npm run test:e2e          # 16 real-browser checks in headless Chrome
+npm run test:e2e          # 15 real-browser checks in headless Chrome
 npm run eval              # measure the detector against 50 real publishers
 npm run typecheck         # type-check the engine from its JSDoc (still no build step)
 npm run dev               # serve webapp + panel at localhost:8123
@@ -335,6 +335,8 @@ proxy logs.
 
 - [Contributing](CONTRIBUTING.md) — ground rules, and how to add heuristics or providers
 - [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Privacy policy](docs/PRIVACY.md) - what leaves your device, and where it goes
+- [Store listing pack](store/LISTING.md) - everything a store submission asks for
 - [Security policy](SECURITY.md) — prompt injection, key handling, evasion reports
 - [Evaluation](docs/EVALUATION.md) — how accuracy is measured, and where it fails
 - [Threat model](docs/THREAT-MODEL.md) — what Facts Only defends against, and what it does not
