@@ -6,7 +6,7 @@
 
 Independent evidence search · claim-by-claim verdicts · manipulation-pattern source profiling
 
-[![CI](https://github.com/YOUR_USERNAME/factlens/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/factlens/actions/workflows/ci.yml)
+[![CI](https://github.com/MohammadThabetHassan/factlens/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/factlens/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![No dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-brightgreen)

@@ -50,27 +50,32 @@ Three real defects were found by these E2E passes and fixed (a broken webapp
 module graph, a report-renderer crash on string children, and `sidePanel.open()`
 losing the user-gesture context after awaited storage writes) — see CHANGELOG 0.3.0.
 
-## 3. Live network validation — PARTIAL (by design, no credentials in CI)
+## 3. Live network validation — PASSING (2026-09-06, v0.4.0)
 
-- **Google API reachability + protocol:** verified with a real HTTPS call using an
-  intentionally invalid key. Google's server accepted the request shape and
-  returned the structured `API key not valid` (400/INVALID_ARGUMENT) error, which
-  the provider surfaces cleanly in ~1.1 s without retrying. This proves endpoint,
-  request shape, and error handling against the live API.
-- **Successful grounded generation:** NOT yet verified — requires a real key.
-  `node scripts/live-check.mjs` (key via environment variable) runs the full
-  pipeline live with sanity gates: grounding must be used, evidence links must be
-  returned, verdicts must not all be `unverifiable`. Cost: ~5 free-tier calls.
+- **Live generation pass:** executed with a real free-tier Gemini key
+  (`scripts/live-check.mjs`, key via environment variable, never stored).
+  `gemini-2.5-flash` with Google Search grounding ran the full pipeline on a
+  test answer: 2 claims extracted and checked, both **supported/high** with
+  evidence from primary sources (science.nasa.gov, stsci.edu, esa.int — all
+  badged "Established publisher"), trust signal **Well supported** (score 1.00),
+  39 s elapsed. Sanity gates passed: grounding used, evidence links returned,
+  not all unverifiable.
+- **Quote statuses on the live run:** 0 verified / 4 not-found / rest
+  page-not-fetched — honest reporting of the known limitation (many official
+  pages are JS-heavy or block automated fetching); the chips surface this to
+  the reader instead of silently trusting the quotes.
+
+Last updated: 2026-09-06 (v0.4.0 + live pass, see section 3)
 
 ## 4. Explicitly not verified / known gaps
 
-- One live successful Gemini generation (blocked on a user-provided free key —
-  see section 3).
-- Content-script Verify-button injection on the four chatbot sites was
-  implemented against their DOM structure at time of writing but not exercised
-  logged-in in this session; the right-click and paste flows cover the same
-  pipeline without it. Selector drift on those sites is the most likely future
-  breakage (one-line fixes — see CONTRIBUTING).
+- ~~One live successful Gemini generation~~ — **done 2026-09-06** (see section 3).
+- Content-script Verify-button injection was exercised live only on
+  **logged-out chatgpt.com** (where selector drift was caught and fixed).
+  Gemini/Claude/Perplexity require login and were not exercised end-to-end;
+  the right-click and paste flows cover the same pipeline without the detector.
+  Selector drift on those sites remains the most likely future breakage
+  (one-line fixes — see CONTRIBUTING).
 - Independent human review. All passing evidence to date was produced by the
   project author; the test suite is intentionally offline and deterministic so
   any reviewer can reproduce it in seconds.
