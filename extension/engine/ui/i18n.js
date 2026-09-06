@@ -130,6 +130,8 @@ const EN = {
   "flag.ai-generated-text": "Looks machine-written",
   "flag.established": "Known publisher with a public track record",
   "flag.technical": "Technical detail",
+  "rep.contribution": "Contributes {n} placement points.",
+  "rep.placementScore": "Placement score: {n} (45+ is reported as placed, 22+ as unclear).",
 
   // confidence levels and claim types — interpolated into chips, so they need
   // their own entries; before this they leaked raw English into Arabic reports.
@@ -279,6 +281,8 @@ const AR = {
   "flag.ai-generated-text": "يبدو مكتوبًا بالآلة",
   "flag.established": "ناشر معروف له سجل عام",
   "flag.technical": "التفصيل التقني",
+  "rep.contribution": "يساهم بـ {n} من نقاط الزرع.",
+  "rep.placementScore": "درجة الزرع: {n} (45 فأكثر تُعدّ مزروعة، 22 فأكثر غير واضحة).",
 
   "conf.high": "عالية",
   "conf.medium": "متوسطة",

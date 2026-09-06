@@ -224,6 +224,9 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
         s.credibility && s.credibility !== "unknown" ? chip(`${s.credibility} credibility`, s.credibility === "high" ? "good" : s.credibility === "low" ? "bad" : "warn") : null
       ])
     ]);
+    if (typeof s.placementScore === "number" && !s.established) {
+      card.appendChild(el("p", { class: "fo-dim", text: t("rep.placementScore", L, { n: s.placementScore }) }));
+    }
     if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "fo-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
     if (s.firstArchived) card.appendChild(el("p", { class: "fo-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
     if (s.publisher) card.appendChild(el("p", { class: "fo-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
@@ -240,7 +243,12 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
         flagBox.appendChild(
           el("details", { class: "fo-flag-more" }, [
             el("summary", { text: t("flag.technical", L) }),
-            el("p", { text: `${f.label}${f.detail ? ` — ${f.detail}` : ""}` })
+            el("p", { text: `${f.label}${f.detail ? ` — ${f.detail}` : ""}` }),
+            // The arithmetic, shown rather than asserted: a reader who wants to
+            // argue with a verdict can see exactly what it was built from.
+            typeof f.weight === "number"
+              ? el("p", { class: "fo-dim", text: t("rep.contribution", L, { n: f.weight > 0 ? `+${f.weight}` : String(f.weight) }) })
+              : null
           ])
         );
       }
