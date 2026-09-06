@@ -244,6 +244,7 @@ the files.
 
 ```bash
 npm test                  # 143-check offline suite: no key, no network
+npm run test:e2e          # 16 real-browser checks in headless Chrome
 npm run eval              # measure the detector against 50 real publishers
 npm run typecheck         # type-check the engine from its JSDoc (still no build step)
 npm run dev               # serve webapp + panel at localhost:8123
@@ -251,7 +252,7 @@ npm run build:firefox     # build the Firefox add-on directory
 npm run package           # store-ready zip of the Chrome extension
 ```
 
-All four run in CI on every push, and the eval thresholds are build gates:
+All five run in CI on every push, and the eval thresholds are build gates:
 loosening one is a visible, argued commit.
 
 Each script is a plain `node` or `python` invocation if you would rather not use npm — see

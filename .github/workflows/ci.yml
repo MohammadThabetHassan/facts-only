@@ -34,6 +34,13 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('eval/corpus.json','utf8'))"
 
+      # Every defect found by live testing on this project has been a rendering
+      # failure that a unit suite passes: a broken module graph, a renderer
+      # crash, a component resetting page direction. So the real DOM is checked
+      # in CI too, in headless Chrome, with no test framework.
+      - name: Real-browser end-to-end checks
+        run: node test/e2e.mjs
+
       # The detector's accuracy is a build gate, not a claim in a README.
       # Offline and deterministic: real archive histories are committed in
       # eval/corpus.json, so this needs no key and no network.

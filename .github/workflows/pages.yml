@@ -1,0 +1,51 @@
+name: Deploy web app
+
+# The web app is static, dependency-free, and needs no server: it runs the same
+# engine as the extension, in the browser. Publishing it to Pages gives anyone a
+# link they can open without installing anything - the demo report and the
+# keyless source check both work there.
+#
+# Note the honest limitation: a browser page cannot fetch arbitrary third-party
+# sites (CORS), so on Pages most real sources come back as "could not check"
+# rather than cleared. The extension holds host permissions and does the full
+# job. The app says so itself.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The app imports the engine via ../extension/..., so the published site
+      # needs both directories with their relative layout intact.
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/webapp _site/extension
+          cp -r webapp/. _site/webapp/
+          cp -r extension/. _site/extension/
+          # Land visitors on the app rather than a directory listing.
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./webapp/index.html"><title>Facts Only</title><a href="./webapp/index.html">Facts Only</a>' > _site/index.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
