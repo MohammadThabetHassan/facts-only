@@ -1,0 +1,7 @@
+{
+  "name": "factlens",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "FactLens — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling."
+}

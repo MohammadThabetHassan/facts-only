@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build artifacts / archives
+dist/
+*.zip
+
+# Secrets and local settings — never commit API keys
+.env
+.env.*
+*.local
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.swp

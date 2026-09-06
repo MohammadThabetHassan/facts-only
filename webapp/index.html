@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FactLens — AI answer verifier</title>
+    <link rel="stylesheet" href="../extension/engine/ui/fl.css" />
+    <style>
+      body { background: #f3f4f6; }
+      .page { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+      .card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+      }
+      .hero h1 { margin: 0 0 4px; font-size: 24px; }
+      .hero p { margin: 0; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero card">
+        <h1>🔍 FactLens</h1>
+        <p>
+          Paste an AI chatbot answer. FactLens breaks it into claims, searches independently for
+          supporting and contradicting evidence, and flags sources that look like influence
+          campaigns or content farms. It gives you evidence — not a verdict.
+        </p>
+      </header>
+
+      <div class="card">
+        <details class="fl-collapsible">
+          <summary>⚙️ Settings &amp; API key</summary>
+          <div id="settings" style="padding-top: 10px"></div>
+        </details>
+
+        <textarea id="input" placeholder="Paste the AI answer you want to verify…" style="margin-top: 10px"></textarea>
+        <div class="fl-actions">
+          <button id="run" type="button">Verify answer</button>
+          <button id="demo" type="button" class="secondary">Try a demo</button>
+        </div>
+        <div class="fl-bar" id="bar" hidden><div></div></div>
+        <ul class="fl-progress" id="progress"></ul>
+        <div id="error" hidden></div>
+        <div id="report"></div>
+      </div>
+
+      <p class="fl-hint" style="text-align: center">
+        Tip: the browser extension version can also fetch and profile cited web pages — use it on
+        ChatGPT, Gemini, Claude and Perplexity for the strongest checks.
+      </p>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
