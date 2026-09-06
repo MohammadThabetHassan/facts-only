@@ -76,7 +76,15 @@ page"), source warning flags, the bias & framing analysis, and an optional
   text; "not found" is flagged instead of silently trusted.
 - 🧭 **Second-model cross-check** — optionally send the checked claims to a second,
   different AI provider and let it challenge the first review; disagreements are
-  shown in the report. (Mitigates single-model bias — the checker itself.)
+  shown in the report. Verified live: Gemini 2.5 Flash (grounded primary) +
+  OpenRouter free model agree on claims and surface missed context. (Mitigates
+  single-model bias — the checker itself.)
+- 🧮 **Auto-free OpenRouter models** — set the model to `auto-free` and the
+  provider discovers currently-available free models, ranks them for
+  fact-checking, and falls back down the list on failures or rate limits.
+- 🏛️ **Domain-age detection** — every non-established source domain is checked
+  against the Wayback Machine (keyless): domains first archived <90 days ago —
+  or never archived at all — are flagged as influence-campaign signals.
 - 🌍 **Multilingual heuristics** — GEO headline detection and think-tank naming
   patterns in English **and Arabic** (هل/ماذا/لماذا…, معهد/مرصد/مؤسسة), sponsored
   content markers in both.

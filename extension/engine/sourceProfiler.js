@@ -63,6 +63,65 @@ export function isEstablishedDomain(url) {
   return [...ESTABLISHED].some((e) => d === e || d.endsWith("." + e)) || /\.(gov|edu|int|mil)$/i.test(d);
 }
 
+// Domain-age check via the Wayback Machine CDX API (keyless, free).
+// Campaign domains typically have no archive history or were first archived
+// very recently; established outlets go back years. Failures degrade silently.
+// Returns: "YYYYMMDD…" timestamp | "none" (archived never) | "error".
+const waybackCache = new Map();
+
+export async function fetchFirstSeen(domain, signal) {
+  if (waybackCache.has(domain)) return waybackCache.get(domain);
+  let firstSeen = "error";
+  try {
+    const res = await fetchWithTimeout(
+      `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&matchType=domain&limit=1&fl=timestamp`,
+      8000,
+      signal
+    );
+    if (res.ok) {
+      const text = (await res.text()).trim();
+      const ts = text.split("\n")[0]?.trim() || "";
+      firstSeen = /^\d{8}/.test(ts) ? ts : "none";
+    }
+  } catch (e) {
+    firstSeen = "error";
+  }
+  waybackCache.set(domain, firstSeen);
+  return firstSeen;
+}
+
+export function domainAgeDays(firstSeen, now = Date.now()) {
+  if (!/^\d{8}/.test(firstSeen || "")) return null;
+  const y = Number(firstSeen.slice(0, 4));
+  const m = Number(firstSeen.slice(4, 6)) - 1;
+  const d = Number(firstSeen.slice(6, 8));
+  return Math.max(0, Math.round((now - new Date(y, m, d).getTime()) / 86400000));
+}
+
+export function formatFirstSeen(firstSeen) {
+  return /^\d{8}/.test(firstSeen || "") ? `${firstSeen.slice(0, 4)}-${firstSeen.slice(4, 6)}` : null;
+}
+
+export function domainAgeFlags(firstSeen, ageDays) {
+  const flags = [];
+  if (ageDays == null) {
+    flags.push({
+      key: "domain-unarchived",
+      label: "Domain has no Wayback Machine history at all",
+      detail: "The Wayback Machine holds no snapshot of this domain. Long-standing publishers are archived within months; a never-archived domain publishing 'research' is a strong influence-campaign signal (not proof on its own).",
+      severity: "medium"
+    });
+  } else if (ageDays < 90) {
+    flags.push({
+      key: "domain-fresh",
+      label: `Domain first archived only ${ageDays} days ago`,
+      detail: "Fresh domains publishing research are a documented pattern in influence campaigns. Cross-check the publisher's registration, funding, and authors.",
+      severity: "medium"
+    });
+  }
+  return flags;
+}
+
 async function fetchForProfile(url, signal) {
   const base = { url, ok: false, title: "", siteName: "", author: "", excerpt: "", fetched: false };
   try {
@@ -81,7 +140,7 @@ async function fetchForProfile(url, signal) {
       (raw.match(/property=["']article:author["'][^>]*content=["']([^"']+)/i) || [])[1] ||
       (raw.match(/"author"\s*:\s*\{?\s*"name"\s*:\s*"([^"]{2,80})"/i) || [])[1] || "";
     const aboutLink = /href=["'][^"']*(about|contact|imprint|masthead|editorial)[^"']*["']/i.test(raw);
-    const excerpt = stripHtml(raw).slice(0, 3500);
+    const excerpt = stripHtml(raw).slice(0, 12000);
     return {
       ...base,
       ok: true,
@@ -160,6 +219,24 @@ export function computeFlags(p) {
       severity: "medium"
     });
   }
+  // Domain-age signal (Wayback Machine): fresh or never-archived domains
+  // publishing "research" are a documented influence-campaign pattern.
+  const age = domainAgeDays(p.firstSeen);
+  if (p.firstSeen === "none") {
+    flags.push({
+      key: "domain-unarchived",
+      label: "Domain has no Wayback Machine history at all",
+      detail: "The Wayback Machine holds no snapshot of this domain. Long-standing publishers are archived within months; a never-archived domain publishing 'research' is a strong influence-campaign signal (not proof on its own).",
+      severity: "medium"
+    });
+  } else if (age != null && age < 90) {
+    flags.push({
+      key: "domain-fresh",
+      label: `Domain first archived only ${age} days ago`,
+      detail: "Fresh domains publishing research are a documented pattern in influence campaigns. Cross-check the publisher's registration, funding, and authors.",
+      severity: "medium"
+    });
+  }
   return { flags, established, highRisk: flags.some((f) => f.severity === "high") };
 }
 
@@ -177,6 +254,9 @@ export function verifyQuoteInPage(quote, pageText) {
   if (p.includes(q)) return "verified";
   const head = q.split(" ").slice(0, 12).join(" ");
   if (head.length >= 20 && p.includes(head)) return "partial";
+  // last resort: alphanumerics-only comparison (immune to punctuation/spacing)
+  const alnum = (s) => s.replace(/[^a-z0-9\u0600-\u06FF]/gi, "");
+  if (q.length >= 20 && alnum(p).includes(alnum(q))) return "partial";
   return "not-found";
 }
 
@@ -222,11 +302,22 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
   const seed = (u) => truncate(String(seedTitles[u] || ""), 200);
   const fetched = await Promise.all(
     unique.map(async (url) => {
+      const established = isEstablishedDomain(url);
+      let p;
       if (!fetchSources) {
-        return { url, ok: false, fetched: false, title: seed(url), siteName: "", author: "", excerpt: "", note: "fetch disabled — heuristics use link text only" };
+        p = { url, ok: false, fetched: false, title: seed(url), siteName: "", author: "", excerpt: "", note: "fetch disabled — heuristics use link text only" };
+      } else {
+        p = await fetchForProfile(url, signal);
+        if (!p.title && seed(url)) p.title = seed(url);
       }
-      const p = await fetchForProfile(url, signal);
-      if (!p.title && seed(url)) p.title = seed(url);
+      // Domain-age lookup for non-established domains (keyless Wayback CDX API).
+      if (!established) {
+        try {
+          p.firstSeen = await fetchFirstSeen(domainOf(url), signal);
+        } catch (e) {
+          p.firstSeen = null;
+        }
+      }
       return p;
     })
   );
@@ -253,6 +344,7 @@ export async function profileSources(provider, settings, urls, { fetchSources = 
     highRisk: p.highRisk,
     flags: p.flags,
     excerpt: p.excerpt || "",
+    firstArchived: formatFirstSeen(p.firstSeen),
     publisher: llmProfiles ? llmProfiles[i].publisher : "",
     likelyFunding: llmProfiles ? llmProfiles[i].likelyFunding : "",
     stance: llmProfiles ? llmProfiles[i].stance : "",

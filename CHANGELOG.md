@@ -4,6 +4,31 @@ All notable changes to FactLens are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [0.5.0] — 2026-09-06
+
+### Added
+- **OpenRouter auto-free model selection**: set the model to `auto-free` and the
+  provider discovers currently-available free models from the OpenRouter catalog,
+  ranks them (generalist families first, specialized code/music/safety models
+  skipped, larger context preferred), and falls back down the list when a model
+  is unavailable or rate-limited. Verified live: picked `minimax/minimax-m3:free`
+  and completed a full verification.
+- **Domain-age detection via the Wayback Machine CDX API** (keyless): every
+  non-established source domain is checked for its earliest archive snapshot.
+  Domains first archived <90 days ago get a "domain-fresh" flag; domains with
+  **no Wayback history at all** get an even stronger "domain-unarchived" flag —
+  the fake-think-tank fingerprint. The first-archived month is shown in reports.
+- **Live cross-model verification**: second-model cross-check verified end-to-end
+  with two different AI families — Gemini 2.5 Flash (grounded primary) and an
+  OpenRouter free model (independent reviewer) agreeing on all claims.
+- `scripts/live-check.mjs` is now multi-provider (Gemini / OpenRouter / demo) and
+  prints the second-opinion results.
+
+### Improved
+- Quote verification: larger page excerpts (12k chars) and an
+  alphanumerics-only fallback match, reducing false "quote not found" flags.
+- Report source cards now show the domain's first Wayback archive month.
+
 ## [0.4.0] — 2026-09-06
 
 ### Added

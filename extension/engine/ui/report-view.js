@@ -154,6 +154,7 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       ])
     ]);
     if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "fl-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
+    if (s.firstArchived) card.appendChild(el("p", { class: "fl-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
     if (s.publisher) card.appendChild(el("p", { class: "fl-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
     for (const f of s.flags) {
       if (f.severity === "info") continue;

@@ -7,7 +7,8 @@ import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
 import { stripHtml, truncate, hash32, domainOf, extractUrls, normText } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
-import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuoteInPage, profileSources } from "../extension/engine/sourceProfiler.js";
+import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen } from "../extension/engine/sourceProfiler.js";
+import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
 
@@ -233,6 +234,34 @@ check(
   })()
 );
 check("every trust key has a label", Object.keys(TRUST_SIGNALS).every((k) => !!TRUST_SIGNALS[k].label));
+
+// --- OpenRouter auto-free model selection -------------------------------------
+console.log("auto-free model checks:");
+const FAKE_CATALOG = [
+  { id: "openrouter/free", pricing: { prompt: "0", completion: "0" }, context_length: 200000 },
+  { id: "minimax/minimax-m3:free", pricing: { prompt: "0", completion: "0" }, context_length: 1048576 },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free", pricing: { prompt: "0", completion: "0" }, context_length: 262144 },
+  { id: "nvidia/nemotron-3.5-content-safety:free", pricing: { prompt: "0", completion: "0" }, context_length: 128000 },
+  { id: "cohere/north-mini-code:free", pricing: { prompt: "0", completion: "0" }, context_length: 256000 },
+  { id: "paid/model", pricing: { prompt: "0.001", completion: "0.002" }, context_length: 128000 }
+];
+const ranked = pickFreeModels(FAKE_CATALOG);
+check("auto-free skips specialized + paid models", !ranked.some((m) => /code|safety|paid/.test(m)), JSON.stringify(ranked));
+check("auto-free prefers known generalist families first", ranked[0] === "minimax/minimax-m3:free" || ranked[0] === "nvidia/nemotron-3-super-120b-a12b:free", JSON.stringify(ranked.slice(0, 2)));
+check("auto-free keeps multiple fallback candidates", ranked.length === 3, JSON.stringify(ranked));
+check("auto-free openrouter/free router is in the candidate list", ranked.includes("openrouter/free"));
+
+// --- domain-age (Wayback first-seen) flags --------------------------------------
+console.log("domain-age checks:");
+const recentTs = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10).replace(/-/g, "") + "000000";
+const oldTs = "19961231000000";
+check("domainAgeDays parses recent timestamp", domainAgeDays(recentTs) >= 28 && domainAgeDays(recentTs) <= 32, domainAgeDays(recentTs));
+check("domainAgeDays for 1996 is very old", domainAgeDays(oldTs) > 9000);
+check("formatFirstSeen renders YYYY-MM", formatFirstSeen("19961231000000") === "1996-12");
+const freshPage = computeFlags({ url: "https://fresh-campaign-site.org/report", title: "Country X passes law", fetched: true, author: "Jane Doe", aboutLink: true, excerpt: "...", firstSeen: recentTs });
+check("fresh domain (<90d) flagged", freshPage.flags.some((f) => f.key === "domain-fresh"), JSON.stringify(freshPage.flags));
+const oldPage = computeFlags({ url: "https://long-standing-analysis.org/report", title: "Country X passes law", fetched: true, author: "Jane Doe", aboutLink: true, excerpt: "...", firstSeen: oldTs });
+check("old domain not freshness-flagged", !oldPage.flags.some((f) => f.key === "domain-fresh" || f.key === "domain-unarchived"));
 
 // --- i18n (en/ar parity, fallback, formatting) --------------------------------
 console.log("i18n checks:");
