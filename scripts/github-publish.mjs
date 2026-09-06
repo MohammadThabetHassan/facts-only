@@ -6,7 +6,7 @@
 // the local ones and a later normal `git push` is a no-op fast-forward.
 //
 // Usage:
-//   GITHUB_TOKEN=github_pat_… GITHUB_REPO=MohammadThabetHassan/touchstone \
+//   GITHUB_TOKEN=github_pat_… GITHUB_REPO=MohammadThabetHassan/facts-only \
 //     node scripts/github-publish.mjs
 //
 // The token is read from the environment only and never stored or logged.
@@ -25,7 +25,7 @@ const HEADERS = {
   Authorization: `Bearer ${TOKEN}`,
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
-  "User-Agent": "touchstone-publish"
+  "User-Agent": "facts-only-publish"
 };
 
 function git(...args) {
@@ -94,9 +94,9 @@ async function bootstrapIfEmpty() {
   console.log("empty repository → creating bootstrap commit…");
   const content = Buffer.from(
     "Bootstrap commit created because the GitHub Git Data API requires a non-empty repository. " +
-    "The full Touchstone history follows this commit (see docs/VERIFICATION.md)."
+    "The full Facts Only history follows this commit (see docs/VERIFICATION.md)."
   ).toString("base64");
-  const res = await fetch(`${API}/contents/.touchstone-bootstrap`, {
+  const res = await fetch(`${API}/contents/.facts-only-bootstrap`, {
     method: "PUT",
     headers: { ...HEADERS, "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Touchstone extension icons (blue rounded square + white lens).
+"""Generate Facts Only extension icons (blue rounded square + white lens).
 
 Pure standard library (struct/zlib) — no Pillow required.
 Run from the repo root:  python scripts/generate_icons.py

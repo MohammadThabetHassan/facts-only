@@ -4,6 +4,7 @@
 // heuristic flag labels, disclaimer) intentionally stays as produced.
 
 import { t, resolveLocale } from "./i18n.js";
+import { summarizeRisk } from "../explain.js";
 
 function el(tag, attrs = {}, children = []) {
   const e = document.createElement(tag);
@@ -44,7 +45,7 @@ const STANCES = ["support", "contradict", "nuance"];
 function chip(text, tone) {
   const tt = TONE[tone] || TONE.neutral;
   return el("span", {
-    class: "ts-chip",
+    class: "fo-chip",
     text,
     style: `background:${tt.bg};color:${tt.fg}`
   });
@@ -65,6 +66,50 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   const L = resolveLocale(lang);
   container.innerHTML = "";
 
+  // ---- Plain-language risk card -------------------------------------------
+  // Deliberately the FIRST thing under the banner. The flags further down are
+  // accurate but read like a security tool; a reader who only wants to know
+  // whether they were sold something should get that in one sentence, before
+  // any jargon. Computed in code (engine/explain.js) from the same flags, so
+  // the model being checked cannot soften it.
+  const risk = summarizeRisk(report.sources || []);
+  {
+    const box = el("section", { class: `fo-explain ${risk.tone}` }, [
+      el("p", {
+        class: "fo-explain-head",
+        text: `${risk.tone === "good" ? "✓" : "⚠"} ${t("explain." + risk.level + ".head", L)}`
+      }),
+      el("p", { class: "fo-explain-body", text: t("explain." + risk.level + ".body", L) })
+    ]);
+
+    if (risk.offenders.length) {
+      box.appendChild(el("p", { class: "fo-explain-why", text: t("explain.because", L) }));
+      const ul = el("ul", { class: "fo-explain-list" });
+      for (const o of risk.offenders) {
+        // The source is named once, with its reasons underneath it. Repeating
+        // the domain on every line read like several different problems.
+        ul.appendChild(
+          el("li", {}, [
+            safeLink(o.url, o.name),
+            el(
+              "ul",
+              { class: "fo-explain-reasons" },
+              o.reasonKeys.map((key) => el("li", { text: t("flag." + key, L) }))
+            )
+          ])
+        );
+      }
+      box.appendChild(ul);
+    }
+
+    if (risk.total > 0) {
+      const foot = [t("explain.established", L, { n: risk.establishedCount, total: risk.total })];
+      if (risk.level !== "clean") foot.push(t("explain.readFirst", L));
+      box.appendChild(el("p", { class: "fo-explain-foot", text: foot.join(" ") }));
+    }
+    container.appendChild(box);
+  }
+
   // Trust banner with the counts behind it
   const tone = TONE[TRUST_TONE[report.trustKey] || "neutral"];
   const c = report.trustCounts || {};
@@ -72,20 +117,20 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   // string, an RTL locale reorders the Latin digits across the separators and
   // the counts read as nonsense ("0 mixed 1" instead of "1 mixed").
   const countNodes = c.checked == null ? [] : VERDICTS.flatMap((v, i) => {
-    const part = el("bdi", { class: "ts-count", text: `${c[v] || 0} ${t("verdict." + v, L)}` });
+    const part = el("bdi", { class: "fo-count", text: `${c[v] || 0} ${t("verdict." + v, L)}` });
     return i === 0 ? [part] : [document.createTextNode(" · "), part];
   });
   container.appendChild(
     el("div", {
-      class: "ts-banner",
+      class: "fo-banner",
       style: `background:${tone.bg};color:${tone.fg}`
     }, [
       el("strong", { text: t("trust." + report.trustKey, L) !== "trust." + report.trustKey ? t("trust." + report.trustKey, L) : report.trustLabel }),
       el("span", {
-        class: "ts-banner-sub",
+        class: "fo-banner-sub",
         text: ` — ${t("rep.verifiedWith", L)} ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""}${report.page && report.page !== "manual" ? ` · ${report.page}` : ""}`
       }),
-      countNodes.length ? el("div", { class: "ts-banner-counts" }, countNodes) : null
+      countNodes.length ? el("div", { class: "fo-banner-counts" }, countNodes) : null
     ])
   );
 
@@ -101,37 +146,37 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       m.quotesMissing > 0 ? t("m.quotesMissing", L, { n: m.quotesMissing }) : null,
       m.secondOpinionUsed ? t("m.secondOn", L) : t("m.secondOff", L)
     ].filter(Boolean);
-    container.appendChild(el("p", { class: "ts-method", text: `${t("rep.method", L)} ${bits.join(" · ")}` }));
+    container.appendChild(el("p", { class: "fo-method", text: `${t("rep.method", L)} ${bits.join(" · ")}` }));
   }
 
-  if (report.summary) container.appendChild(el("p", { class: "ts-summary", text: report.summary }));
+  if (report.summary) container.appendChild(el("p", { class: "fo-summary", text: report.summary }));
   if (report.readerAdvice) {
-    container.appendChild(el("p", { class: "ts-advice" }, [el("strong", { text: t("rep.nextStep", L) }), document.createTextNode(report.readerAdvice)]));
+    container.appendChild(el("p", { class: "fo-advice" }, [el("strong", { text: t("rep.nextStep", L) }), document.createTextNode(report.readerAdvice)]));
   }
 
   // Claims
-  const claimsBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.claims", L, { n: report.claims.length }) })]);
+  const claimsBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.claims", L, { n: report.claims.length }) })]);
   for (const cl of report.claims) {
-    const card = el("div", { class: "ts-card" }, [
-      el("div", { class: "ts-card-head" }, [
+    const card = el("div", { class: "fo-card" }, [
+      el("div", { class: "fo-card-head" }, [
         chip(t("verdict." + cl.verdict, L), CLAIM_TONE[cl.verdict] || "neutral"),
         chip(t("rep.confidence", L, { v: t("conf." + cl.confidence, L) }), "neutral"),
         chip(t("type." + cl.type, L), "neutral")
       ]),
-      el("p", { class: "ts-claim-text", text: cl.text })
+      el("p", { class: "fo-claim-text", text: cl.text })
     ]);
-    if (cl.notes) card.appendChild(el("p", { class: "ts-notes", text: cl.notes }));
+    if (cl.notes) card.appendChild(el("p", { class: "fo-notes", text: cl.notes }));
     if (cl.evidence.length) {
-      const ul = el("ul", { class: "ts-evidence" });
+      const ul = el("ul", { class: "fo-evidence" });
       for (const ev of cl.evidence) {
         const li = el("li", {}, [
           chip(t("stance." + ev.stance, L), ev.stance === "support" ? "good" : ev.stance === "contradict" ? "bad" : "neutral"),
           " ",
           safeLink(ev.url, ev.title || ev.url)
         ]);
-        if (ev.publisher) li.appendChild(el("span", { class: "ts-dim", text: ` — ${ev.publisher}` }));
+        if (ev.publisher) li.appendChild(el("span", { class: "fo-dim", text: ` — ${ev.publisher}` }));
         if (ev.quote) {
-          li.appendChild(el("blockquote", { class: "ts-quote", text: `“${ev.quote}”` }));
+          li.appendChild(el("blockquote", { class: "fo-quote", text: `“${ev.quote}”` }));
           const qTone = QUOTE_TONE[ev.quoteStatus];
           if (qTone) li.appendChild(chip(t("quote." + ev.quoteStatus, L), qTone));
         }
@@ -139,7 +184,7 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       }
       card.appendChild(ul);
     } else {
-      card.appendChild(el("p", { class: "ts-dim", text: t("rep.noEvidence", L) }));
+      card.appendChild(el("p", { class: "fo-dim", text: t("rep.noEvidence", L) }));
     }
     claimsBox.appendChild(card);
   }
@@ -147,44 +192,54 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
 
   // Sources
   const flagged = report.sources.filter((s) => s.flags.some((f) => f.severity !== "info"));
-  const srcBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.sources", L, { n: report.sources.length }) })]);
-  if (!report.sources.length) srcBox.appendChild(el("p", { class: "ts-dim", text: t("rep.noEvidence", L) }));
+  const srcBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.sources", L, { n: report.sources.length }) })]);
+  if (!report.sources.length) srcBox.appendChild(el("p", { class: "fo-dim", text: t("rep.noEvidence", L) }));
   for (const s of report.sources) {
-    const card = el("div", { class: "ts-card" }, [
-      el("div", { class: "ts-card-head" }, [
+    const card = el("div", { class: "fo-card" }, [
+      el("div", { class: "fo-card-head" }, [
         safeLink(s.url, s.title || s.siteName || s.url),
         s.established ? chip("established", "good") : null,
         s.credibility && s.credibility !== "unknown" ? chip(`${s.credibility} credibility`, s.credibility === "high" ? "good" : s.credibility === "low" ? "bad" : "warn") : null
       ])
     ]);
-    if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "ts-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
-    if (s.firstArchived) card.appendChild(el("p", { class: "ts-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
-    if (s.publisher) card.appendChild(el("p", { class: "ts-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
+    if (!s.fetched && s.fetchNote) card.appendChild(el("p", { class: "fo-dim", text: t("rep.notFetched", L, { note: s.fetchNote }) }));
+    if (s.firstArchived) card.appendChild(el("p", { class: "fo-dim", text: `Domain first archived (Wayback): ${s.firstArchived}` }));
+    if (s.publisher) card.appendChild(el("p", { class: "fo-notes", text: `Publisher: ${s.publisher}${s.likelyFunding ? ` · Funding: ${s.likelyFunding}` : ""}${s.stance ? ` · Stance: ${s.stance}` : ""}` }));
     for (const f of s.flags) {
       if (f.severity === "info") continue;
-      card.appendChild(
-        el("p", {
-          class: `ts-flag ${f.severity}`,
-          text: `⚠ ${f.label}${f.detail ? ` — ${f.detail}` : ""}`
-        })
-      );
+      // Plain sentence first. The engine wording (f.label/f.detail) is precise
+      // but jargon-heavy, so it moves into a collapsed "Technical detail".
+      const plain = t("flag." + f.key, L);
+      const hasPlain = plain !== "flag." + f.key;
+      const flagBox = el("div", { class: `fo-flag ${f.severity}` }, [
+        el("p", { class: "fo-flag-head", text: `⚠ ${hasPlain ? plain : f.label}` })
+      ]);
+      if (f.detail || hasPlain) {
+        flagBox.appendChild(
+          el("details", { class: "fo-flag-more" }, [
+            el("summary", { text: t("flag.technical", L) }),
+            el("p", { text: `${f.label}${f.detail ? ` — ${f.detail}` : ""}` })
+          ])
+        );
+      }
+      card.appendChild(flagBox);
     }
     srcBox.appendChild(card);
   }
   if (flagged.length) {
-    srcBox.appendChild(el("p", { class: "ts-warn", text: t("rep.warnSources", L, { n: flagged.length }) }));
+    srcBox.appendChild(el("p", { class: "fo-warn", text: t("rep.warnSources", L, { n: flagged.length }) }));
   }
   container.appendChild(srcBox);
 
   // Bias
   const b = report.bias;
-  const biasBox = el("section", { class: "ts-section" }, [el("h3", { text: t("rep.bias", L) })]);
+  const biasBox = el("section", { class: "fo-section" }, [el("h3", { text: t("rep.bias", L) })]);
   if (b.strongestCounterargument) {
     biasBox.appendChild(el("p", {}, [el("strong", { text: t("rep.strongest", L) }), document.createTextNode(b.strongestCounterargument)]));
   }
   const list = (title, items) => {
     if (!items || !items.length) return;
-    biasBox.appendChild(el("p", { class: "ts-subhead", text: title }));
+    biasBox.appendChild(el("p", { class: "fo-subhead", text: title }));
     const ul = el("ul", {});
     items.forEach((it) => ul.appendChild(el("li", { text: it })));
     biasBox.appendChild(ul);
@@ -193,50 +248,50 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   list("Missing context", b.missingContext);
   list("Manipulation signals", b.manipulationSignals);
   if (!b.strongestCounterargument && !b.framingIssues.length && !b.missingContext.length && !b.manipulationSignals.length) {
-    biasBox.appendChild(el("p", { class: "ts-dim", text: t("rep.noBias", L) }));
+    biasBox.appendChild(el("p", { class: "fo-dim", text: t("rep.noBias", L) }));
   }
   container.appendChild(biasBox);
 
   // Second opinion (cross-model check)
   const so = report.secondOpinion;
   if (so) {
-    const soBox = el("section", { class: "ts-section" }, [
+    const soBox = el("section", { class: "fo-section" }, [
       el("h3", { text: `${t("rep.second", L)}${so.available ? ` — ${so.providerName}${so.model ? ` (${so.model})` : ""}` : ""}` })
     ]);
     if (!so.available) {
-      soBox.appendChild(el("p", { class: "ts-dim", text: so.note || "—" }));
+      soBox.appendChild(el("p", { class: "fo-dim", text: so.note || "—" }));
     } else {
       if (so.disagreements === 0) {
-        soBox.appendChild(el("p", { class: "ts-agree", text: t("rep.secondAgree", L) }));
+        soBox.appendChild(el("p", { class: "fo-agree", text: t("rep.secondAgree", L) }));
       } else {
-        soBox.appendChild(el("p", { class: "ts-warn", text: t("rep.secondDisagree", L, { n: so.disagreements }) }));
+        soBox.appendChild(el("p", { class: "fo-warn", text: t("rep.secondDisagree", L, { n: so.disagreements }) }));
       }
       for (const a of so.assessments) {
         const claim = (report.claims || []).find((x) => x.id === a.id);
-        const card = el("div", { class: "ts-card" }, [
-          el("div", { class: "ts-card-head" }, [
+        const card = el("div", { class: "fo-card" }, [
+          el("div", { class: "fo-card-head" }, [
             chip(a.agrees === false ? "disagrees" : a.agrees === true ? "agrees" : "no match", a.agrees === false ? "bad" : a.agrees === true ? "good" : "neutral"),
             chip(t("verdict." + a.verdict, L), CLAIM_TONE[a.verdict] || "neutral"),
             chip(t("rep.confidence", L, { v: t("conf." + a.confidence, L) }), "neutral")
           ]),
-          el("p", { class: "ts-claim-text", text: claim ? claim.text : `#${a.id}` })
+          el("p", { class: "fo-claim-text", text: claim ? claim.text : `#${a.id}` })
         ]);
-        if (a.note) card.appendChild(el("p", { class: "ts-notes", text: a.note }));
+        if (a.note) card.appendChild(el("p", { class: "fo-notes", text: a.note }));
         soBox.appendChild(card);
       }
       if (so.missedContext && so.missedContext.length) {
-        soBox.appendChild(el("p", { class: "ts-subhead", text: t("rep.missedCtx", L) }));
+        soBox.appendChild(el("p", { class: "fo-subhead", text: t("rep.missedCtx", L) }));
         const ul = el("ul", {});
         so.missedContext.forEach((x) => ul.appendChild(el("li", { text: x })));
         soBox.appendChild(ul);
       }
-      if (so.overallNote) soBox.appendChild(el("p", { class: "ts-notes", text: so.overallNote }));
+      if (so.overallNote) soBox.appendChild(el("p", { class: "fo-notes", text: so.overallNote }));
     }
     container.appendChild(soBox);
   }
 
   // Footer
-  const foot = el("footer", { class: "ts-footer" }, [el("p", { class: "ts-dim", text: report.disclaimer })]);
+  const foot = el("footer", { class: "fo-footer" }, [el("p", { class: "fo-dim", text: report.disclaimer })]);
   if (onExport) {
     foot.appendChild(el("button", { type: "button", class: "secondary", onclick: onExport }, [document.createTextNode(t("btn.export", L))]));
   }
@@ -246,10 +301,23 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   container.appendChild(foot);
 }
 
-export function reportToMarkdown(report) {
+export function reportToMarkdown(report, lang = "en") {
+  const L = resolveLocale(lang);
   const lines = [];
   const m = report.method || {};
-  lines.push(`# Touchstone verification report`);
+  lines.push(`# Facts Only verification report`);
+  lines.push(``);
+  // Same plain-language headline as the on-screen report: an exported report is
+  // usually read by someone who never opened the tool.
+  const risk = summarizeRisk(report.sources || []);
+  lines.push(`> **${risk.tone === "good" ? "✓" : "⚠"} ${t("explain." + risk.level + ".head", L)}**`);
+  lines.push(`>`);
+  lines.push(`> ${t("explain." + risk.level + ".body", L)}`);
+  for (const o of risk.offenders) {
+    lines.push(`>`);
+    lines.push(`> - ${o.name} (${o.url})`);
+    for (const key of o.reasonKeys) lines.push(`>   - ${t("flag." + key, L)}`);
+  }
   lines.push(``);
   lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
   lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchUsed ? "yes" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);
@@ -279,7 +347,12 @@ export function reportToMarkdown(report) {
   lines.push(`## Sources`);
   for (const s of report.sources) {
     lines.push(`- [${s.title || s.siteName || s.url}](${s.url})${s.established ? " — established" : ""}${s.credibility !== "unknown" ? ` — credibility: ${s.credibility}` : ""}`);
-    for (const f of s.flags) if (f.severity !== "info") lines.push(`  - ⚠ ${f.label}`);
+    for (const f of s.flags) {
+      if (f.severity === "info") continue;
+      const plain = t("flag." + f.key, L);
+      const hasPlain = plain !== "flag." + f.key;
+      lines.push(`  - ⚠ ${hasPlain ? plain : f.label}${hasPlain ? ` (${f.label})` : ""}`);
+    }
   }
   lines.push(``);
   lines.push(`## Bias & framing`);

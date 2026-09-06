@@ -1,5 +1,5 @@
 # Offline packaging: zip the extension for store upload / manual distribution.
-# Usage: python scripts/package-extension.py   ->  dist/touchstone-extension-vX.Y.Z.zip
+# Usage: python scripts/package-extension.py   ->  dist/facts-only-extension-vX.Y.Z.zip
 
 import json
 import zipfile
@@ -14,7 +14,7 @@ def main():
     manifest = json.loads((EXTENSION / "manifest.json").read_text(encoding="utf-8"))
     version = manifest["version"]
     DIST.mkdir(exist_ok=True)
-    out = DIST / f"touchstone-extension-v{version}.zip"
+    out = DIST / f"facts-only-extension-v{version}.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for p in sorted(EXTENSION.rglob("*")):
             if p.is_file():

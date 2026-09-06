@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Touchstone — AI Answer Verifier",
+  "name": "Facts Only — AI Answer Verifier",
   "version": "1.0.0",
   "description": "Stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
   "permissions": ["contextMenus", "storage", "sidePanel", "scripting"],
@@ -16,7 +16,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Touchstone settings",
+    "default_title": "Facts Only settings",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

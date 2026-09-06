@@ -19,12 +19,12 @@ const EN = {
 
   // panel / page chrome
   "app.tagline": "AI-answer verifier",
-  "panel.hint": "Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT, Gemini, Claude and Perplexity). Touchstone splits it into claims, hunts for independent evidence, verifies quotes against the pages, and profiles every source for manipulation patterns.",
+  "panel.hint": "Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT, Gemini, Claude and Perplexity). Facts Only splits it into claims, hunts for independent evidence, verifies quotes against the pages, and profiles every source for manipulation patterns.",
   "panel.history": "🕘 Previous reports",
   "input.placeholder": "Paste the AI answer you want to verify…",
   "settings.summary": "⚙️ Settings & API key",
-  "webapp.hero.title": "🔍 Touchstone",
-  "webapp.hero.text": "Paste an AI chatbot answer. Touchstone breaks it into claims, searches independently for supporting and contradicting evidence, and flags sources that look like influence campaigns or content farms. It gives you evidence — not a verdict.",
+  "webapp.hero.title": "🔍 Facts Only",
+  "webapp.hero.text": "Paste an AI chatbot answer. Facts Only breaks it into claims, searches independently for supporting and contradicting evidence, and flags sources that look like influence campaigns or content farms. It gives you evidence — not a verdict.",
   "webapp.tip": "Tip: the browser extension version can also fetch and profile cited web pages — use it on ChatGPT, Gemini, Claude and Perplexity for the strongest checks.",
 
   // messages
@@ -87,6 +87,35 @@ const EN = {
   "rep.missedCtx": "Context the second model says was missed:",
   "rep.confidence": "{v} confidence",
 
+  // Plain-language risk explanation (engine/explain.js). This is the first thing
+  // a reader sees, so it says what happened, not what the heuristic is called.
+  "explain.paid.head": "Part of this answer comes from paid content.",
+  "explain.planted.head": "One of these sources looks planted, not reported.",
+  "explain.opaque.head": "Some sources will not say who is behind them.",
+  "explain.clean.head": "The sources here are publishers with a track record.",
+  "explain.paid.body": "Someone paid for this material to exist. That does not make it false, but it was written to persuade you, and the AI quoted it as if it were reporting.",
+  "explain.planted.body": "It carries the fingerprints of material published specifically so AI assistants would quote it \u2014 the technique researchers call Generative Engine Optimization. Someone wanted this to be the answer you got.",
+  "explain.opaque.body": "No named author, no way to check who runs the site, or the site itself is brand new. That is not proof of anything, but you cannot weigh a source you cannot identify.",
+  "explain.clean.body": "No paid-placement or influence-campaign patterns were detected in the sources checked. Individual claims can still be wrong \u2014 read the checks below.",
+  "explain.because": "Why:",
+  "explain.offender": "Flagged source:",
+  "explain.established": "{n} of {total} sources are established publishers.",
+  "explain.readFirst": "Read the established sources first, and treat the flagged one as an argument rather than as evidence.",
+
+  // Flag wording. Plain sentence first; the technical name stays available below
+  // it so the report is still precise for someone who wants the mechanism.
+  "flag.sponsored": "This is paid content",
+  "flag.geo-question-headline": "Written to be quoted by an AI",
+  "flag.non-public-url": "This citation does not point to a real public website",
+  "flag.think-tank-unverified": "Calls itself a research institute \u2014 we could not confirm it exists",
+  "flag.domain-unarchived": "This website has no history at all",
+  "flag.domain-fresh": "The website is brand new",
+  "flag.no-author": "Nobody put their name on it",
+  "flag.no-about": "No way to find out who runs this site",
+  "flag.ai-generated-text": "Looks machine-written",
+  "flag.established": "Known publisher with a public track record",
+  "flag.technical": "Technical detail",
+
   // confidence levels and claim types — interpolated into chips, so they need
   // their own entries; before this they leaked raw English into Arabic reports.
   "conf.high": "high",
@@ -110,8 +139,8 @@ const EN = {
   "trust.mixed": "Mixed evidence",
   "trust.one-sided": "Heavily one-sided",
   "trust.contradicted": "Key claims contradicted",
-  "trust.manipulated-sources": "Manipulated sources detected",
-  "trust.unverifiable": "Largely unverifiable",
+  "trust.manipulated-sources": "Sources look planted or paid",
+  "trust.unverifiable": "Could not be checked",
   "trust.no-claims": "No checkable claims",
   "quote.verified": "quote verified on page",
   "quote.partial": "quote partially found on page",
@@ -131,12 +160,12 @@ const AR = {
   "btn.rerun": "إعادة التشغيل من جديد",
 
   "app.tagline": "مدقّق إجابات الذكاء الاصطناعي",
-  "panel.hint": "الصق إجابة ذكاء اصطناعي أدناه (أو استخدم «تحقق من النص المحدد» / زر التحقق في ChatGPT وGemini وClaude وPerplexity). يُقسّم Touchstone الإجابة إلى ادعاءات، ويبحث عن أدلة مستقلة، ويتأكد من الاقتباسات مقابل صفحاتها، ويفحص كل مصدر بحثاً عن أنماط التلاعب.",
+  "panel.hint": "الصق إجابة ذكاء اصطناعي أدناه (أو استخدم «تحقق من النص المحدد» / زر التحقق في ChatGPT وGemini وClaude وPerplexity). يُقسّم Facts Only الإجابة إلى ادعاءات، ويبحث عن أدلة مستقلة، ويتأكد من الاقتباسات مقابل صفحاتها، ويفحص كل مصدر بحثاً عن أنماط التلاعب.",
   "panel.history": "🕘 التقارير السابقة",
   "input.placeholder": "الصق إجابة الذكاء الاصطناعي التي تريد التحقق منها…",
   "settings.summary": "⚙️ الإعدادات ومفتاح الـ API",
-  "webapp.hero.title": "🔍 Touchstone",
-  "webapp.hero.text": "الصق إجابة من روبوت محادثة. يُقسّمها Touchstone إلى ادعاءات، ويبحث بشكل مستقل عن أدلة مؤيدة ومعارضة، ويشير إلى المصادر التي تبدو حملات تأثير أو مزارع محتوى. يمنحك أدلة — وليس حكماً.",
+  "webapp.hero.title": "🔍 Facts Only",
+  "webapp.hero.text": "الصق إجابة من روبوت محادثة. يُقسّمها Facts Only إلى ادعاءات، ويبحث بشكل مستقل عن أدلة مؤيدة ومعارضة، ويشير إلى المصادر التي تبدو حملات تأثير أو مزارع محتوى. يمنحك أدلة — وليس حكماً.",
   "webapp.tip": "نصيحة: إضافة المتصفح تستطيع أيضاً جلب صفحات المصادر المُستشهد بها وفحصها — استخدمها على ChatGPT وGemini وClaude وPerplexity للحصول على أقوى فحص.",
 
   "msg.cancelled": "تم إلغاء التحقق. لم يُحفظ أي شيء.",
@@ -196,6 +225,31 @@ const AR = {
   "rep.missedCtx": "سياق يقول النموذج الثاني إنه مفقود:",
   "rep.confidence": "ثقة {v}",
 
+  "explain.paid.head": "\u062c\u0632\u0621 \u0645\u0646 \u0647\u0630\u0647 \u0627\u0644\u0625\u062c\u0627\u0628\u0629 \u0645\u0623\u062e\u0648\u0630 \u0645\u0646 \u0645\u062d\u062a\u0648\u0649 \u0645\u062f\u0641\u0648\u0639.",
+  "explain.planted.head": "\u0623\u062d\u062f \u0647\u0630\u0647 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u064a\u0628\u062f\u0648 \u0645\u0632\u0631\u0648\u0639\u064b\u0627\u060c \u0644\u0627 \u0635\u062d\u0627\u0641\u0629.",
+  "explain.opaque.head": "\u0628\u0639\u0636 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0644\u0627 \u062a\u0643\u0634\u0641 \u0645\u0646 \u064a\u0642\u0641 \u062e\u0644\u0641\u0647\u0627.",
+  "explain.clean.head": "\u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0647\u0646\u0627 \u0646\u0627\u0634\u0631\u0648\u0646 \u0644\u0647\u0645 \u0633\u062c\u0644 \u0645\u0639\u0631\u0648\u0641.",
+  "explain.paid.body": "\u062f\u0641\u0639 \u0623\u062d\u062f\u0647\u0645 \u0645\u0642\u0627\u0628\u0644 \u0648\u062c\u0648\u062f \u0647\u0630\u0647 \u0627\u0644\u0645\u0627\u062f\u0629. \u0647\u0630\u0627 \u0644\u0627 \u064a\u062c\u0639\u0644\u0647\u0627 \u0643\u0627\u0630\u0628\u0629\u060c \u0644\u0643\u0646\u0647\u0627 \u0643\u064f\u062a\u0628\u062a \u0644\u0625\u0642\u0646\u0627\u0639\u0643\u060c \u0648\u0642\u062f \u0627\u0642\u062a\u0628\u0633\u0647\u0627 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u0643\u0623\u0646\u0647\u0627 \u062a\u063a\u0637\u064a\u0629 \u0635\u062d\u0641\u064a\u0629.",
+  "explain.planted.body": "\u062a\u062d\u0645\u0644 \u0628\u0635\u0645\u0627\u062a \u0645\u0648\u0627\u062f \u0646\u064f\u0634\u0631\u062a \u062e\u0635\u064a\u0635\u064b\u0627 \u0644\u064a\u0642\u062a\u0628\u0633\u0647\u0627 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u2014 \u0645\u0627 \u064a\u0633\u0645\u064a\u0647 \u0627\u0644\u0628\u0627\u062d\u062b\u0648\u0646 \u062a\u062d\u0633\u064a\u0646 \u0645\u062d\u0631\u0643\u0627\u062a \u0627\u0644\u062a\u0648\u0644\u064a\u062f. \u0623\u0631\u0627\u062f \u0623\u062d\u062f\u0647\u0645 \u0623\u0646 \u062a\u0643\u0648\u0646 \u0647\u0630\u0647 \u0647\u064a \u0627\u0644\u0625\u062c\u0627\u0628\u0629 \u0627\u0644\u062a\u064a \u062a\u0635\u0644\u0643.",
+  "explain.opaque.body": "\u0644\u0627 \u0645\u0624\u0644\u0641 \u0645\u0630\u0643\u0648\u0631\u060c \u0648\u0644\u0627 \u0648\u0633\u064a\u0644\u0629 \u0644\u0645\u0639\u0631\u0641\u0629 \u0645\u0646 \u064a\u062f\u064a\u0631 \u0627\u0644\u0645\u0648\u0642\u0639\u060c \u0623\u0648 \u0623\u0646 \u0627\u0644\u0645\u0648\u0642\u0639 \u0646\u0641\u0633\u0647 \u062c\u062f\u064a\u062f \u062a\u0645\u0627\u0645\u064b\u0627. \u0647\u0630\u0627 \u0644\u064a\u0633 \u062f\u0644\u064a\u0644\u064b\u0627 \u0639\u0644\u0649 \u0634\u064a\u0621\u060c \u0644\u0643\u0646\u0643 \u0644\u0627 \u062a\u0633\u062a\u0637\u064a\u0639 \u062a\u0642\u064a\u064a\u0645 \u0645\u0635\u062f\u0631 \u0644\u0627 \u062a\u0639\u0631\u0641 \u0647\u0648\u064a\u062a\u0647.",
+  "explain.clean.body": "\u0644\u0645 \u062a\u064f\u0631\u0635\u062f \u0623\u0646\u0645\u0627\u0637 \u0645\u062d\u062a\u0648\u0649 \u0645\u062f\u0641\u0648\u0639 \u0623\u0648 \u062d\u0645\u0644\u0627\u062a \u062a\u0623\u062b\u064a\u0631 \u0641\u064a \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0645\u0641\u062d\u0648\u0635\u0629. \u0648\u0645\u0639 \u0630\u0644\u0643 \u0642\u062f \u062a\u0643\u0648\u0646 \u0627\u062f\u0639\u0627\u0621\u0627\u062a \u0645\u0641\u0631\u062f\u0629 \u062e\u0627\u0637\u0626\u0629 \u2014 \u0627\u0642\u0631\u0623 \u0627\u0644\u0641\u062d\u0648\u0635\u0627\u062a \u0623\u062f\u0646\u0627\u0647.",
+  "explain.because": "\u0644\u0645\u0627\u0630\u0627:",
+  "explain.offender": "\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0645\u064f\u0634\u0627\u0631 \u0625\u0644\u064a\u0647:",
+  "explain.established": "{n} \u0645\u0646 \u0623\u0635\u0644 {total} \u0645\u0635\u0627\u062f\u0631 \u0646\u0627\u0634\u0631\u0648\u0646 \u0645\u0639\u0631\u0648\u0641\u0648\u0646.",
+  "explain.readFirst": "\u0627\u0628\u062f\u0623 \u0628\u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0645\u0639\u0631\u0648\u0641\u0629\u060c \u0648\u062a\u0639\u0627\u0645\u0644 \u0645\u0639 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0645\u064f\u0634\u0627\u0631 \u0625\u0644\u064a\u0647 \u0628\u0648\u0635\u0641\u0647 \u062d\u062c\u0629 \u0644\u0627 \u062f\u0644\u064a\u0644\u064b\u0627.",
+
+  "flag.sponsored": "\u0647\u0630\u0627 \u0645\u062d\u062a\u0648\u0649 \u0645\u062f\u0641\u0648\u0639",
+  "flag.geo-question-headline": "\u0645\u0643\u062a\u0648\u0628 \u0644\u064a\u0642\u062a\u0628\u0633\u0647 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a",
+  "flag.non-public-url": "\u0647\u0630\u0627 \u0627\u0644\u0627\u0642\u062a\u0628\u0627\u0633 \u0644\u0627 \u064a\u0634\u064a\u0631 \u0625\u0644\u0649 \u0645\u0648\u0642\u0639 \u0639\u0627\u0645 \u062d\u0642\u064a\u0642\u064a",
+  "flag.think-tank-unverified": "\u064a\u0635\u0641 \u0646\u0641\u0633\u0647 \u0628\u0645\u0631\u0643\u0632 \u0623\u0628\u062d\u0627\u062b \u2014 \u0644\u0645 \u0646\u062a\u0645\u0643\u0646 \u0645\u0646 \u0627\u0644\u062a\u0623\u0643\u062f \u0645\u0646 \u0648\u062c\u0648\u062f\u0647",
+  "flag.domain-unarchived": "\u0644\u0627 \u062a\u0627\u0631\u064a\u062e \u0644\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0625\u0637\u0644\u0627\u0642\u064b\u0627",
+  "flag.domain-fresh": "\u0627\u0644\u0645\u0648\u0642\u0639 \u062c\u062f\u064a\u062f \u062a\u0645\u0627\u0645\u064b\u0627",
+  "flag.no-author": "\u0644\u0627 \u0623\u062d\u062f \u0648\u0636\u0639 \u0627\u0633\u0645\u0647 \u0639\u0644\u064a\u0647",
+  "flag.no-about": "\u0644\u0627 \u0633\u0628\u064a\u0644 \u0644\u0645\u0639\u0631\u0641\u0629 \u0645\u0646 \u064a\u062f\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639",
+  "flag.ai-generated-text": "\u064a\u0628\u062f\u0648 \u0645\u0643\u062a\u0648\u0628\u064b\u0627 \u0628\u0627\u0644\u0622\u0644\u0629",
+  "flag.established": "\u0646\u0627\u0634\u0631 \u0645\u0639\u0631\u0648\u0641 \u0644\u0647 \u0633\u062c\u0644 \u0639\u0627\u0645",
+  "flag.technical": "\u0627\u0644\u062a\u0641\u0635\u064a\u0644 \u0627\u0644\u062a\u0642\u0646\u064a",
+
   "conf.high": "عالية",
   "conf.medium": "متوسطة",
   "conf.low": "منخفضة",
@@ -216,8 +270,8 @@ const AR = {
   "trust.mixed": "أدلة مختلطة",
   "trust.one-sided": "منحاز لجهة واحدة بشدة",
   "trust.contradicted": "ادعاءات رئيسية مناقَضة",
-  "trust.manipulated-sources": "رُصدت مصادر متلاعَب بها",
-  "trust.unverifiable": "غير قابل للتحقق إلى حد كبير",
+  "trust.manipulated-sources": "مصادر تبدو مزروعة أو مدفوعة",
+  "trust.unverifiable": "تعذّر التحقق",
   "trust.no-claims": "لا توجد ادعاءات قابلة للفحص",
   "quote.verified": "تأكد الاقتباس من الصفحة",
   "quote.partial": "عُثر على جزء من الاقتباس في الصفحة",

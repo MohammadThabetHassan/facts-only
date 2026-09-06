@@ -1,14 +1,39 @@
 # Changelog
 
-All notable changes to Touchstone are documented here.
+All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
 ## [1.0.0] — 2026-09-06
 
-Renamed from **FactLens** to **Touchstone**. A touchstone does not tell you what a
-metal is — you read the streak yourself — which is exactly the contract this tool
-has always had with its reader.
+Renamed from **FactLens** to **Facts Only**, and re-pointed at the question the project
+was always really about: not "is this true?" but **"is this in my answer because someone
+paid for it to be?"**
+
+### Added — plain-language risk card
+
+The source flags were accurate and unreadable. "Headline mimics a chatbot question (GEO
+pattern)" is precise, sits at the bottom of the report, and tells a normal reader
+nothing. A reader who has just been handed a planted source should not need to know what
+GEO stands for to find that out.
+
+- New `engine/explain.js`: `summarizeRisk()` turns the flag set into one sentence, ranked
+  worst-first — **paid** > **planted** > **opaque** > **clean** — so explicit paid
+  content is never softened into "an unnamed publisher". Pure, no DOM, no i18n, fully
+  tested.
+- The result renders as the **first thing in the report**, above the trust banner: a
+  headline, one paragraph of explanation, the flagged site named and linked, and its
+  reasons underneath it. Computed in code from the same flags shown further down, so —
+  like the trust signal — the model under review cannot soften its own verdict.
+- Every source flag now renders as a plain sentence ("This is paid content", "Written to
+  be quoted by an AI", "Nobody put their name on it"), with the precise engine wording
+  moved into a collapsed "Technical detail". Flags are translatable for the first time;
+  full English and Arabic wording, enforced by a test that fails if any flag or risk
+  level is missing plain wording in either locale.
+- The Markdown export leads with the same warning, because an exported report is usually
+  read by someone who never opened the tool.
+- Plainer trust labels: "Manipulated sources detected" is now "Sources look planted or
+  paid"; "Largely unverifiable" is now "Could not be checked".
 
 ### Security
 - **SSRF guard on model-supplied URLs.** Evidence URLs come from an LLM whose input
@@ -61,10 +86,10 @@ has always had with its reader.
 - The demo now produces **three distinct outcomes** — supported, contradicted and
   unverifiable, with different evidence for each — instead of repeating one canned
   block under every claim, which made the sample report look broken.
-- Offline suite grown from 91 to **97 checks** (SSRF guard and refused-citation
+- Offline suite grown from 91 to **113 checks** (SSRF guard and refused-citation
   behaviour).
 - CSS custom properties and class names, storage keys, and message types moved from
-  the `fl-`/`fl_` prefix to `ts-`/`ts_`.
+  the `fl-`/`fl_` prefix to `fo-`/`fo_`.
 
 ## [0.5.0] — 2026-09-06
 

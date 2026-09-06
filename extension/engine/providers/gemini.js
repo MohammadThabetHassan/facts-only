@@ -26,7 +26,7 @@ export function createGeminiProvider(settings) {
 
   async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.geminiKey || "").trim();
-    if (!key) throw new Error("Missing Gemini API key. Open Touchstone settings and paste your free key from aistudio.google.com.");
+    if (!key) throw new Error("Missing Gemini API key. Open Facts Only settings and paste your free key from aistudio.google.com.");
     const model = (settings.geminiModel || "gemini-2.5-flash").trim();
     const useGrounding = search && supportsSearch;
 

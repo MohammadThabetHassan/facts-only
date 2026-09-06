@@ -2,56 +2,72 @@
 
 <img src="docs/logo.svg" width="88" height="88" alt="">
 
-# Touchstone
+# Facts Only
 
-**Stress-test AI chatbot answers instead of trusting them.**
+**Find out who paid to be in your AI answer.**
 
 Independent evidence search · claim-by-claim verdicts · manipulation-pattern source profiling
 
-[![CI](https://github.com/MohammadThabetHassan/touchstone/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/touchstone/actions/workflows/ci.yml)
+[![CI](https://github.com/MohammadThabetHassan/facts-only/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/facts-only/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
-![Tests: 97 offline checks](https://img.shields.io/badge/tests-97%20offline%20checks-brightgreen)
+![Tests: 113 offline checks](https://img.shields.io/badge/tests-113%20offline%20checks-brightgreen)
 
 </div>
 
 ---
 
-Chatbots that read the web can be gamed. Influence campaigns publish reports with
-**question-shaped headlines** so AI chatbots quote them as neutral research. A documented
+When you ask a chatbot a question, you assume the answer came from whatever the
+evidence says. Increasingly it did not: it came from whoever spent the most money
+making sure the chatbot would find their version first.
+
+The technique has a name — **Generative Engine Optimization (GEO)**, SEO for AI
+answers. You publish material with **question-shaped headlines** that match the way
+people prompt chatbots, so the model quotes you instead of the reporting. A documented
 example (The Guardian, Aug 2026): a fake "US think tank", set up and funded by Israel,
-published 500,000+ words of question-titled reports designed to be the first thing
-ChatGPT and Google AI cite on Gaza. Researchers call this technique
-**Generative Engine Optimization (GEO)** — SEO, but for AI answers.
+published 500,000+ words of question-titled reports engineered to be the first thing
+ChatGPT and Google AI cite on Gaza. The chatbot then repeats it as neutral research,
+because nothing in the answer tells you it was placed there.
 
-Touchstone does what the chatbot should have done: it re-checks the answer against
-evidence it goes and finds for itself.
+Facts Only puts that missing label back. It takes the answer apart, goes and finds
+evidence for itself, and — first, before any of the technical detail — tells you in one
+sentence whether someone appears to have paid or planted their way into what you just
+read, and which source it was.
 
-> A touchstone does not tell you what a metal is. You rub the metal on the stone and read
-> the streak yourself. **Touchstone never outputs "true" or "false."** It produces
-> evidence, a verdict per claim with links, and source warnings — the judgment stays with
-> the reader. Any tool claiming to output "the truth" would itself become a single point
-> of manipulation.
+> **What "Facts Only" means here.** It is not a promise to hand you the truth — a tool
+> that claimed that would become the single point of manipulation worth attacking. It
+> means stripping out what is there because it was *bought*: paid placement, planted
+> "research", publishers who will not say who funds them. What survives is closer to
+> fact. Facts Only never outputs "true" or "false"; it shows you the evidence, the
+> counter-evidence, and who is behind each source, and you decide.
 
 ## What a report looks like
 
 <div align="center">
-  <img src="docs/screenshots/report.png" width="740" alt="A Touchstone report: a red 'Manipulated sources detected' banner with the counts behind it, a method line disclosing that no live search ran and that 3 of about 4 claims were checked, then per-claim cards — one supported, one contradicted — each with evidence links, quotes, and quote-verification chips.">
+  <img src="docs/screenshots/report.png" width="740" alt="A Facts Only report. It opens with a red plain-language box reading 'One of these sources looks planted, not reported', followed by why: the site global-security-observatory.org was written to be quoted by an AI and calls itself a research institute that could not be confirmed. Below that, the trust banner with claim counts, a method line, and per-claim cards with evidence links, quotes and quote-verification chips.">
 </div>
 
-Every report shows the trust banner **with the counts behind it**, a transparency line
-stating exactly what the verification did (live search? how many of the checkable claims?
-quotes verified?), per-claim verdicts with evidence links and **quote-verification chips**
-("quote verified on page" vs "quote NOT found on page"), source warning flags, the bias
-and framing analysis, and an optional **second-model opinion** asked to challenge the
-first review.
+**The plain-language warning comes first, on purpose.** Most people will read that box
+and nothing else, so it has to answer the only question that matters — *is someone paying
+to be in this answer, and which source is it?* — in a sentence, with the site named and
+linked. Its wording is ranked worst-first, so paid content is never softened into
+"an unnamed publisher". Like the trust signal, it is computed in code from the source
+flags, so the model being checked cannot tone it down.
+
+Below it, for readers who want the mechanism: the trust banner **with the counts behind
+it**, a transparency line stating exactly what the verification did (live search? how many
+of the checkable claims? quotes verified?), per-claim verdicts with evidence links and
+**quote-verification chips** ("quote verified on page" vs "quote NOT found on page"),
+per-source warnings — each in plain words, with the technical heuristic one click away —
+the bias and framing analysis, and an optional **second-model opinion** asked to challenge
+the first review.
 
 <details>
 <summary>The full web app, and the Arabic RTL layout</summary>
 
 <div align="center">
-  <img src="docs/screenshots/webapp-full.png" width="700" alt="The Touchstone web app with the paste box and a rendered report below it.">
+  <img src="docs/screenshots/webapp-full.png" width="700" alt="The Facts Only web app with the paste box and a rendered report below it.">
   <br><br>
   <img src="docs/screenshots/report-arabic-rtl.png" width="700" alt="The same report rendered in Arabic with a right-to-left layout.">
 </div>
@@ -93,6 +109,10 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 
 ## Features
 
+- 💰 **Says who paid, in plain words** — the report opens with one sentence a
+  non-technical reader understands ("One of these sources looks planted, not reported"),
+  names the site, and lists why. Ranked worst-first so paid placement outranks every
+  softer signal, and computed in code so it cannot be talked down.
 - 🔎 **Verify anywhere** — one click under AI answers on ChatGPT, Gemini, Claude and
   Perplexity; right-click on any selected text; or paste into the side panel or web app.
 - 🧾 **Quote verification** — evidence quotes are checked against the fetched page text;
@@ -140,7 +160,7 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 
 **Then, in either browser**
 
-3. Click the Touchstone icon → paste a free Gemini API key
+3. Click the Facts Only icon → paste a free Gemini API key
    ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) → **Save** →
    **Test connection**.
 4. No key yet? Click **Try a demo** for a full sample report built from canned data.
@@ -150,10 +170,10 @@ the web, so evidence quality is lower.
 
 ## Usage
 
-- **On ChatGPT, Gemini, Claude, or Perplexity:** a blue "🔍 Touchstone — verify this
+- **On ChatGPT, Gemini, Claude, or Perplexity:** a blue "🔍 Facts Only — verify this
   answer" button appears under each AI response. Click it and the report opens in the side
   panel.
-- **Anywhere on the web:** select the text → right-click → **Touchstone: verify selected
+- **Anywhere on the web:** select the text → right-click → **Facts Only: verify selected
   text**. The side panel opens automatically and runs.
 - **Manual:** open the side panel and paste any answer. Links in the pasted text (markdown
   or bare URLs) are picked up as sources automatically.
@@ -170,7 +190,7 @@ There is no build step and there are no dependencies — load `extension/` unpac
 the files.
 
 ```bash
-npm test                  # 97-check offline suite: no key, no network
+npm test                  # 113-check offline suite: no key, no network
 npm run dev               # serve webapp + panel at localhost:8123
 npm run build:firefox     # build the Firefox add-on directory
 npm run package           # store-ready zip of the Chrome extension
@@ -182,7 +202,7 @@ Each script is a plain `node` or `python` invocation if you would rather not use
 For a real end-to-end pass against the live API:
 
 ```bash
-TOUCHSTONE_GEMINI_KEY=... node scripts/live-check.mjs
+FACTS_ONLY_GEMINI_KEY=... node scripts/live-check.mjs
 ```
 
 That runs one small answer with two checkable claims through Gemini with Google Search
@@ -200,6 +220,7 @@ extension/          Manifest V3 extension (no build step)
   engine/           Shared verification engine (also used by the web app)
     providers/      gemini · openrouter · openai-compat · mock
     steps/          claims · evidence · bias · summary
+    explain.js      plain-language risk summary (computed in code)
     ui/             storage · settings · report renderer · cache (shared with webapp)
   content/          chatbot answer detection + Verify buttons
   panel/  popup/    side panel & settings UI
@@ -244,7 +265,7 @@ proxy logs.
 - [Contributing](CONTRIBUTING.md) — ground rules, and how to add heuristics or providers
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md) — prompt injection, key handling, evasion reports
-- [Threat model](docs/THREAT-MODEL.md) — what Touchstone defends against, and what it does not
+- [Threat model](docs/THREAT-MODEL.md) — what Facts Only defends against, and what it does not
 - [Verification log](docs/VERIFICATION.md) — what is tested, how, and what remains
 - [Changelog](CHANGELOG.md)
 

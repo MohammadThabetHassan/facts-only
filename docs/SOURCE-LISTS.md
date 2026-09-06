@@ -1,6 +1,6 @@
 # Source lists governance
 
-Touchstone classifies publishers to help readers judge sources. This document defines
+Facts Only classifies publishers to help readers judge sources. This document defines
 the rules for maintaining those lists, because they are the most sensitive data in
 the project: a skewed list would skew every report.
 
@@ -65,6 +65,6 @@ statement.
 - Not a truth ranking. "Established" means accountability, not correctness —
   established outlets get things wrong; the badge only says the publisher has
   edit accountability and institutional standing.
-- Not exhaustive. Most sources Touchstone profiles are **not** on the list; their
+- Not exhaustive. Most sources Facts Only profiles are **not** on the list; their
   credibility is assessed by heuristics plus the AI publisher profile, and the
   report says exactly that.

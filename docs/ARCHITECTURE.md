@@ -1,6 +1,6 @@
 # Architecture
 
-Touchstone is deliberately simple: **vanilla ES modules, zero dependencies, no build
+Facts Only is deliberately simple: **vanilla ES modules, zero dependencies, no build
 step**. One engine, three frontends.
 
 ## Module map
@@ -143,3 +143,32 @@ Live-model behavior is intentionally out of CI scope (needs keys).
 - **New provider** → follow `providers/openai-compat.js`; register in
   `providers/index.js` and `ui/settings-ui.js`.
 - **New frontend** → import the engine; you get the whole pipeline.
+
+## Plain-language risk summary (`engine/explain.js`)
+
+The report has two audiences and they need opposite things. A researcher wants the exact
+heuristic that fired; someone who just read a chatbot answer wants to know whether they
+were sold something. Serving only the first audience is how a warning ends up accurate
+and ignored.
+
+`summarizeRisk(sources)` collapses the flag set into a single level, chosen worst-first:
+
+| Level | Triggered by | Why it ranks there |
+| --- | --- | --- |
+| `paid` | `sponsored` | Explicit paid placement. Nothing outranks money changing hands. |
+| `planted` | `geo-question-headline`, `non-public-url` | The GEO fingerprint: published so an AI would quote it. |
+| `opaque` | `think-tank-unverified`, `domain-unarchived`, `domain-fresh`, `no-author`, `no-about`, `ai-generated-text` | You cannot weigh a source that will not identify itself. |
+| `clean` | nothing above fired | No placement pattern found in the sources checked. |
+
+Ordering is the whole point: a source that is *both* paid and merely unattributed must be
+reported as paid. A "highest severity wins" rule would be equivalent today but would drift
+the moment a severity is retuned, so the ranking is explicit and tested.
+
+Only sources that triggered the winning level are named — the sentence has to point at
+something the reader can click — but for those sources every reason is listed, triggering
+reason first, so the list justifies the headline and then deepens it.
+
+Like `computeTrustSignal`, this runs **in code, from the step outputs**. The model being
+checked writes none of it, so it cannot soften a warning about itself. It is DOM-free and
+i18n-free; the caller supplies the wording, which is what lets the same function drive the
+on-screen card and the Markdown export in either language.

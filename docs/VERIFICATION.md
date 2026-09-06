@@ -3,9 +3,9 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-06 (v1.0.0, the FactLens → Touchstone rename)
+Last updated: 2026-09-06 (v1.0.0 — Facts Only rename + plain-language risk card)
 
-## 1. Offline test suite — PASSING (97 checks)
+## 1. Offline test suite — PASSING (113 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -18,7 +18,9 @@ lines) · result cache (fingerprint, eviction) · provider response parsing
 (Gemini parts/grounding, JSON-mime fallback retry, OpenRouter shape, missing-key
 error quality) · the SSRF guard on model-supplied URLs (loopback, RFC1918, cloud
 metadata, encoded IP literals, bare intranet names, non-http schemes) and the
-high-risk flag raised for a refused citation · full pipeline on the mock provider (claims, verdicts, quote
+high-risk flag raised for a refused citation · the plain-language risk summary
+(level ranking worst-first, offender selection, reason ordering, empty input) and
+complete plain wording for every flag and risk level in both locales · full pipeline on the mock provider (claims, verdicts, quote
 statuses, source flags, bias, second-opinion degradation, method metadata) ·
 cancellation.
 
@@ -35,8 +37,8 @@ profile), driving the actual UI rather than unit shims:
 | Cancel: mid-run cancel stops the pipeline, shows "Verification cancelled", re-enables the button, saves nothing | PASS |
 | **Real extension:** Developer mode → Load unpacked → card loads with icon, v0.3.0, no errors | PASS |
 | **Real extension:** toolbar popup settings → provider switch → save | PASS |
-| **Real extension:** select text on example.com → context menu "Touchstone: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
-| **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 Touchstone — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
+| **Real extension:** select text on example.com → context menu "Facts Only: verify selected text" → side panel auto-opens with the selection queued → pipeline runs → report renders | PASS |
+| **Real extension, real chatbot:** ask a question on chatgpt.com logged out → "🔍 Facts Only — verify this answer" button injects under the response → click → side panel opens with the real answer → report renders ("from chatgpt.com") | PASS |
 | **Firefox (155):** build-firefox.py → Load Temporary Add-on → sidebar panel renders → demo run completes with full report ("Manipulated sources detected") | PASS |
 
 ### Selector drift caught and fixed (2026-09-06)

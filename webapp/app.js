@@ -1,4 +1,4 @@
-// Touchstone web app: same engine as the extension, paste-text workflow.
+// Facts Only web app: same engine as the extension, paste-text workflow.
 // Cited links are extracted from the pasted text (markdown or bare URLs) so
 // source profiling works here too; cross-origin page fetching may still be
 // blocked by CORS, in which case profiling degrades to link text + LLM knowledge.
@@ -75,7 +75,7 @@ async function run(text, sources, providerOverride = null, { ignoreCache = false
           onCopy: () => navigator.clipboard.writeText(reportToMarkdown(cached.report))
         });
         const note = document.createElement("p");
-        note.className = "ts-hint";
+        note.className = "fo-hint";
         note.textContent = `Loaded from cache (ran ${mins} min ago) — press “Verify answer” again to force a fresh run.`;
         $("report").prepend(note);
         lastRunWasCached = true;
@@ -120,7 +120,7 @@ function downloadMd(report) {
   const blob = new Blob([reportToMarkdown(report)], { type: "text/markdown;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `touchstone-report-${new Date().toISOString().slice(0, 10)}.md`;
+  a.download = `facts-only-report-${new Date().toISOString().slice(0, 10)}.md`;
   a.click();
 }
 
@@ -152,5 +152,5 @@ $("demo").addEventListener("click", runDemo);
 // what the tool produces, and it makes the documentation screenshots
 // reproducible (see scripts/capture-screenshots.py).
 const params = new URLSearchParams(location.search);
-if (params.get("shot") === "1") document.body.classList.add("ts-shot");
+if (params.get("shot") === "1") document.body.classList.add("fo-shot");
 if (params.get("demo") === "1") runDemo();

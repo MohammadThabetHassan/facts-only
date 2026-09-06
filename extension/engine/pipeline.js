@@ -1,4 +1,4 @@
-// Touchstone pipeline orchestrator.
+// Facts Only pipeline orchestrator.
 // Input: an AI answer (+ any cited links). Output: a structured verification report.
 // The trust signal is computed deterministically in code from step outputs —
 // never written by the model.
@@ -18,8 +18,8 @@ export const TRUST_SIGNALS = {
   mixed: { label: "Mixed evidence", tone: "warn" },
   "one-sided": { label: "Heavily one-sided", tone: "warn" },
   contradicted: { label: "Key claims contradicted", tone: "bad" },
-  "manipulated-sources": { label: "Manipulated sources detected", tone: "bad" },
-  unverifiable: { label: "Largely unverifiable", tone: "neutral" },
+  "manipulated-sources": { label: "Sources look planted or paid", tone: "bad" },
+  unverifiable: { label: "Could not be checked", tone: "neutral" },
   "no-claims": { label: "No checkable claims", tone: "neutral" }
 };
 
@@ -267,6 +267,6 @@ export async function verifyAnswer(input, settings, { onProgress = () => {}, pro
     summary: summary.summary,
     readerAdvice: summary.readerAdvice,
     disclaimer:
-      "Touchstone provides evidence and flags, not a verdict. AI systems — including the one doing this analysis — can be wrong or biased. Check the linked primary sources yourself before deciding what is true."
+      "Facts Only provides evidence and flags, not a verdict. AI systems — including the one doing this analysis — can be wrong or biased. Check the linked primary sources yourself before deciding what is true."
   };
 }

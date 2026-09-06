@@ -1,6 +1,6 @@
 // Offline smoke test: runs unit checks and the full pipeline with the mock
 // provider (no network, no API key).
-// Run: node test/smoke.mjs   (from the touchstone/ directory)
+// Run: node test/smoke.mjs   (from the facts-only/ directory)
 
 import { verifyAnswer, computeTrustSignal, TRUST_SIGNALS } from "../extension/engine/pipeline.js";
 import { createProvider } from "../extension/engine/providers/index.js";
@@ -11,6 +11,7 @@ import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, verifyQuo
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
+import { summarizeRisk } from "../extension/engine/explain.js";
 
 let failures = 0;
 function check(name, cond, extra = "") {
@@ -501,6 +502,90 @@ console.log("\nssrf guard:");
   check("non-public citation flagged high risk",
     !!s0 && s0.highRisk === true && s0.flags.some((f) => f.key === "non-public-url"),
     JSON.stringify(s0 && s0.flags));
+}
+
+// --- plain-language risk explanation ----------------------------------------
+console.log("\nrisk explanation:");
+{
+  const src = (flags, established = false) => ({
+    url: "https://example.org/a",
+    siteName: "example.org",
+    established,
+    flags: flags.map((key) => ({ key, severity: key === "established" ? "info" : "high" }))
+  });
+
+  check("clean when every source is an established publisher",
+    summarizeRisk([src(["established"], true), src(["established"], true)]).level === "clean");
+
+  // Worst-first: paid placement must never be softened into "unnamed publisher".
+  check("paid content outranks every other signal",
+    summarizeRisk([src(["no-author", "domain-fresh", "sponsored"])]).level === "paid");
+
+  check("GEO headline reads as planted",
+    summarizeRisk([src(["geo-question-headline", "no-author"])]).level === "planted");
+
+  check("a citation to a private address reads as planted",
+    summarizeRisk([src(["non-public-url"])]).level === "planted");
+
+  check("unnamed / brand-new publishers read as opaque",
+    summarizeRisk([src(["no-author", "domain-fresh"])]).level === "opaque");
+
+  check("risk summary counts established sources for the reader",
+    (() => {
+      const r = summarizeRisk([src(["established"], true), src(["sponsored"])]);
+      return r.total === 2 && r.establishedCount === 1;
+    })());
+
+  // The card names the source responsible, so the reader can go and look at it.
+  check("risk summary names only the sources that triggered the level",
+    (() => {
+      const r = summarizeRisk([src(["established"], true), src(["sponsored"])]);
+      return r.offenders.length === 1 && r.offenders[0].reasonKeys.join() === "sponsored";
+    })());
+
+  // A named source lists all of its reasons, triggering one first.
+  check("a flagged source lists every reason, triggering reason first",
+    (() => {
+      const r = summarizeRisk([src(["no-author", "geo-question-headline", "domain-fresh"])]);
+      return r.level === "planted" &&
+        r.offenders[0].reasonKeys[0] === "geo-question-headline" &&
+        r.offenders[0].reasonKeys.length === 3;
+    })());
+
+  check("empty source list degrades to clean, not a crash",
+    summarizeRisk([]).level === "clean" && summarizeRisk().level === "clean");
+
+  // Every flag the profiler can emit needs plain wording in BOTH locales,
+  // otherwise a reader sees a raw i18n key where the explanation should be.
+  const FLAG_KEYS = ["sponsored", "geo-question-headline", "non-public-url",
+    "think-tank-unverified", "domain-unarchived", "domain-fresh", "no-author",
+    "no-about", "ai-generated-text", "established"];
+  for (const loc of ["en", "ar"]) {
+    const missing = FLAG_KEYS.filter((k) => t("flag." + k, loc) === "flag." + k);
+    check(`every source flag has plain wording in ${loc}`, missing.length === 0, missing.join());
+  }
+  for (const loc of ["en", "ar"]) {
+    const missing = ["paid", "planted", "opaque", "clean"].flatMap((lvl) =>
+      ["head", "body"].map((part) => `explain.${lvl}.${part}`)
+    ).filter((k) => t(k, loc) === k);
+    check(`every risk level has plain wording in ${loc}`, missing.length === 0, missing.join());
+  }
+}
+
+// The exported Markdown is what actually gets pasted into a chat or an email,
+// so it has to carry the same plain-language warning the screen does.
+{
+  const { reportToMarkdown } = await import("../extension/engine/ui/report-view.js");
+  const md = reportToMarkdown(report);
+  const head = md.split("\n").slice(0, 12).join("\n");
+  check("exported report leads with the plain-language warning",
+    /^# Facts Only verification report/.test(md) && /^> \*\*/m.test(head),
+    head);
+  check("exported warning names the flagged source and its reasons",
+    /global-security-observatory\.org/.test(head) && /research institute/.test(head),
+    head);
+  check("exported source flags use plain wording with the technical term in parentheses",
+    /- \u26a0 [^(\n]+\(/.test(md) || !/## Sources/.test(md));
 }
 
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);

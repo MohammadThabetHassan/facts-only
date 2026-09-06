@@ -2,42 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Touchstone</title>
-    <link rel="stylesheet" href="../engine/ui/touchstone.css" />
+    <title>Facts Only</title>
+    <link rel="stylesheet" href="../engine/ui/facts-only.css" />
   </head>
   <body>
-    <div class="ts-wrap">
-      <header class="ts-header">
-        <h1>🔍 Touchstone</h1>
+    <div class="fo-wrap">
+      <header class="fo-header">
+        <h1>🔍 Facts Only</h1>
         <span class="tag" data-i18n="app.tagline">AI-answer verifier</span>
       </header>
-      <p class="ts-hint" data-i18n="panel.hint">
+      <p class="fo-hint" data-i18n="panel.hint">
         Paste an AI answer below (or use “verify selected text” / the Verify button on ChatGPT,
-        Gemini, Claude and Perplexity). Touchstone splits it into claims, hunts for independent
+        Gemini, Claude and Perplexity). Facts Only splits it into claims, hunts for independent
         evidence, verifies quotes against the pages, and profiles every source for manipulation
         patterns.
       </p>
 
-      <details class="ts-collapsible" id="settings-details">
+      <details class="fo-collapsible" id="settings-details">
         <summary data-i18n="settings.summary">⚙️ Settings &amp; API key</summary>
         <div id="settings" style="padding-top: 10px"></div>
       </details>
 
       <textarea id="input" data-i18n-placeholder="input.placeholder" placeholder="Paste the AI answer you want to verify…"></textarea>
-      <div class="ts-actions">
+      <div class="fo-actions">
         <button id="run" type="button" data-i18n="btn.verify">Verify answer</button>
         <button id="cancel" type="button" class="secondary" hidden data-i18n="btn.cancel">Cancel</button>
         <button id="demo" type="button" class="secondary" data-i18n="btn.demo">Try a demo</button>
         <button id="clear" type="button" class="secondary" data-i18n="btn.clear">Clear</button>
       </div>
 
-      <div class="ts-bar" id="bar" hidden><div></div></div>
-      <ul class="ts-progress" id="progress"></ul>
+      <div class="fo-bar" id="bar" hidden><div></div></div>
+      <ul class="fo-progress" id="progress"></ul>
       <div id="cachebar" hidden></div>
       <div id="error" hidden></div>
       <div id="report"></div>
 
-      <details class="ts-collapsible" id="history-details" hidden>
+      <details class="fo-collapsible" id="history-details" hidden>
         <summary data-i18n="panel.history">🕘 Previous reports</summary>
         <div id="history" style="padding-top: 10px"></div>
       </details>

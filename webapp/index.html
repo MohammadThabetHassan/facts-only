@@ -3,65 +3,65 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Touchstone — AI answer verifier</title>
-    <link rel="stylesheet" href="../extension/engine/ui/touchstone.css" />
+    <title>Facts Only — AI answer verifier</title>
+    <link rel="stylesheet" href="../extension/engine/ui/facts-only.css" />
     <style>
-      body { background: var(--ts-bg); }
+      body { background: var(--fo-bg); }
       .page { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
       .card {
-        background: var(--ts-card);
-        border: 1px solid var(--ts-border);
+        background: var(--fo-card);
+        border: 1px solid var(--fo-border);
         border-radius: 14px;
         padding: 18px 20px;
         margin-bottom: 16px;
       }
-      .hero h1 { margin: 0 0 4px; font-size: 24px; color: var(--ts-fg); }
-      .hero h1 .lens { color: var(--ts-accent); }
-      .hero p { margin: 0; color: var(--ts-dim); }
+      .hero h1 { margin: 0 0 4px; font-size: 24px; color: var(--fo-fg); }
+      .hero h1 .lens { color: var(--fo-accent); }
+      .hero p { margin: 0; color: var(--fo-dim); }
 
       /* Documentation capture mode (?shot=1): show the report on its own, so
          docs/screenshots stay reproducible instead of hand-cropped.
          See scripts/capture-screenshots.py. */
-      body.ts-shot .hero,
-      body.ts-shot .fl-collapsible,
-      body.ts-shot .ts-collapsible,
-      body.ts-shot #input,
-      body.ts-shot .ts-actions,
-      body.ts-shot .ts-hint { display: none; }
-      body.ts-shot .page { padding-top: 0; }
-      body.ts-shot .card { margin-bottom: 0; }
+      body.fo-shot .hero,
+      body.fo-shot .fl-collapsible,
+      body.fo-shot .fo-collapsible,
+      body.fo-shot #input,
+      body.fo-shot .fo-actions,
+      body.fo-shot .fo-hint { display: none; }
+      body.fo-shot .page { padding-top: 0; }
+      body.fo-shot .card { margin-bottom: 0; }
     </style>
   </head>
   <body>
     <div class="page">
       <header class="hero card">
-        <h1 data-i18n="webapp.hero.title">🔍 Touchstone</h1>
+        <h1 data-i18n="webapp.hero.title">🔍 Facts Only</h1>
         <p data-i18n="webapp.hero.text">
-          Paste an AI chatbot answer. Touchstone breaks it into claims, searches independently for
+          Paste an AI chatbot answer. Facts Only breaks it into claims, searches independently for
           supporting and contradicting evidence, and flags sources that look like influence
           campaigns or content farms. It gives you evidence — not a verdict.
         </p>
       </header>
 
       <div class="card">
-        <details class="ts-collapsible">
+        <details class="fo-collapsible">
           <summary data-i18n="settings.summary">⚙️ Settings &amp; API key</summary>
           <div id="settings" style="padding-top: 10px"></div>
         </details>
 
         <textarea id="input" data-i18n-placeholder="input.placeholder" placeholder="Paste the AI answer you want to verify…" style="margin-top: 10px"></textarea>
-        <div class="ts-actions">
+        <div class="fo-actions">
           <button id="run" type="button" data-i18n="btn.verify">Verify answer</button>
           <button id="cancel" type="button" class="secondary" hidden data-i18n="btn.cancel">Cancel</button>
           <button id="demo" type="button" class="secondary" data-i18n="btn.demo">Try a demo</button>
         </div>
-        <div class="ts-bar" id="bar" hidden><div></div></div>
-        <ul class="ts-progress" id="progress"></ul>
+        <div class="fo-bar" id="bar" hidden><div></div></div>
+        <ul class="fo-progress" id="progress"></ul>
         <div id="error" hidden></div>
         <div id="report"></div>
       </div>
 
-      <p class="ts-hint" style="text-align: center" data-i18n="webapp.tip">
+      <p class="fo-hint" style="text-align: center" data-i18n="webapp.tip">
         Tip: the browser extension version can also fetch and profile cited web pages — use it on
         ChatGPT, Gemini, Claude and Perplexity for the strongest checks.
       </p>

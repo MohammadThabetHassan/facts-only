@@ -1,8 +1,8 @@
-// Touchstone background service worker.
+// Facts Only background service worker.
 // Routes verification jobs (from the context menu or chatbot buttons) to the side panel.
 
-const PENDING_KEY = "ts_pendingJob";
-const JOB_EVENT_KEY = "ts_jobEvent";
+const PENDING_KEY = "fo_pendingJob";
+const JOB_EVENT_KEY = "fo_jobEvent";
 
 chrome.runtime.onInstalled.addListener(setupContextMenu);
 chrome.runtime.onStartup.addListener(setupContextMenu);
@@ -10,8 +10,8 @@ chrome.runtime.onStartup.addListener(setupContextMenu);
 function setupContextMenu() {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: "touchstone-verify-selection",
-      title: "Touchstone: verify selected text",
+      id: "facts-only-verify-selection",
+      title: "Facts Only: verify selected text",
       contexts: ["selection"]
     });
   });
@@ -42,7 +42,7 @@ async function openSidePanel(tab) {
 }
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== "touchstone-verify-selection") return;
+  if (info.menuItemId !== "facts-only-verify-selection") return;
   const text = (info.selectionText || "").trim();
   if (!text) return;
   const job = makeJob({ text, sources: [], page: tab && tab.url ? tab.url : "selection" });
@@ -50,7 +50,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (msg && msg.type === "ts:verify" && msg.payload) {
+  if (msg && msg.type === "fo:verify" && msg.payload) {
     const tab = sender && sender.tab;
     const job = makeJob({
       text: msg.payload.text || "",

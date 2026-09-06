@@ -1,18 +1,18 @@
 {
-  "name": "touchstone",
+  "name": "facts-only",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Touchstone — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
+  "description": "Facts Only — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
   "license": "MIT",
   "author": "Mohammad Thabet Hassan",
-  "homepage": "https://github.com/MohammadThabetHassan/touchstone#readme",
+  "homepage": "https://github.com/MohammadThabetHassan/facts-only#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MohammadThabetHassan/touchstone.git"
+    "url": "git+https://github.com/MohammadThabetHassan/facts-only.git"
   },
   "bugs": {
-    "url": "https://github.com/MohammadThabetHassan/touchstone/issues"
+    "url": "https://github.com/MohammadThabetHassan/facts-only/issues"
   },
   "keywords": [
     "fact-checking",

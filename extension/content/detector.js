@@ -1,4 +1,4 @@
-// Touchstone content script: injects a "Verify" button under AI answers on major chatbots.
+// Facts Only content script: injects a "Verify" button under AI answers on major chatbots.
 // Classic script (content scripts cannot use ES module imports).
 
 (() => {
@@ -36,13 +36,13 @@
   const config = HOST_CONFIGS.find((c) => c.test.test(location.hostname));
   if (!config) return;
 
-  const BUTTON_LABEL = "🔍 Touchstone — verify this answer";
+  const BUTTON_LABEL = "🔍 Facts Only — verify this answer";
 
   function makeButton(getText) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = BUTTON_LABEL;
-    btn.setAttribute("aria-label", "Verify this AI answer with Touchstone");
+    btn.setAttribute("aria-label", "Verify this AI answer with Facts Only");
     Object.assign(btn.style, {
       font: "500 12px/1.4 system-ui, sans-serif",
       padding: "5px 12px",
@@ -60,9 +60,9 @@
       ev.preventDefault();
       ev.stopPropagation();
       btn.disabled = true;
-      btn.textContent = "Sending to Touchstone panel…";
+      btn.textContent = "Sending to Facts Only panel…";
       try {
-        chrome.runtime.sendMessage({ type: "ts:verify", payload: collect(getText()) }, () => {
+        chrome.runtime.sendMessage({ type: "fo:verify", payload: collect(getText()) }, () => {
           void chrome.runtime.lastError; // panel may be closed; job still queued
         });
       } catch (e) {
@@ -70,7 +70,7 @@
       }
       setTimeout(() => {
         btn.disabled = false;
-        btn.textContent = "Sent ✓ — open the Touchstone panel";
+        btn.textContent = "Sent ✓ — open the Facts Only panel";
         setTimeout(() => (btn.textContent = BUTTON_LABEL), 4000);
       }, 600);
     });
@@ -97,11 +97,11 @@
     for (const sel of config.messageSelectors) {
       document.querySelectorAll(sel).forEach((el) => {
         if (!el.innerText || el.innerText.trim().length < 60) return;
-        if (el.dataset.tsDone === "1") return;
-        el.dataset.tsDone = "1";
+        if (el.dataset.foDone === "1") return;
+        el.dataset.foDone = "1";
         const holder = config.buttonContainer(el);
-        if (!holder || holder.dataset.tsBtn === "1") return;
-        holder.dataset.tsBtn = "1";
+        if (!holder || holder.dataset.foBtn === "1") return;
+        holder.dataset.foBtn = "1";
         holder.appendChild(makeButton(() => el));
       });
     }

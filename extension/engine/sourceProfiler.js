@@ -170,7 +170,7 @@ export function computeFlags(p) {
     flags.push({
       key: "non-public-url",
       label: "Citation points to a private or non-routable address",
-      detail: "This URL is not a public web source (loopback, intranet name, or raw IP address). Touchstone refused to fetch it. A model citing an internal address is either hallucinating or repeating an injection payload from a page it read.",
+      detail: "This URL is not a public web source (loopback, intranet name, or raw IP address). Facts Only refused to fetch it. A model citing an internal address is either hallucinating or repeating an injection payload from a page it read.",
       severity: "high"
     });
     return { flags, established: false, highRisk: true };

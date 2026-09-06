@@ -84,8 +84,8 @@ export function createOpenRouterProvider(settings) {
       120000,
       {
         Authorization: `Bearer ${key}`,
-        "HTTP-Referer": "https://github.com/MohammadThabetHassan/touchstone",
-        "X-Title": "Touchstone"
+        "HTTP-Referer": "https://github.com/MohammadThabetHassan/facts-only",
+        "X-Title": "Facts Only"
       },
       { signal, retries: 1 }
     );
@@ -102,7 +102,7 @@ export function createOpenRouterProvider(settings) {
 
   async function complete({ system, user, json = false, search = false, task = "", temperature = 0.2, signal }) {
     const key = (settings.openrouterKey || "").trim();
-    if (!key) throw new Error("Missing OpenRouter API key. Open Touchstone settings and paste your key from openrouter.ai/keys.");
+    if (!key) throw new Error("Missing OpenRouter API key. Open Facts Only settings and paste your key from openrouter.ai/keys.");
     const configured = (settings.openrouterModel || "google/gemini-2.5-flash").trim();
 
     let models = [configured];

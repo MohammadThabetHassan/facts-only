@@ -13,7 +13,7 @@ for confirmed issues.
 
 ## Scope: what matters in this project
 
-Touchstone is a security-adjacent tool, so these classes of issues are in scope:
+Facts Only is a security-adjacent tool, so these classes of issues are in scope:
 
 1. **Prompt injection through analyzed content.** Fetched web pages, cited links
    and pasted answers are untrusted input that reaches the verification model.
@@ -29,7 +29,7 @@ Touchstone is a security-adjacent tool, so these classes of issues are in scope:
 
 ## Out of scope
 
-- The accuracy of individual AI verdicts (Touchstone is explicitly evidence, not
+- The accuracy of individual AI verdicts (Facts Only is explicitly evidence, not
   truth — see `docs/THREAT-MODEL.md`).
 - Rate limits or outages of third-party AI providers.
 - Vulnerabilities in browsers themselves.

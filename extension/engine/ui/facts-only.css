@@ -1,0 +1,499 @@
+:root {
+  --fo-border: #e5e7eb;
+  --fo-fg: #111827;
+  --fo-mid: #374151;
+  --fo-dim: #6b7280;
+  --fo-accent: #1d4ed8;
+  --fo-accent-bg: #eff6ff;
+  --fo-bg: #f9fafb;
+  --fo-card: #fff;
+  --fo-page: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--fo-fg);
+  background: var(--fo-page);
+}
+
+button {
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--fo-accent);
+  background: var(--fo-accent);
+  color: #fff;
+  cursor: pointer;
+}
+button.secondary {
+  background: #fff;
+  color: var(--fo-accent);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--fo-border);
+  border-radius: 8px;
+  background: var(--fo-card);
+  color: var(--fo-fg);
+}
+
+textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+a {
+  color: var(--fo-accent);
+}
+
+/* ---------- settings ---------- */
+.fo-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fo-field label,
+.fo-check {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fo-dim);
+}
+.fo-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 400;
+  color: var(--fo-fg);
+}
+.fo-check input {
+  width: auto;
+}
+.fo-hint {
+  font-size: 12px;
+  color: var(--fo-dim);
+  margin: 0;
+}
+.fo-privacy {
+  border-top: 1px solid var(--fo-border);
+  padding-top: 8px;
+}
+.fo-btnrow {
+  display: flex;
+  gap: 8px;
+}
+.fo-status {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--fo-accent);
+  margin: 0;
+}
+
+/* ---------- panel ---------- */
+.fo-wrap {
+  padding: 12px 14px 24px;
+  max-width: 640px;
+}
+.fo-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.fo-header h1 {
+  font-size: 17px;
+  margin: 0;
+}
+.fo-header .tag {
+  font-size: 11px;
+  color: var(--fo-dim);
+}
+details.fo-collapsible {
+  border: 1px solid var(--fo-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 10px 0;
+  background: var(--fo-bg);
+}
+details.fo-collapsible > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.fo-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+.fo-progress {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+.fo-progress li {
+  padding: 3px 0;
+  color: var(--fo-dim);
+}
+.fo-progress li.active {
+  color: var(--fo-accent);
+  font-weight: 600;
+}
+.fo-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.fo-bar {
+  height: 5px;
+  border-radius: 4px;
+  background: var(--fo-border);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.fo-bar > div {
+  height: 100%;
+  background: var(--fo-accent);
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* ---------- report ---------- */
+.fo-banner {
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.fo-banner-sub {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.fo-summary {
+  margin: 0 0 8px;
+}
+.fo-advice {
+  margin: 0 0 14px;
+  font-size: 13px;
+  background: var(--fo-accent-bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fo-section h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fo-dim);
+  margin: 18px 0 8px;
+}
+.fo-card {
+  border: 1px solid var(--fo-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.fo-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.fo-card-head a {
+  font-weight: 600;
+  text-decoration: none;
+}
+.fo-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fo-claim-text {
+  margin: 4px 0;
+  font-weight: 500;
+}
+.fo-notes {
+  font-size: 13px;
+  color: var(--fo-mid);
+  margin: 6px 0;
+}
+.fo-evidence {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fo-quote {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  border-left: 3px solid var(--fo-border);
+  color: var(--fo-dim);
+  font-size: 12px;
+}
+.fo-dim {
+  color: var(--fo-dim);
+  font-size: 12px;
+}
+.fo-flag {
+  font-size: 12.5px;
+  margin: 6px 0 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.fo-flag-head {
+  margin: 0;
+  font-weight: 600;
+}
+/* The precise engine wording stays one click away rather than in the reader's face. */
+.fo-flag-more {
+  margin-top: 4px;
+  font-size: 11.5px;
+  opacity: 0.82;
+}
+.fo-flag-more summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.fo-flag-more p {
+  margin: 4px 0 0;
+}
+.fo-flag.high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.fo-flag.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+.fo-warn {
+  font-size: 13px;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fo-subhead {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 10px 0 4px;
+  color: var(--fo-mid);
+}
+.fo-footer {
+  margin-top: 20px;
+  border-top: 1px solid var(--fo-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fo-history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: var(--fo-fg);
+  border: 1px solid var(--fo-border);
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+.fo-history-item:hover {
+  background: var(--fo-bg);
+}
+
+/* ---------- 0.3.0 additions ---------- */
+.fo-banner-counts {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 3px;
+  opacity: 0.9;
+}
+.fo-method {
+  font-size: 11.5px;
+  color: var(--fo-dim);
+  background: var(--fo-bg);
+  border: 1px solid var(--fo-border);
+  border-radius: 8px;
+  padding: 6px 9px;
+  margin: 0 0 10px;
+}
+.fo-sep {
+  border-top: 1px solid var(--fo-border);
+  margin: 4px 0;
+}
+.fo-agree {
+  font-size: 13px;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fo-progress li::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--fo-border);
+}
+.fo-progress li.active::before {
+  content: "▸";
+  color: var(--fo-accent);
+}
+
+/* RTL (Arabic UI) */
+[dir="rtl"] .fo-quote {
+  border-left: none;
+  border-right: 3px solid var(--fo-border);
+}
+[dir="rtl"] .fo-header,
+[dir="rtl"] .fo-actions,
+[dir="rtl"] .fo-btnrow {
+  flex-direction: row-reverse;
+}
+
+/* dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fo-border: #374151;
+    --fo-fg: #e5e7eb;
+    --fo-mid: #d1d5db;
+    --fo-dim: #9ca3af;
+    --fo-accent: #60a5fa;
+    --fo-accent-bg: #1e3a8a;
+    --fo-bg: #1f2937;
+    --fo-card: #111827;
+    --fo-page: #0b1220;
+  }
+  body {
+    background: var(--fo-page);
+    color: var(--fo-fg);
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--fo-accent);
+  }
+  .fo-card {
+    background: var(--fo-card);
+  }
+  .fo-history-item {
+    background: var(--fo-card);
+    color: var(--fo-fg);
+    border-color: var(--fo-border);
+  }
+  .fo-quote {
+    border-left-color: var(--fo-border);
+  }
+  .fo-banner,
+  .fo-chip,
+  .fo-flag,
+  .fo-explain,
+  .fo-warn,
+  .fo-agree,
+  .fo-advice,
+  .fo-error {
+    filter: saturate(0.85) brightness(0.94);
+  }
+}
+
+/* Bidi isolation for mixed number+label runs (see report-view.js). Without it an
+   Arabic report reorders the Latin digits across the "·" separators. */
+.fo-count {
+  unicode-bidi: isolate;
+}
+
+/* ---------------------------------------------------------------------------
+   Plain-language risk card. Sits directly under the trust banner and answers
+   one question in one sentence: is someone paying to be in this answer?
+   Sized deliberately larger than the surrounding chrome, because for most
+   readers it is the only part of the report they will read.
+   --------------------------------------------------------------------------- */
+.fo-explain {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-inline-start: 4px solid currentColor;
+}
+.fo-explain.bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.fo-explain.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+.fo-explain.good {
+  background: #dcfce7;
+  color: #166534;
+}
+.fo-explain-head {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.fo-explain-body {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: inherit;
+}
+.fo-explain-why {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+.fo-explain-list {
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.fo-explain-list a {
+  color: inherit;
+  font-weight: 600;
+}
+.fo-explain-reasons {
+  margin: 2px 0 6px;
+  padding-inline-start: 16px;
+  font-weight: 600;
+  list-style: none;
+}
+.fo-explain-reasons li::before {
+  content: "\2013\a0";
+  opacity: 0.7;
+}
+.fo-explain-foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
