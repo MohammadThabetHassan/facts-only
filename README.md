@@ -183,6 +183,7 @@ only to the AI provider you configure; fetches use `credentials: "omit"`.
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md) — prompt injection, key handling, evasion reports
 - [Threat model](docs/THREAT-MODEL.md) — what FactLens defends against, and what it doesn't
+- [Verification log](docs/VERIFICATION.md) — what is tested, how, and what remains
 - [Changelog](CHANGELOG.md)
 
 ## License
