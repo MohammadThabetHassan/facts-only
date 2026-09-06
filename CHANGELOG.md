@@ -62,6 +62,14 @@ GEO stands for to find that out.
   a fresh run for the rest of the session.
 - **Cached reports rendered with fewer features than fresh ones** — they lost the
   language setting and the Copy button.
+- **Page direction depended on a storage-read race.** `renderSettings()` is an async
+  component that set `dir` on `<html>` from its own reading of the stored language when
+  it finished. The host page sets direction too, from its own resolved language, so
+  whichever finished last won — an Arabic panel could silently render left-to-right.
+  Direction now belongs to the page; the settings form only applies it when the user
+  actually changes the language dropdown.
+- The accent bar on the risk card used `border-left`, which sat on the wrong edge in
+  Arabic. Now `border-inline-start`.
 - **Arabic reports reordered the verdict counts.** "1 supported · 0 mixed" was built
   as one string, so bidi reordering detached each Latin digit from its Arabic label.
   Each count is now a bidi-isolated `<bdi>` node.

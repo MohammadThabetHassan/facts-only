@@ -193,6 +193,9 @@ export function renderSettings(container) {
     inputs.grounding.checked = s.grounding !== false;
     inputs.maxClaims.value = s.maxClaims || 5;
     refreshVisibility();
-    applyDirection(L);
+    // NOTE: no applyDirection() here. This component renders asynchronously, so
+    // setting page direction from its own storage read raced the host page and
+    // whichever finished last won. Direction is the page's to own; the dropdown
+    // handler above still applies it when the user actually changes language.
   })();
 }
