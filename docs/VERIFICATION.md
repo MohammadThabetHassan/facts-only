@@ -3,9 +3,9 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-06 (v1.1.0 — measured placement scoring + keyless source check)
+Last updated: 2026-09-07 (v1.2.0 — held-out evaluation split + paid-disclosure fix)
 
-## 1. Offline test suite — PASSING (147 checks)
+## 1. Offline test suite — PASSING (154 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -22,7 +22,9 @@ high-risk flag raised for a refused citation · the plain-language risk summary
 (level ranking worst-first, offender selection, reason ordering, empty input) and
 complete plain wording for every flag and risk level in both locales · full pipeline on the mock provider (claims, verdicts, quote
 statuses, source flags, bias, second-opinion degradation, method metadata) ·
-cancellation.
+cancellation · paid-disclosure shape (an investigation into paid placement, an
+explainer defining the term, and a bare "Sponsored" ad-slot label must all stay
+clean, while a leading disclosure label is still caught).
 
 ## 2. Real-browser E2E — PASSING (2026-09-06)
 
@@ -118,11 +120,23 @@ refuses to do, so the negative class is synthetic and labelled as such.
 - **The extension origin.** Everything the automated E2E suite drives is served
   over HTTP. Extension pages run under the Manifest V3 content security policy,
   which is stricter. `test/e2e.mjs` contains the check and will run it wherever
-  the browser cooperates, but several Chrome builds ignore `--load-extension` in
-  headless mode and serve an error page for every `chrome-extension://` URL —
-  which is what happens on the development machine. The suite reports **SKIP**
-  there rather than passing, because a check that cannot run is not a check that
-  passed.
+  the browser cooperates. It cannot run on the development machine, and the
+  reason is now specific rather than "some builds": **Chrome removed the
+  `--load-extension` switch outright** (~M137). Chrome 152 here ignores it in
+  headed and headless mode alike, and the
+  `--disable-features=DisableLoadExtensionCommandLineSwitch` escape hatch is gone
+  too — a CDP probe against a freshly launched Chrome 152 saw only the two
+  built-in component extensions and no `chrome-extension://` origin of ours. The
+  suite reports **SKIP** rather than passing, because a check that cannot run is
+  not a check that passed.
+
+  Two of the three claims below are nonetheless pinned without a browser:
+  `manifest.json` declares **no** `host_permissions` and lists `<all_urls>` only
+  under `optional_host_permissions`, so the install prompt cannot ask for all
+  sites; and the offline suite asserts that a run with `fetchSources: false`
+  reports "could not check" rather than clean. What genuinely needs a human is
+  the middle claim — that the runtime `chrome.permissions.request()` prompt
+  actually appears on the click that needs it.
 
   Until it runs somewhere, this is a manual step before any release:
   `chrome://extensions` → Developer mode → Load unpacked → `extension/`, then

@@ -27,6 +27,29 @@ gap is visible rather than found by someone else, and the discipline is written
 down: weights may be informed by the tuning half, and a worse held-out number
 gets published worse.
 
+### Fixed - a page could be branded paid content for merely mentioning it
+
+`sponsored` is decisive, and it was a bare word match against `excerpt` - the
+first 12,000 characters of whole-page text, so navigation, sidebars, ad-slot
+labels and body prose all land in it. Any page containing the word was reported
+as **"This is paid content"**, and decisive is exactly the property that stopped
+evidence from arguing it back down.
+
+A twelve-year-old outlet with a named byline, an about page and a 130-month
+archive was convicted three ways: an investigation *into* paid placement, an
+explainer defining "advertorial", and an ordinary rates story carrying a
+"Sponsored" ad-slot label. The ad-slot case produced a signal set identical to a
+genuine advertorial, so the detector could not tell them apart.
+
+A disclosure now has to look like one - disclosure phrasing rather than the bare
+word, leading its segment the way a real label does. All three pages score
+clean, the advertorial control is still flagged, and the eval is unchanged
+(0/40 held out, 0/111 overall, 8/8 rungs). Offline checks 149 -> 154.
+
+The 0/111 headline could not have caught this: corpus rows are built with
+`excerpt: ""`, so the page-text detectors are not exercised by it at all. That
+coverage gap is now written into `docs/EVALUATION.md` rather than left implied.
+
 ### Security
 
 - **Closed a redirect bypass in the SSRF guard.** The guard validated the URL

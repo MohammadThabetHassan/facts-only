@@ -208,6 +208,39 @@ regardless of score, and regardless of the allowlist. Reputation cannot buy off
 disclosure. No amount of reading the weights table would have surfaced that; the
 test case did.
 
+### And the bug that fix created
+
+Making `sponsored` decisive removed the only thing that had been holding a very
+crude detector in check. It was a bare word match against `excerpt`, which is
+the first 12,000 characters of *whole-page* text — navigation, sidebars,
+ad-slot labels and body prose all land in it. So any page that merely contained
+the word was branded **"This is paid content"**, and *decisive* is exactly the
+property that stopped evidence from arguing it back down.
+
+Probed against a twelve-year-old outlet with a named byline, an about page and a
+130-month archive, it convicted three separate legitimate pages:
+
+| Page | Verdict before |
+| --- | --- |
+| An investigation *into* paid placement | HIGH — "This is paid content" |
+| An explainer defining "advertorial" | HIGH — "This is paid content" |
+| A rates story with a "Sponsored" ad-slot label in the furniture | HIGH — "This is paid content" |
+
+The last one produced a signal set **identical** to the genuine advertorial
+control, so the detector could not tell an ad slot from a disclosure at all. The
+first is the worse failure: reporting on paid placement is this project's own
+subject matter, and the tool accused the outlets that cover it.
+
+A disclosure now has to look like one — disclosure phrasing rather than the bare
+word, leading its segment the way a real label does. Reporting embeds the term
+mid-sentence; ad furniture is the bare word standing alone. The cost is a
+genuine advertorial that discloses only mid-sentence, which is the rarer and far
+less damaging miss. All three pages now score clean, the control is still
+flagged, and the cases are pinned in `test/smoke.mjs`.
+
+**The headline number could not have caught this**, which is the part worth
+sitting with — see the coverage gap under *Known limits*.
+
 ## Weight sensitivity
 
 The weights are hand-set, which invites a fair objection: are the headline
@@ -273,6 +306,15 @@ real newsroom.
 - **The corpus measures the archive signal most strongly**, because that is what
   the collector gathers. Page-level signals (byline, about page) are supplied as
   worst-case assumptions rather than crawled.
+- **The false-positive number does not exercise the page-content detectors.**
+  Corpus rows are built with `excerpt: ""`, so `sponsored` and `ai-generated-text`
+  — the two signals that read page *text* rather than metadata — contribute
+  nothing to the 0/111. That gap is not theoretical: it is precisely why a bare
+  word match on `sponsored` survived to be found by hand-probing instead
+  (see *And the bug that fix created*). Those paths are covered by targeted
+  regression cases in `test/smoke.mjs`, which is weaker than corpus measurement
+  and should be read as such. Closing it properly means crawling real pages,
+  which is the same work item as the point above.
 - **111 outlets is still small.** It is more than enough to have caught the 100%
   false-positive rate of the previous rule, and enough to say the current rate is
   under a couple of percent. It is not enough to distinguish 0.5% from 0.05%.
