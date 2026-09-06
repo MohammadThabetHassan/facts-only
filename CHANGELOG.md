@@ -29,7 +29,9 @@ versions follow [SemVer](https://semver.org/).
 - **Dark mode** following the system theme, plus a dedicated transparency ("Method:")
   line in every report.
 - **Developer tooling**: `scripts/dev-server.py` (correct JS MIME on Windows,
-  no-store caching) for manual testing of the webapp/panel.
+  no-store caching) for manual testing of the webapp/panel, and
+  `scripts/live-check.mjs` — a one-command real-API verification pass
+  (key via environment variable, sanity-gated) to complement the offline suite.
 
 ### Fixed
 - The web app's side-panel page failed to load entirely in the browser (a wrong

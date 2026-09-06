@@ -120,10 +120,17 @@ search the web, so evidence quality is lower.
 ## Development
 
 ```bash
-node test/smoke.mjs                        # 65-check offline suite — no key, no network
+node test/smoke.mjs                        # 73-check offline suite — no key, no network
 python scripts/generate_icons.py           # regenerate extension icons (pure stdlib)
 python scripts/dev-server.py               # serve webapp/panel at localhost:8123 for manual testing
+FACTLENS_GEMINI_KEY=… node scripts/live-check.mjs   # one REAL end-to-end run (costs ~5 free-tier calls)
 ```
+
+The offline suite covers the whole pipeline with a mock provider; `live-check.mjs`
+is the companion for a real API pass — it runs a small answer with two checkable
+claims through Gemini with Google Search grounding, prints the report with quote
+statuses, and applies sanity gates (grounding used, evidence returned, not all
+unverifiable). The key is read from the environment only and never stored.
 
 There is nothing to build: load `extension/` unpacked and edit the files.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (evidence-not-verdicts,
