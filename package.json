@@ -1,6 +1,6 @@
 {
   "name": "facts-only",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Facts Only — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
@@ -40,6 +40,9 @@
     "live": "node scripts/live-check.mjs",
     "build:firefox": "python scripts/build-firefox.py",
     "package": "python scripts/package-extension.py",
+    "sbom": "node scripts/sbom.mjs",
+    "sbom:check": "node scripts/sbom.mjs --check",
+    "release": "python scripts/package-extension.py && python scripts/build-firefox.py && node scripts/sbom.mjs --dist",
     "dev": "python scripts/dev-server.py"
   },
   "devDependencies": {

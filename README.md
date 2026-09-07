@@ -215,18 +215,43 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 
 ## Install
 
+Prebuilt packages are attached to every
+[release](https://github.com/MohammadThabetHassan/facts-only/releases), alongside a
+CycloneDX SBOM and `SHA256SUMS`.
+
+The archives are **reproducible** — sorted entries, fixed timestamps — so you do not have
+to take the checksums on trust. Rebuild from the tag and compare:
+
+```bash
+npm run release && sha256sum dist/*.zip
+```
+
 **Chrome / Edge / Brave**
 
-1. Clone or download this repository.
+1. Download `facts-only-extension-vX.Y.Z.zip` from the latest release and unzip it
+   (or clone this repository and use the `extension/` folder directly).
 2. Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the
-   `extension/` folder.
+   unzipped folder.
 
 **Firefox 128+**
 
-1. `npm run build:firefox` (or `python scripts/build-firefox.py`).
-2. Open `about:debugging` → **Load Temporary Add-on…** → select
-   `firefox-build/manifest.json`. This is a temporary install; see the roadmap for signed
-   builds.
+1. Download `facts-only-firefox-vX.Y.Z.zip` and unzip it, or build it yourself with
+   `npm run build:firefox`.
+2. Open `about:debugging` → **Load Temporary Add-on…** → select the `manifest.json`
+   inside it. This is a temporary install; see the roadmap for signed builds.
+
+The Firefox package is not a repackaged Chrome build: `scripts/build-firefox.py` rewrites
+the manifest for Gecko — event page instead of a service worker, `sidebar_action` instead
+of `side_panel` — while the engine, panel and content scripts are shared verbatim.
+
+### What the SBOM says
+
+`sbom.cdx.json` is committed and checked in CI, so it cannot drift from the code. Its most
+useful claim is a negative one: **zero runtime dependencies**. Nothing third-party executes
+on your machine, and the file is the evidence rather than the assertion — the dev toolchain
+(TypeScript, ESLint) is listed separately with CycloneDX scope `excluded`. It also carries a
+SHA-256 per shipped file, so a downloaded package can be verified file by file, not just as
+one opaque archive hash.
 
 **Then, in either browser**
 

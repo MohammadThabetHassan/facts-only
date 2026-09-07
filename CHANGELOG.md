@@ -27,6 +27,32 @@ gap is visible rather than found by someone else, and the discipline is written
 down: weights may be informed by the tuning half, and a worse held-out number
 gets published worse.
 
+### Added - reproducible packages and an SBOM
+
+Releases now carry a Chrome package, a Firefox package and a CycloneDX 1.5 SBOM,
+with `SHA256SUMS`, built by `.github/workflows/release.yml` on a `v*` tag.
+
+Both archives are written with sorted entries and a fixed timestamp, so the same
+source produces byte-identical files and a published checksum is something a
+reader can reproduce rather than trust. The release workflow builds twice and
+diffs the hashes before publishing, so that claim is enforced and not just
+stated.
+
+`sbom.cdx.json` is committed and gated in CI (`npm run sbom:check`), because a
+stale integrity manifest is worse than none. Its most useful claim is negative -
+**zero runtime dependencies** - with the dev toolchain listed at CycloneDX scope
+`excluded`. It also records a SHA-256 for each of the 36 shipped files, so a
+downloaded package can be checked file by file.
+
+Also fixed: `scripts/build-firefox.py` crashed on Windows before packaging
+anything - an em dash and an arrow in a `print()` raised `UnicodeEncodeError`
+under the cp1252 console. The Firefox build had never completed on that
+platform.
+
+`package.json` and `extension/manifest.json` said `1.0.0` while this changelog
+said `1.2.0`. Both now say `1.2.0`; a package stamped with the wrong version is
+the kind of detail that makes everything else look unchecked.
+
 ### Fixed - a page could be branded paid content for merely mentioning it
 
 `sponsored` is decisive, and it was a bare word match against `excerpt` - the

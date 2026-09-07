@@ -53,6 +53,12 @@ jobs:
       - name: Evaluate the placement detector
         run: node eval/run.mjs
 
+      # The SBOM claims zero runtime dependencies and carries a SHA-256 for every
+      # shipped file. Both go stale silently the moment the tree changes, and a
+      # stale integrity manifest is worse than none - so it is a gate.
+      - name: Check the SBOM matches the shipped tree
+        run: node scripts/sbom.mjs --check
+
       - name: Type-check and lint the engine (no build step, dev-only tooling)
         run: |
           npm install --no-save typescript@5.6 @types/node@22 eslint@9

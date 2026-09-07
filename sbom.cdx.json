@@ -1,0 +1,417 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "bom-ref": "facts-only@1.2.0",
+      "name": "facts-only",
+      "version": "1.2.0",
+      "description": "Facts Only — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/MohammadThabetHassan/facts-only#readme"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/MohammadThabetHassan/facts-only.git"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "facts-only:runtime-dependencies",
+        "value": "0"
+      },
+      {
+        "name": "facts-only:shipped-files",
+        "value": "36"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "application",
+      "bom-ref": "facts-only-extension@1.2.0",
+      "name": "facts-only-extension",
+      "version": "1.2.0",
+      "description": "Manifest V3 browser extension. 4 permissions, no required host permissions; <all_urls> is optional and requested at point of use.",
+      "properties": [
+        {
+          "name": "extension:permissions",
+          "value": "contextMenus,storage,sidePanel,scripting"
+        },
+        {
+          "name": "extension:host_permissions",
+          "value": "(none)"
+        },
+        {
+          "name": "extension:optional_host_permissions",
+          "value": "<all_urls>"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/typescript@^5.6.0",
+      "name": "typescript",
+      "version": "^5.6.0",
+      "purl": "pkg:npm/typescript@^5.6.0",
+      "scope": "excluded",
+      "description": "Build-time only; not present in the extension or the deployed web app."
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/@types/node@^22.0.0",
+      "name": "@types/node",
+      "version": "^22.0.0",
+      "purl": "pkg:npm/@types/node@^22.0.0",
+      "scope": "excluded",
+      "description": "Build-time only; not present in the extension or the deployed web app."
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/eslint@^9.0.0",
+      "name": "eslint",
+      "version": "^9.0.0",
+      "purl": "pkg:npm/eslint@^9.0.0",
+      "scope": "excluded",
+      "description": "Build-time only; not present in the extension or the deployed web app."
+    }
+  ],
+  "files": [
+    {
+      "path": "extension/background.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "17d4537bf89bd876c579841e7a5a953d0105e2011f04e6fa0cf2f19cda2c32e0"
+        }
+      ]
+    },
+    {
+      "path": "extension/content/detector.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "53bd767063e2caa833ebdc145dab600be6b186f28999b31deb9cb022543d47da"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/explain.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "575f3235bc40f16d7e2711663f76fd6c002d64f85d63594f2fc4ac09d5940f7c"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/http.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f39672d96288209e58c61b9f23fc7d68bc1476c05d19588bcd9e5384a871b6aa"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/json.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "09f5c8d6bc36d4d6665f8741f580e532b074ca343cc1cd60ba36a8d25da2a085"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/pipeline.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e44835d0f4fd2b97ceb74cf88d1b9a947d7706e03ee955f8cd86dab3116f345c"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/providers/gemini.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "298361f0201f44de4514072fec1743197aef8b5cddb9d4c9cb8cf0a4f84c3754"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/providers/index.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3591f3032af8084bb2681b1bb5c613794831db29d66a676a232ab62f3b8fef06"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/providers/mock.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "83e5fa214421dd9094ba566943505cf1f5de984dc595a6425309b7e928b22e15"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/providers/openai-compat.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0d2986ebc04dd9e582b6b2252df112c1ee4594801c8b30a9d1ecbe8c6f5c8a70"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/providers/openrouter.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c8b671449b8e1c04eebcb402f6315d42fa42a45f439d9f447a09a4d80a5644e8"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/sourceCheck.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c339fec0b4776b17d29fcd2009666811cc45314e0aaae5e7bf9aad3105b16015"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/sourceProfiler.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "12b78da3b34725ea65a2267687dc51da03fec21b6113490b3328fad5a3a9b128"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/sourceScore.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "541f0b935f0b8d40f843053092607b92e35816b9d738b8689d0b8c0208c3e77b"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/steps/bias.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "efd81011dc3ada5f67378f33c45295b02ffd583ecc4843a62640c98485ba4a92"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/steps/claims.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5d7504ecb97313ace0eb96a97c8585fbc387e2d087468eb868fcaddd5850d4be"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/steps/evidence.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "124bd79180507c017304d41e41a7c40c9a3f02a55cced274686a94c7f6cd2adf"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/steps/report.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "09a275a2d2a3e4941ad3a815d8468c13f1b2a364571f80982aeeee1db4299e77"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/text.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9808ac790865518a6e7254af8cbd167e44a03c1a420e31b6392898fe49c55a3b"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/cache.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ae5f09f82f1dee4fed166265e07df806733011bbefac818f82cf9fac1f2ca9d1"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/facts-only.css",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "24859820b9f0d28af4916a465e911a170035e8f8c075af2890a48da92b3f11c0"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/i18n.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c9e14f1bd9ae5fc6af1ea36a7487d32c140b8c1621a379a2884798826f557977"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/report-view.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2ac43b09eb078249475c8ef6e9ad27fee6aaa85c33f1860605595d76d3166700"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/settings-ui.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4d6b73130318ba344624ad854a9f1e4c094c7ce1be33a3cc8c5414a92222d461"
+        }
+      ]
+    },
+    {
+      "path": "extension/engine/ui/storage.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "76fb46855a17f459b926e1580e49f5de29d8108e2e440632a433ea0020fca546"
+        }
+      ]
+    },
+    {
+      "path": "extension/icons/icon128.png",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ccd07e1a947d330bdf8eb542475833fdfb04a0712d5b8a29340d31c206b0ec80"
+        }
+      ]
+    },
+    {
+      "path": "extension/icons/icon16.png",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9b45e6bf3adb29348c7a745d005b202f164cbc7856f6bc84026ec530fde20654"
+        }
+      ]
+    },
+    {
+      "path": "extension/icons/icon32.png",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "40b6c46f20b2c58c7b160d6d9914a61fc4122b91d86025da475fc329ba723946"
+        }
+      ]
+    },
+    {
+      "path": "extension/icons/icon48.png",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0667a70576b4c02e0c6182a0f2739fab7014ecbb706b389d7b8dc18dda90c553"
+        }
+      ]
+    },
+    {
+      "path": "extension/manifest.json",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "85b1172a1678f1e70c720941e39add4ebd519ce9b78f3417c5fbe6aa2507aa2b"
+        }
+      ]
+    },
+    {
+      "path": "extension/panel/panel.html",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2fc1619d73f2603cb89ab16a0be9a44d8325d4a6f66ba51dd84c02bfac228021"
+        }
+      ]
+    },
+    {
+      "path": "extension/panel/panel.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "11cc8e5b5c9822435d5e0b8355ab3fa268288e0999a66005459ffc8f5954eba0"
+        }
+      ]
+    },
+    {
+      "path": "extension/popup/popup.html",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b37cdbe9856cec48aec55c51fdd627e0f1d067d1ad98c86b8a7775ace3c8ff85"
+        }
+      ]
+    },
+    {
+      "path": "extension/popup/popup.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "946b5ffd8cd5789881fcfedc442ffd3d14d30ae19169196b4b055196cb72a424"
+        }
+      ]
+    },
+    {
+      "path": "webapp/app.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e17495d86403f77999801576088573a28fec1d2cd5d6f2f26e687ff0a97c52ea"
+        }
+      ]
+    },
+    {
+      "path": "webapp/index.html",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5d1ff18098edc475ccea6a771617927d59932219d6bdc545655815d030a61711"
+        }
+      ]
+    }
+  ]
+}

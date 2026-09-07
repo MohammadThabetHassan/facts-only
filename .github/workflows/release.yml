@@ -1,0 +1,73 @@
+name: Release
+
+# Builds the distributable packages and attaches them to a GitHub Release.
+#
+# Everything published here is reproducible: both archives are written with
+# sorted entries and a fixed timestamp, so anyone can rebuild from the tag and
+# get byte-identical files, and the SHA256SUMS below is a claim they can check
+# rather than one they have to trust. The workflow re-verifies that property
+# before publishing - it builds twice and compares.
+#
+# Trigger: push a tag, e.g.  git tag v1.2.0 && git push origin v1.2.0
+# or run it by hand from the Actions tab.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # A release must not ship code that fails its own gates.
+      - name: Gate on the full test suite
+        run: |
+          node test/smoke.mjs
+          node test/e2e.mjs
+          node eval/run.mjs
+          node scripts/sbom.mjs --check
+
+      - name: Build packages and SBOM
+        run: npm run release
+
+      - name: Verify the builds are reproducible
+        run: |
+          sha256sum dist/*.zip > /tmp/first.txt
+          rm -rf dist firefox-build
+          npm run release
+          sha256sum dist/*.zip > /tmp/second.txt
+          diff /tmp/first.txt /tmp/second.txt \
+            || { echo "::error::packages are not reproducible"; exit 1; }
+          echo "packages rebuild byte-identically"
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum ./* > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && tag="v$(node -p "require('./package.json').version")"
+          gh release create "$tag" dist/* \
+            --title "Facts Only $tag" \
+            --notes "Packages for Chrome and Firefox, plus a CycloneDX SBOM.
+
+          Every archive is reproducible: rebuild from this tag with \`npm run release\` and the SHA-256 in \`SHA256SUMS\` will match.
+
+          The SBOM records zero runtime dependencies and a SHA-256 for each shipped file, so a downloaded package can be checked file by file. See CHANGELOG.md for what changed." \
+            --verify-tag=false \
+            || gh release upload "$tag" dist/* --clobber
