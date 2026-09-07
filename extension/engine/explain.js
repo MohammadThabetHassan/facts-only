@@ -59,11 +59,19 @@ function assess(s) {
   // normal case - CORS blocks both the page fetch and the Wayback API - so it
   // has to be reported honestly rather than treated as an edge case.
   const unchecked = !!s && !s.established && !s.fetched && !s.archivedMonths && !s.firstArchived;
+  // Knowing WHO publishes a site is not the same as having read THIS page, and
+  // the paid-content signal only exists in the page. An allowlist entry and an
+  // archive history both describe the outlet; neither can tell you whether the
+  // article in front of you is an advertorial - which is precisely the case
+  // `sponsored` was made decisive to catch. So a source whose page was never
+  // fetched cannot contribute to an all-clear, however well known it is.
+  const pageUnread = !!s && !s.fetched;
   return {
     url: s && s.url,
     name: (s && (s.siteName || s.title)) || (s && s.url) || "",
     established: !!(s && s.established),
     unchecked,
+    pageUnread,
     level,
     keys: new Set(concerning.map((f) => f.key)),
     orderedKeys: concerning.map((f) => f.key)
@@ -108,7 +116,24 @@ export function summarizeRisk(sources = []) {
         total
       };
     }
-    return { level: "clean", tone: "good", reasonKeys: [], offenders: [], uncheckedCount: 0, establishedCount, total };
+    // Known publisher, unread page. We can say who they are and cannot say
+    // whether this article was paid for, so the headline says both rather than
+    // rounding to a green tick. In the web app CORS makes this the normal
+    // outcome, which is the honest reason to prefer the extension.
+    const unread = assessed.filter((a) => a.pageUnread);
+    if (unread.length) {
+      return {
+        level: "unread",
+        tone: "warn",
+        reasonKeys: [],
+        offenders: unread.map((a) => ({ url: a.url, name: a.name, reasonKeys: [] })),
+        uncheckedCount: 0,
+        unreadCount: unread.length,
+        establishedCount,
+        total
+      };
+    }
+    return { level: "clean", tone: "good", reasonKeys: [], offenders: [], uncheckedCount: 0, unreadCount: 0, establishedCount, total };
   }
 
   // Only sources that actually triggered this level are named, so the sentence
@@ -128,6 +153,7 @@ export function summarizeRisk(sources = []) {
     reasonKeys,
     offenders,
     uncheckedCount: assessed.filter((a) => a.unchecked).length,
+    unreadCount: assessed.filter((a) => a.pageUnread).length,
     establishedCount,
     total
   };

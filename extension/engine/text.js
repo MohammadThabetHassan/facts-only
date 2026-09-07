@@ -38,6 +38,49 @@ export function decodeEntities(s) {
     .replace(/&([a-z]+);/gi, (m, name) => ENTITIES[name.toLowerCase()] || m);
 }
 
+// Boilerplate containers. Their text belongs to the site, not to the article,
+// and the page-voice detectors have no way to tell the difference once
+// everything has been flattened to one string.
+const FURNITURE = /<(nav|header|footer|aside|form|dialog)\b[^>]*>[\s\S]*?<\/\1>/gi;
+const NON_CONTENT = /<(script|style|noscript|svg|template|iframe|button|select)\b[^>]*>[\s\S]*?<\/\1>/gi;
+
+/**
+ * Narrow a fetched page down to the article before any detector reads it.
+ *
+ * Every page-text false positive found so far came from the same place: the
+ * excerpt was the whole page, so a "Sponsored" label on an ad slot, a promo
+ * rail or a footer read exactly like the article's own words. Detectors that
+ * ask "what does this page say" need to be given the page's actual claim, not
+ * its navigation.
+ *
+ * Deliberately regex-based and DOM-free: the engine runs unchanged in the
+ * extension, in the web app and in Node under the test suite, and reaching for
+ * DOMParser would end that. The trade is precision - a nested <article> ends
+ * the match early, and unclosed furniture is left alone - so this is a
+ * narrowing heuristic, never a parser. When it finds nothing it returns the
+ * page as-is rather than risk discarding the content.
+ *
+ * @param {string} html
+ * @returns {string} HTML narrowed to the article where one is identifiable.
+ */
+export function extractArticle(html) {
+  const cleaned = String(html || "")
+    .replace(NON_CONTENT, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(FURNITURE, " ");
+
+  // Prefer what the page itself marks as the article.
+  const marked =
+    cleaned.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i) ||
+    cleaned.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i) ||
+    cleaned.match(/<[^>]+\brole=["']main["'][^>]*>([\s\S]*?)<\/[a-z]+>/i);
+
+  // A marked region that is too small to be the article is more likely a teaser
+  // card than the story, so fall back rather than throw the page away.
+  if (marked && marked[1] && marked[1].replace(/<[^>]+>/g, "").trim().length > 200) return marked[1];
+  return cleaned;
+}
+
 export function stripHtml(html) {
   return decodeEntities(
     String(html || "")

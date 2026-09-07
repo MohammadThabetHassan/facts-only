@@ -7,7 +7,7 @@
 
 import { fetchWithTimeout } from "./http.js";
 import { extractJson } from "./json.js";
-import { stripHtml, truncate, domainOf, normText, isPublicHttpUrl } from "./text.js";
+import { stripHtml, truncate, domainOf, normText, isPublicHttpUrl, extractArticle } from "./text.js";
 import { scoreSignals, archiveSignals, classifyAuthor, SIGNAL_WEIGHTS, DECISIVE } from "./sourceScore.js";
 
 // Domains treated as established publishers / primary sources (positives).
@@ -193,7 +193,9 @@ async function fetchForProfile(url, signal) {
       (raw.match(/property=["']article:author["'][^>]*content=["']([^"']+)/i) || [])[1] ||
       (raw.match(/"author"\s*:\s*\{?\s*"name"\s*:\s*"([^"]{2,80})"/i) || [])[1] || "";
     const aboutLink = /href=["'][^"']*(about|contact|imprint|masthead|editorial)[^"']*["']/i.test(raw);
-    const excerpt = stripHtml(raw).slice(0, 12000);
+    // Narrowed to the article first: the detectors below decide what THIS page
+    // says, and site furniture is not the page speaking.
+    const excerpt = stripHtml(extractArticle(raw)).slice(0, 12000);
     return {
       ...base,
       ok: true,

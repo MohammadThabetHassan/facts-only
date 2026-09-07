@@ -5,7 +5,7 @@
 import { verifyAnswer, computeTrustSignal, TRUST_SIGNALS } from "../extension/engine/pipeline.js";
 import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
-import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl } from "../extension/engine/text.js";
+import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl, extractArticle } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
 import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen, hasPaidDisclosure, stripQuoted } from "../extension/engine/sourceProfiler.js";
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
@@ -643,8 +643,36 @@ console.log("\nrisk explanation:");
   check("a real finding outranks an unreachable source",
     summarizeRisk([unreachable(), src(["sponsored"], "high")]).level === "paid");
 
-  check("allowlisted sources count as checked even without a fetch",
-    summarizeRisk([{ url: "https://reuters.com/a", siteName: "reuters.com", established: true, fetched: false, flags: [], placementLevel: "clean" }]).level === "clean");
+  // This check previously asserted the opposite - that an allowlisted source
+  // counted as checked without a fetch - and that was wrong. Found by running
+  // the deployed web app: two unfetchable allowlisted sources (401 and CORS)
+  // produced a green tick reading "No paid-placement or influence-campaign
+  // patterns were detected in the sources checked", when nothing had been
+  // fetched at all. It reopened the hole that making `sponsored` decisive was
+  // meant to close, because a paid disclosure lives in the page: a Reuters
+  // advertorial URL was reported clean.
+  //
+  // Knowing the publisher and having read the article are different claims.
+  const allowlistedUnread = { url: "https://reuters.com/a", siteName: "reuters.com", established: true, fetched: false, flags: [], placementLevel: "clean" };
+
+  check("an allowlisted source whose page was never opened is not an all-clear",
+    summarizeRisk([allowlistedUnread]).level === "unread");
+
+  check("the unread verdict still credits the publisher and names the page",
+    (() => {
+      const r = summarizeRisk([allowlistedUnread]);
+      return r.establishedCount === 1 && r.unreadCount === 1 &&
+        r.tone === "warn" && r.offenders[0].name === "reuters.com";
+    })());
+
+  // An archive history describes the domain, not the article, so it cannot
+  // stand in for reading the page either.
+  check("archive history alone does not clear an unread page",
+    summarizeRisk([{ url: "https://x.example/a", siteName: "x.example", established: false, fetched: false, archivedMonths: 120, flags: [], placementLevel: "clean" }]).level === "unread");
+
+  // clean must remain reachable, or the level is just noise.
+  check("a source that WAS fetched and looks fine is still reported clean",
+    summarizeRisk([{ url: "https://reuters.com/a", siteName: "reuters.com", established: true, fetched: true, flags: [], placementLevel: "clean" }]).level === "clean");
 
   check("empty source list degrades to clean, not a crash",
     summarizeRisk([]).level === "clean" && summarizeRisk().level === "clean");
@@ -657,7 +685,7 @@ console.log("\nrisk explanation:");
     check(`every source flag has plain wording in ${loc}`, missing.length === 0, missing.join());
   }
   for (const loc of ["en", "ar"]) {
-    const missing = ["paid", "planted", "opaque", "clean", "unknown"].flatMap((lvl) =>
+    const missing = ["paid", "planted", "opaque", "clean", "unknown", "unread"].flatMap((lvl) =>
       ["head", "body"].map((part) => `explain.${lvl}.${part}`)
     ).filter((k) => t(k, loc) === k);
     check(`every risk level has plain wording in ${loc}`, missing.length === 0, missing.join());
@@ -776,6 +804,52 @@ console.log("\nplacement scoring:");
       stripQuoted("a «bonjour» b").trim() === "a   b" &&
       stripQuoted("plain text stays") === "plain text stays" &&
       stripQuoted("") === "");
+
+    // The root cause behind every page-text false positive: excerpt was the
+    // whole page, so an ad rail read like the article's own words. Note this
+    // page still defeats hasPaidDisclosure on its own - the rail's "Paid post:"
+    // does lead its segment - so extraction is doing work the wording fix
+    // cannot. The two are complementary, not redundant.
+    {
+      const page = `<!doctype html><html><head><title>Rates</title></head><body>
+        <header><a href="/">The Tribune</a></header>
+        <nav><a href="/sponsored">Sponsored content</a></nav>
+        <aside class="ad-rail"><span>Sponsored</span><p>Paid post: this clinic leads the region.</p></aside>
+        <main><article><h1>Central bank holds rates</h1>
+        <p>The central bank left its benchmark rate unchanged on Thursday, citing easing inflation
+        across the services sector and a softening labour market. Officials signalled further moves
+        would depend on incoming data, and declined to rule out a cut later in the year.</p>
+        </article></main>
+        <footer><p>Advertisement. Sponsored by our partners.</p></footer></body></html>`;
+      const outlet = {
+        url: "https://t.example/a", siteName: "The Tribune", fetched: true,
+        author: "Amina Rahman", aboutLink: true, title: "Central bank holds rates",
+        archive: { ageDays: 365 * 12, months: 130 }
+      };
+      const article = stripHtml(extractArticle(page));
+
+      check("article extraction drops nav, ad rails and footers",
+        !/sponsored/i.test(article) && /benchmark rate unchanged/.test(article));
+
+      check("an ad rail no longer brands the article as paid content",
+        computeFlags({ ...outlet, excerpt: article }).highRisk === false &&
+        computeFlags({ ...outlet, excerpt: stripHtml(page) }).highRisk === true,
+        "whole-page excerpt must reproduce the bug; the narrowed one must not");
+
+      check("a disclosure inside the article still survives extraction",
+        /sponsored/i.test(stripHtml(extractArticle(
+          page.replace("<h1>Central bank holds rates</h1>",
+            "<h1>Why this clinic leads</h1><p>Sponsored content produced with our commercial team.</p>")))));
+
+      check("extraction falls back to the page when there is no article to find",
+        stripHtml(extractArticle("<html><body><p>Just a bare page with some words in it.</p></body></html>"))
+          .includes("bare page"));
+
+      check("a too-small marked region is not mistaken for the article",
+        stripHtml(extractArticle(
+          `<body><article><p>Teaser.</p></article><div><p>${"The real body of the story. ".repeat(20)}</p></div></body>`))
+          .includes("real body of the story"));
+    }
 
     check("hasPaidDisclosure separates a label from a mention",
       hasPaidDisclosure("Sponsored content produced with our commercial team.") &&

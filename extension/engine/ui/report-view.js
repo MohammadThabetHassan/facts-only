@@ -108,7 +108,10 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
 
     if (risk.total > 0) {
       const foot = [t("explain.established", L, { n: risk.establishedCount, total: risk.total })];
-      if (risk.level !== "clean") foot.push(t("explain.readFirst", L));
+      // "treat the flagged one as an argument rather than as evidence" only
+      // makes sense when something was actually flagged. The unread and unknown
+      // verdicts name sources we could not read, not sources we doubt.
+      if (risk.reasonKeys.length) foot.push(t("explain.readFirst", L));
       box.appendChild(el("p", { class: "fo-explain-foot", text: foot.join(" ") }));
     }
     container.appendChild(box);
