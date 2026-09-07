@@ -62,7 +62,13 @@ def main():
         manifest["permissions"] = [p for p in manifest["permissions"] if p not in ("sidePanel",)]
 
     ff = firefoxify(manifest)
-    manifest_path.write_text(json.dumps(ff, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    # newline="" stops Windows translating \n to \r\n on write. Without it the
+    # generated manifest is the one file in the Firefox package that differs
+    # between a Windows and a Linux build, which is enough to break the
+    # published checksum.
+    manifest_path.write_text(
+        json.dumps(ff, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline=""
+    )
 
     total = sum(1 for p in OUT.rglob("*") if p.is_file())
     # ASCII only: the Windows console defaults to cp1252 and an em dash or arrow
@@ -82,6 +88,9 @@ def main():
                 info = zipfile.ZipInfo(p.relative_to(OUT).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
+                # See package-extension.py: create_system follows the host OS
+                # unless pinned, which alone broke cross-platform byte equality.
+                info.create_system = 3
                 z.writestr(info, p.read_bytes())
     names = zipfile.ZipFile(out_zip).namelist()
     assert "manifest.json" in names, "manifest.json missing from the Firefox package"

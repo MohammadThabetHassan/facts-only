@@ -24,6 +24,11 @@ def main():
                 info = zipfile.ZipInfo(p.relative_to(EXTENSION).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
+                # ZipInfo stamps create_system from the host OS: 0 on Windows,
+                # 3 on Unix. One byte per entry, and it was the only thing
+                # keeping a Windows build from matching the Linux release build
+                # byte for byte. Pin it to Unix.
+                info.create_system = 3
                 z.writestr(info, p.read_bytes())
     names = zipfile.ZipFile(out).namelist()
     assert "manifest.json" in names, "manifest.json missing from package"

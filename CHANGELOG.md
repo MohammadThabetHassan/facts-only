@@ -44,6 +44,15 @@ stale integrity manifest is worse than none. Its most useful claim is negative -
 `excluded`. It also records a SHA-256 for each of the 36 shipped files, so a
 downloaded package can be checked file by file.
 
+Getting to genuinely reproducible took three fixes, and only the release itself
+exposed the last two. Comparing a Windows rebuild against the archive GitHub
+built on Linux showed the file contents were already byte-identical while the
+archives were not: `zipfile.ZipInfo` stamps `create_system` from the host OS
+(0 on Windows, 3 on Unix), and `build-firefox.py` wrote the generated manifest
+through `write_text`, which turns `\n` into `\r\n` on Windows. Both are pinned
+now. All three published artifacts rebuild byte-for-byte on Windows against the
+Linux-built release — verified against the real assets, not a second local build.
+
 A `.gitattributes` enforcing `eol=lf` came out of this and is the reason the
 above is true. CI rejected the first SBOM: with `core.autocrlf` the Windows
 working tree held CRLF while Linux checked out LF, so every recorded hash — and
