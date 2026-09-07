@@ -59,7 +59,9 @@ function isoWithOffset(unixTs, tz) {
   return (
     `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
     `T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}` +
-    `${tz.slice(0, 1)}${tz.slice(1)}`
+    // ISO-8601 wants the offset as +04:00; git stores it as +0400, and the API
+    // rejects the unpunctuated form with a 422.
+    `${tz.slice(0, 3)}:${tz.slice(3, 5)}`
   );
 }
 
@@ -85,9 +87,12 @@ async function ensureBlob(sha, uploaded) {
 // from local SHAs (content identical).
 async function bootstrapIfEmpty() {
   try {
-    await api("GET", "commits?per_page=1");
-    console.log("repository already has commits — no bootstrap needed");
-    return null;
+    const [head] = await api("GET", "commits?per_page=1");
+    // Chain onto whatever is already there rather than returning null: a rerun
+    // after a partial publish (bootstrap created, history not yet uploaded)
+    // would otherwise hand `parents: [null]` to the API for every root commit.
+    console.log(`repository already has commits — chaining onto ${head.sha.slice(0, 8)}`);
+    return head.sha;
   } catch (e) {
     if (e.status !== 409) throw e;
   }
@@ -169,7 +174,10 @@ async function createRef(ref, sha) {
   }
 }
 
-await createRef("refs/heads/main", commits[commits.length - 1]);
+// The remote SHA, not the local one - the recreated commits chain onto a
+// bootstrap parent, so local and remote SHAs diverge and pointing main at a
+// local SHA creates a ref to a commit the remote has never heard of.
+await createRef("refs/heads/main", remapped[commits[commits.length - 1]]);
 for (const tag of tags) {
   await createRef(`refs/tags/${tag}`, tagTargets[tag]);
 }
