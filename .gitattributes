@@ -1,0 +1,22 @@
+# Line endings are part of the build output here, not a cosmetic preference.
+#
+# sbom.cdx.json records a SHA-256 for every shipped file, and the release
+# packages are meant to rebuild byte-identically from a tag. With core.autocrlf
+# on Windows the working tree had CRLF while Linux checked out LF, so the same
+# commit produced different hashes on different machines - which CI caught by
+# failing the SBOM check. An integrity manifest that depends on who built it is
+# not an integrity manifest.
+#
+# Forcing LF in the working tree on every platform makes the hashes, the zips
+# and the checksums properties of the commit instead of the operating system.
+* text=auto eol=lf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.woff binary
+*.woff2 binary

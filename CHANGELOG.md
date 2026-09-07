@@ -44,6 +44,15 @@ stale integrity manifest is worse than none. Its most useful claim is negative -
 `excluded`. It also records a SHA-256 for each of the 36 shipped files, so a
 downloaded package can be checked file by file.
 
+A `.gitattributes` enforcing `eol=lf` came out of this and is the reason the
+above is true. CI rejected the first SBOM: with `core.autocrlf` the Windows
+working tree held CRLF while Linux checked out LF, so every recorded hash — and
+every archive — depended on which machine built it. The same commit produced
+`541f0b93…` on Windows and `9986a4b6…` on Linux for the same source file. The
+earlier "reproducible" check only ever proved *same-machine* reproducibility.
+Line endings are now pinned in the working tree on every platform, and all 36
+recorded hashes match the committed blobs exactly.
+
 Also fixed: `scripts/build-firefox.py` crashed on Windows before packaging
 anything - an em dash and an arrow in a `print()` raised `UnicodeEncodeError`
 under the cp1252 console. The Firefox build had never completed on that
