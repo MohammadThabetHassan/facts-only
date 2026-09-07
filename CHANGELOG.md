@@ -4,28 +4,7 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
-## [1.2.0] - 2026-09-07
-
-### Changed - the evaluation now reports a held-out number
-
-SIGNAL_WEIGHTS was hand-set while looking at the 111-publisher corpus, which
-means a number measured on all of it was a fit, not a measurement. A reviewer
-would have been right to say so.
-
-The corpus is now split by a stable hash of the domain name - not by shuffling,
-not by index, so the split cannot drift toward whichever half flatters the
-result - and the **held-out half carries the headline**:
-
-|                | publishers | accused |
-| -------------- | ---------- | ------- |
-| tuning         | 71         | 0       |
-| **held out**   | **40**     | **0**   |
-| whole corpus   | 111        | 0       |
-
-No tuning/held-out gap. The tuning row stays printed in the output so a future
-gap is visible rather than found by someone else, and the discipline is written
-down: weights may be informed by the tuning half, and a worse held-out number
-gets published worse.
+## [1.3.0] - 2026-09-07
 
 ### Added - margin analysis, and an uncomfortable result
 
@@ -122,11 +101,34 @@ path, in the shapes that actually caused false positives: ad furniture around
 clean reporting, an investigation into paid placement, and an explainer quoting
 the AI phrase. 56 of 111 rows carry paid-content bait, 28 quote the AI phrase.
 
-A tenth CI gate fails if that coverage is ever removed again, negative-tested by
+A CI gate fails if that coverage is ever removed again, negative-tested by
 reverting the corpus to empty excerpts and confirming the gate blocks it.
 
 Held-out numbers are unchanged under the harder corpus: 0/40 accused, 0/111
 overall, 8/8 rungs. Offline checks 157 -> 165.
+
+## [1.2.0] - 2026-09-07
+
+### Changed - the evaluation now reports a held-out number
+
+SIGNAL_WEIGHTS was hand-set while looking at the 111-publisher corpus, which
+means a number measured on all of it was a fit, not a measurement. A reviewer
+would have been right to say so.
+
+The corpus is now split by a stable hash of the domain name - not by shuffling,
+not by index, so the split cannot drift toward whichever half flatters the
+result - and the **held-out half carries the headline**:
+
+|                | publishers | accused |
+| -------------- | ---------- | ------- |
+| tuning         | 71         | 0       |
+| **held out**   | **40**     | **0**   |
+| whole corpus   | 111        | 0       |
+
+No tuning/held-out gap. The tuning row stays printed in the output so a future
+gap is visible rather than found by someone else, and the discipline is written
+down: weights may be informed by the tuning half, and a worse held-out number
+gets published worse.
 
 ### Added - reproducible packages and an SBOM
 
