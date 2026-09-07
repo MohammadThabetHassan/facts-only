@@ -297,6 +297,24 @@ export function hasPaidDisclosure(excerpt) {
     });
 }
 
+// Quotation marks in any of the forms the corpus actually contains, including
+// the Arabic pages, which use the curly pair.
+const QUOTED_SPAN = /["“”«»„][^"“”«»„]{0,600}["“”«»„]/g;
+
+/**
+ * Drop quoted spans before running page-voice detectors over the text.
+ *
+ * Same lesson as the paid-disclosure fix: an article that QUOTES a tell-tale
+ * phrase is reporting on it, not exhibiting it. Writing about AI slop is
+ * ordinary media-literacy journalism, and the phrase is unavoidable in it.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function stripQuoted(text) {
+  return String(text || "").replace(QUOTED_SPAN, " ");
+}
+
 /** Signal keys detected on a fetched page, before scoring. */
 export function detectSignals(p) {
   const out = [];
@@ -323,7 +341,7 @@ export function detectSignals(p) {
   if (hasPaidDisclosure(p.excerpt)) {
     out.push("sponsored");
   }
-  if (p.excerpt && /(as an ai( language| assistant)? model)/i.test(p.excerpt)) {
+  if (p.excerpt && /(as an ai( language| assistant)? model)/i.test(stripQuoted(p.excerpt))) {
     out.push("ai-generated-text");
   }
 

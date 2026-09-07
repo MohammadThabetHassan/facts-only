@@ -7,7 +7,7 @@ import { createProvider } from "../extension/engine/providers/index.js";
 import { extractJson } from "../extension/engine/json.js";
 import { stripHtml, truncate, hash32, domainOf, extractUrls, normText, isPublicHttpUrl } from "../extension/engine/text.js";
 import { postJson } from "../extension/engine/http.js";
-import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen, hasPaidDisclosure } from "../extension/engine/sourceProfiler.js";
+import { computeFlags, isEstablishedDomain, looksLikeQuestionHeadline, looksLikePromptShapedHeadline, verifyQuoteInPage, profileSources, domainAgeDays, formatFirstSeen, hasPaidDisclosure, stripQuoted } from "../extension/engine/sourceProfiler.js";
 import { pickFreeModels } from "../extension/engine/providers/openrouter.js";
 import { lookupCache, saveToCache, settingsFingerprint } from "../extension/engine/ui/cache.js";
 import { t, resolveLocale, keys, locales, isRtl } from "../extension/engine/ui/i18n.js";
@@ -749,6 +749,33 @@ console.log("\nplacement scoring:");
     check("a disclosure that leads its segment is still caught",
       branded({ title: "Five reasons this clinic leads the region", excerpt: "Sponsored: this article was paid for by the advertiser." }) &&
       branded({ title: "The law explained", excerpt: "Sponsored content produced in partnership with our commercial team." }));
+
+    // Same family as the paid-disclosure bug, found by asking whether the other
+    // page-text detector made the same assumption. It did: ai-generated-text
+    // matched the tell-tale phrase even when the page was quoting it to explain
+    // it. Non-decisive, so the damage was a warning rather than an accusation -
+    // a media-literacy blog on a 1.5-year domain tipped to "elevated".
+    check("an article quoting the AI tell-tale phrase is not flagged as AI filler",
+      computeFlags({
+        url: "https://x.com/c", siteName: "x.com", fetched: true,
+        title: "How to spot AI-written articles", author: "J. Okafor", aboutLink: true,
+        excerpt: "Researchers found pages opening with “As an AI language model, I cannot verify that”.",
+        archive: { ageDays: 550, months: 16 }
+      }).flags.every((f) => f.key !== "ai-generated-text"));
+
+    check("the same phrase in the page's own voice is still flagged",
+      computeFlags({
+        url: "https://x.com/d", siteName: "x.com", fetched: true,
+        title: "The emergency law explained", author: "", aboutLink: false,
+        excerpt: "As an AI language model, I can outline the provisions of the law.",
+        archive: { ageDays: 200, months: 3 }
+      }).flags.some((f) => f.key === "ai-generated-text"));
+
+    check("stripQuoted removes quoted spans in every quote form, and nothing else",
+      stripQuoted("he said “hello there” loudly").trim() === "he said   loudly" &&
+      stripQuoted("a «bonjour» b").trim() === "a   b" &&
+      stripQuoted("plain text stays") === "plain text stays" &&
+      stripQuoted("") === "");
 
     check("hasPaidDisclosure separates a label from a mention",
       hasPaidDisclosure("Sponsored content produced with our commercial team.") &&

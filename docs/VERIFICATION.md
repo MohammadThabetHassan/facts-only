@@ -5,7 +5,7 @@ with each release so contributors and users can trust claims instead of assertio
 
 Last updated: 2026-09-07 (v1.2.0 — held-out evaluation split + paid-disclosure fix)
 
-## 1. Offline test suite — PASSING (154 checks)
+## 1. Offline test suite — PASSING (157 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -24,7 +24,9 @@ complete plain wording for every flag and risk level in both locales · full pip
 statuses, source flags, bias, second-opinion degradation, method metadata) ·
 cancellation · paid-disclosure shape (an investigation into paid placement, an
 explainer defining the term, and a bare "Sponsored" ad-slot label must all stay
-clean, while a leading disclosure label is still caught).
+clean, while a leading disclosure label is still caught) · page-voice attribution
+(an article quoting the AI tell-tale phrase to explain it is not flagged as AI
+filler; the same phrase unquoted still is).
 
 ## 2. Real-browser E2E — PASSING (2026-09-06)
 
