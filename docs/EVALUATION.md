@@ -191,6 +191,30 @@ like a content farm. These are scored on their own rather than as rungs:
 | Advertorial on an otherwise reputable site | 15 | **HIGH** (decisive) |
 | Raw AI-generated filler on a shell domain | 30 | warn |
 | Citation to an internal address (injection payload) | 100 | HIGH |
+| Campaign on a hostname the archive has never seen | 100 | HIGH |
+
+The last row exists because `domain-unarchived` is worth 30 points and, until it
+was added, **no adversary case exercised it**. A weight that heavy with no test
+on the detection side is one nobody can defend. It scores 100, which is the
+evidence that the weight earns its place — and the reason it was kept rather
+than reduced when the margin analysis showed it dominating the worst case on the
+legitimate side.
+
+### Pages that must NOT be flagged
+
+Every row above tests **under**-detection. That is the wrong half to test
+exclusively, because every defect actually found in this detector has been the
+other kind. These rows carry an upper bound instead, and fail by being flagged:
+
+| Page | Score | Must not exceed |
+| --- | --- | --- |
+| Reporting *on* paid placement, by an established outlet | −31 | clean |
+| Ordinary article carrying a "Sponsored" ad-slot label | −45 | clean |
+| Media-literacy explainer quoting the AI tell-tale phrase | 9 | elevated |
+
+All three were real false positives before the page-text work. They are pinned
+here as well as in `test/smoke.mjs` so the corpus number and the unit suite would
+both have to be defeated for the bug to come back.
 
 ### The bug this found
 
@@ -288,18 +312,29 @@ problem; quoting only the second would be curating the corpus until the number
 flatters. A CI gate holds the archived figure at ≥ 20, so a future weight change
 that quietly erodes separation fails the build instead of being noticed later.
 
-**The two populations overlap.** The weakest detected adversary rung scores 24 —
-*below* the worst legitimate publisher at 40. There is no score at which
-"placement" and "publisher" cleanly separate, and detection of the top rungs
-depends on the warning threshold at 22, not on distance. The reason no real
-outlet is accused is that the accusation threshold sits at 45, above both.
+**Separation depends on whether the archive knows the hostname**, and the eval
+prints both figures. The weakest *detected* adversary rung scores 24:
 
-That is a genuine limitation of a linear additive score over these signals, and
-it is stated here rather than left for a reader to derive: **the model separates
-well at the accusation threshold and poorly at the warning threshold.** The
-practical consequence is that *elevated* should be read as "look closer", never
-as a soft accusation — which is what the plain-language wording already does,
-now for a measured reason rather than an intuition.
+| Compared against | Separation |
+| --- | --- |
+| Archived publishers (worst 10) | **+14 points** |
+| Including the unarchived alias (worst 40) | **−16 points** — they overlap |
+
+So the model does separate placement from publishing, but only on outlets with
+an archive record. Where the archive knows nothing, an adversary rung and a
+legitimate site occupy the same band, and both are held apart from an accusation
+only by the threshold sitting at 45 above them.
+
+That is one weakness seen from two directions, and it is the same one named in
+*The one warning*: **hostnames the Wayback Machine has no record of** — new
+outlets and alias domains. The archive signal carries most of the model's
+discriminating power, so where it is absent, discrimination is absent too.
+
+Two consequences worth stating rather than leaving to be derived. *Elevated*
+must be read as "look closer", never as a soft accusation — which is what the
+plain-language wording already does, now for a measured reason. And the obvious
+improvement is not a better weight but a second independent legitimacy signal
+that does not depend on Wayback coverage.
 
 ## Weight sensitivity
 

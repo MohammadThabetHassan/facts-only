@@ -112,6 +112,56 @@ const VARIANTS = [
     page: { title: "The emergency law explained", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group", nonPublic: true },
     archive: null,
     expect: "high"
+  },
+  {
+    // domain-unarchived is worth 30 points and, until this row existed, no
+    // adversary case exercised it. A signal that heavy with no test on the
+    // detection side is a weight nobody can defend.
+    name: "campaign on a hostname the archive has never seen",
+    page: { title: "Is the emergency law a threat to human rights?", author: "", aboutLink: false, siteName: "Global Security Observatory" },
+    archive: { ageDays: null, months: 0 },
+    expect: "high"
+  },
+
+  // --- pages that must NOT be flagged -------------------------------------
+  // Everything above tests under-detection. These test the opposite direction,
+  // which is where every real defect in this detector has actually been found.
+  {
+    name: "reporting ON paid placement, by an established outlet",
+    page: {
+      title: "How networks sell sponsored coverage to influence chatbots",
+      author: "Amina Rahman", aboutLink: true, siteName: "The Tribune",
+      excerpt: "Agencies sell sponsored placements to clients who want favourable answers. Editors said the practice of advertorial content is spreading."
+    },
+    archive: { ageDays: 365 * 12, months: 130 },
+    expect: "clean",
+    max: "clean"
+  },
+  {
+    name: "ordinary article carrying a 'Sponsored' ad-slot label",
+    page: {
+      title: "Central bank holds interest rates steady",
+      author: "Amina Rahman", aboutLink: true, siteName: "The Tribune",
+      excerpt: stripHtml(extractArticle(`<body><nav><a href="/sponsored">Sponsored content</a></nav>
+        <aside><span>Sponsored</span><p>Paid post: our partner clinic leads the region.</p></aside>
+        <main><article><h1>Central bank holds rates</h1><p>The central bank left its benchmark rate
+        unchanged on Thursday, citing easing inflation and a softening labour market.</p></article></main>
+        <footer><p>Advertisement. Sponsored by our partners.</p></footer></body>`))
+    },
+    archive: { ageDays: 365 * 12, months: 130 },
+    expect: "clean",
+    max: "clean"
+  },
+  {
+    name: "media-literacy explainer quoting the AI tell-tale phrase",
+    page: {
+      title: "How to spot AI-written articles",
+      author: "J. Okafor", aboutLink: true, siteName: "Media Lab",
+      excerpt: "Researchers found pages opening with “As an AI language model, I cannot verify that”."
+    },
+    archive: { ageDays: 550, months: 16 },
+    expect: "clean",
+    max: "elevated"
   }
 ];
 
@@ -270,8 +320,16 @@ const advRows = ADVERSARY.map((a) => {
 const RANK = { clean: 0, elevated: 1, high: 2 };
 const variantRows = VARIANTS.map((v) => {
   const r = computeFlags(asProfile({ ...v.page, archive: v.archive }));
-  // `expect` is a MINIMUM: exceeding it is a pass.
-  return { name: v.name, score: r.score, level: r.level, expect: v.expect, ok: RANK[r.level] >= RANK[v.expect] };
+  // `expect` is a MINIMUM: exceeding it is a pass. `max` is the optional upper
+  // bound, for the rows that exist to catch over-detection - a page that must
+  // not be accused fails by being flagged, not by being missed.
+  const meetsFloor = RANK[r.level] >= RANK[v.expect];
+  const underCeiling = v.max === undefined || RANK[r.level] <= RANK[v.max];
+  return {
+    name: v.name, score: r.score, level: r.level,
+    expect: v.expect, max: v.max ?? null,
+    ok: meetsFloor && underCeiling
+  };
 });
 
 // --- weight sensitivity ------------------------------------------------------
@@ -386,6 +444,11 @@ const margin = {
   weakestDetectedRung: Math.min(...scored.filter((a) => a.detected).map((a) => a.score)),
   nearestAccusation
 };
+// Separation, reported against both populations for the same reason headroom is:
+// the unarchived alias dominates the worst case and is a known input, not a
+// property of the model.
+margin.separationAll = margin.weakestDetectedRung - margin.worstLegitScore;
+margin.separationArchived = margin.weakestDetectedRung - margin.worstArchivedScore;
 
 const results = {
   corpusCollectedAt: corpus.collectedAt,
@@ -444,9 +507,11 @@ if (JSON_OUT) {
   console.log(`    accuse at ${margin.accuseAt}, warn at ${margin.warnAt}. Legitimate scores: median ${margin.medianLegitScore}, worst ${margin.worstLegitScore}.`);
   console.log(`    headroom to an accusation: ${margin.headroomToAccusation} points (${margin.headroomExcludingUnarchived} excluding the ${margin.unarchivedInCorpus} unarchived alias, worst archived ${margin.worstArchivedScore})`);
   console.log(`    closest to the line: ${margin.nearestAccusation.map((x) => `${x.domain} (${x.score})`).join(", ")}`);
-  console.log(`    weakest DETECTED adversary rung scores ${margin.weakestDetectedRung}, BELOW the worst legitimate score.`);
-  console.log(`    So the bands overlap: detection of the top rungs relies on the warn threshold (${margin.warnAt}),`);
-  console.log(`    not on separation. No legitimate publisher is accused, but "not accused" is not "well separated".`);
+  console.log(`    weakest DETECTED adversary rung scores ${margin.weakestDetectedRung}.`);
+  console.log(`    separation from the archived population: ${margin.separationArchived >= 0 ? "+" : ""}${margin.separationArchived} points` +
+    `  (${margin.separationAll >= 0 ? "+" : ""}${margin.separationAll} including the unarchived alias, i.e. they overlap there)`);
+  console.log(`    So: separated on outlets the archive knows, overlapping on ones it does not - which is`);
+  console.log(`    the same weakness from both directions, and the residual false-positive mode named below.`);
 
   console.log(`\n  by region (whole corpus):`);
   const regions = [...new Set(fpRows.map((r) => r.region))];
