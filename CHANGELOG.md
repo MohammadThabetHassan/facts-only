@@ -4,7 +4,7 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.4.0] - 2026-09-07
 
 ### Changed - corpus 111 → 209, and it immediately found a false accusation
 
