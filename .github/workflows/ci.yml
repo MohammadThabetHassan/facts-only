@@ -7,13 +7,19 @@ on:
 
 jobs:
   test:
-    name: Offline test suite
+    # Named for what it actually runs. It is not only the offline suite: the
+    # real-browser checks and the detector evaluation are gates here too, and a
+    # check whose name understates its scope is the same species of problem as
+    # a stale number in the README.
+    name: Tests, real-browser E2E and detector evaluation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5 for both: the v4 actions run on Node 20, which GitHub has deprecated
+      # and now force-migrates to Node 24 with a warning on every run.
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
