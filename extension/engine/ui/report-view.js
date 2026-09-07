@@ -86,6 +86,20 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
       el("p", { class: "fo-explain-body", text: t("explain." + risk.level + ".body", L) })
     ]);
 
+    // The arithmetic, next to the claim. A conclusion that scraped over the
+    // threshold and one that cleared it by forty points read identically
+    // otherwise, which is how a confident headline outruns its evidence.
+    if (risk.strength) {
+      const st = risk.strength;
+      box.appendChild(el("p", {
+        class: "fo-explain-strength",
+        text: st.decisive
+          ? t("explain.strengthDecisive", L)
+          : t("explain.strength", L, { n: st.signals, score: st.score, at: st.accuseAt }) +
+            (st.margin <= 10 ? ` ${t("explain.strengthNarrow", L)}` : "")
+      }));
+    }
+
     if (risk.offenders.length) {
       box.appendChild(el("p", { class: "fo-explain-why", text: t("explain.because", L) }));
       const ul = el("ul", { class: "fo-explain-list" });

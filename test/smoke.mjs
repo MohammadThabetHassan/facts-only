@@ -733,6 +733,23 @@ console.log("\nrisk explanation:");
     summarizeRisk([{ url: "https://x.example/a", siteName: "x.example", established: false, fetched: false, archivedMonths: 120, flags: [], placementLevel: "clean" }]).level === "unread");
 
   // clean must remain reachable, or the level is just noise.
+  // An external review's interface point: a large confident accusation appears
+  // before the reader meets any uncertainty, and prominence should track the
+  // strength of the evidence. Showing the arithmetic beside the claim is the
+  // honest version of that - "flagged" and "barely flagged" must not read the same.
+  check("an accusation carries the arithmetic that produced it",
+    (() => {
+      const r = summarizeRisk([src(["prompt-shaped-headline", "no-author", "no-about", "think-tank-unverified", "domain-fresh"], "high")]);
+      return r.strength && r.strength.signals === 5 && r.strength.accuseAt === HIGH_RISK_AT &&
+        r.strength.margin > 0 && r.strength.decisive === false;
+    })());
+
+  check("a paid-content label is reported as an observation, not a margin",
+    summarizeRisk([src(["sponsored"], "high")]).strength.decisive === true);
+
+  check("a clean verdict carries no strength line to inflate",
+    summarizeRisk([{ url: "https://x/a", fetched: true, flags: [], placementLevel: "clean" }]).strength === undefined);
+
   check("a source that WAS fetched and looks fine is still reported clean",
     summarizeRisk([{ url: "https://reuters.com/a", siteName: "reuters.com", established: true, fetched: true, flags: [], placementLevel: "clean" }]).level === "clean");
 

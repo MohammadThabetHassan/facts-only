@@ -464,6 +464,16 @@ details.fo-collapsible > summary {
   line-height: 1.5;
   color: inherit;
 }
+/* The arithmetic behind the headline. Deliberately quieter than the claim it
+   qualifies: it is there so a conclusion that scraped over the threshold does
+   not read like one that cleared it by forty points. */
+.fo-explain-strength {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
 .fo-explain-why {
   margin: 10px 0 2px;
   font-size: 12px;

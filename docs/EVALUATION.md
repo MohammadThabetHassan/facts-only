@@ -138,13 +138,51 @@ Inclusion criterion is narrow and checkable: a masthead, named editorial staff,
 and a multi-year publishing record. It is **not** a claim that any of these
 outlets is unbiased or accurate. See [SOURCE-LISTS.md](SOURCE-LISTS.md).
 
-### Why the false-positive test is harder than reality
+### Where the constructed test is harder than reality — and where it is not
 
 Every outlet in the corpus is scored as though it had published a
-question-shaped headline — the exact pattern the detector hunts for
-("Is the economy finally recovering?", "Who is really paying for the pipeline?").
-Real outlets publish these sometimes; the test assumes they always do. If the
-detector holds up under that, it holds up in the field.
+question-shaped headline, the exact pattern the detector hunts for. Real outlets
+publish these sometimes; the test assumes they always do. On that axis it is
+genuinely the harder test — **2 of 70 real pages carried a question headline**,
+against 209 of 209 in the constructed run.
+
+It is **not** uniformly harder, and saying so was sloppy. The constructed rows
+also hand every outlet a byline, worth −10. In reality **33 of 70 real pages
+expose no byline in metadata at all**, which is +15 instead — a 25-point swing
+in the constructed test's favour on nearly half the corpus. Both directions are
+now measured and printed rather than assumed.
+
+## Real article pages
+
+The section above scores constructed page bodies. An external review made the
+fair point that impressive numbers from constructed inputs are regression tests,
+not validation on real articles — so `eval/collect-pages.mjs` fetches real ones
+and `npm run eval` scores them with the same detectors.
+
+| | |
+| --- | --- |
+| Outlets returning a readable article | **70 / 209** |
+| **Accused of placement** | **0 / 70** |
+| Given any warning | 1 / 70 (`follow-the-money.eu`, elevated) |
+| Article extraction narrowed the page | 68 / 70 |
+| Exposed a byline in metadata | 37 / 70 |
+| Carried a real question-shaped headline | 2 / 70 — neither accused |
+
+Two things are worth reading twice. **68 of 70** means `extractArticle` finds an
+article in real HTML it was never tuned against, not just in the fixtures.
+And the one warning is the same outlet flagged by the constructed run, for the
+same reason — sparse archive coverage — which is the consistency you want
+between a synthetic corpus and real pages.
+
+**139 outlets could not be read**: 133 exposed no usable feed, 6 refused with an
+HTTP error. That is reported as a result rather than trimmed away, because being
+refused is the condition this tool meets most often in the field — and it is why
+the *unread* verdict exists instead of an all-clear.
+
+The remaining honesty limit, unchanged: these pages are real but **not
+independently labelled**. They are known-legitimate outlets, so they measure
+false positives only. Nothing here measures recall against real placement, and
+no public labelled corpus of influence operations exists to measure it with.
 
 ## The adversary ladder
 
@@ -299,6 +337,44 @@ This does work the wording fix could not. A realistic page whose ad rail reads
 "Paid post: our partner clinic leads the region" still defeats the
 disclosure-shape check on its own, because that text genuinely does lead its
 segment — it is just not the article. Both fixes are pinned in `test/smoke.mjs`.
+
+## Documented misses
+
+Evasions this tool does **not** catch, scored and printed by `npm run eval` on
+every run so the ceiling sits beside the detection rate instead of being
+findable only by a reviewer. A gate asserts they are *still missed*: if a future
+change starts catching one, the build fails and forces this section to be
+corrected rather than left overstating the limits.
+
+| Evasion | Score | Verdict |
+| --- | --- | --- |
+| Declarative rewrite — drop the interrogative word | 15 | clean |
+| **Expired-domain hijack** — campaign on a lapsed domain with 18y of real history | −20 | clean |
+| Advertorial disclosed only mid-sentence | −45 | clean |
+
+**The declarative rewrite** came from an external review, which changed *"How
+the law threatens human rights"* to *"The law threatens human rights"* and
+watched the score fall 29/elevated → 15/clean. One word. It is a ceiling rather
+than a bug because a detector that fired on plain declarative headlines would
+flag ordinary journalism — but the practical consequence is that headline-shape
+signals are one edit from useless, and the docs previously implied the cheapest
+evasion was six years of publishing.
+
+**The expired-domain hijack is the serious one**, and it is an *alternate route*
+rather than a rung: it skips the ladder instead of climbing it. This file used
+to claim that continuous archived publishing "cannot be bought retroactively".
+It can. Lapsed domains carrying decades of genuine history are traded routinely
+and the archive record transfers with them. The same crude campaign — no author,
+no about page, think-tank name, question headline — scores **100 on a fresh
+domain and 40 on an 18-year expired one**, and goes clean once it adds the
+byline and about page from rungs 3–4.
+
+That matters more than the other two because the archive signal carries most of
+this model's discriminating power; remove its reliability and the separation
+reported below largely goes with it. Detecting it needs a signal for
+*discontinuity* between the archived site and the current one — a topic or
+language shift across the ownership change — which this tool does not have and
+is the most valuable thing that could be added to it.
 
 ## Margin, and what 0/209 does not tell you
 

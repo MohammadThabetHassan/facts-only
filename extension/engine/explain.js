@@ -16,7 +16,7 @@
 // letting it decide the headline meant announcing "this source looks planted"
 // above real reporting. A signal only speaks once the score says it earned it.
 
-import { scoreSignals } from "./sourceScore.js";
+import { scoreSignals, HIGH_RISK_AT } from "./sourceScore.js";
 
 // Ranked worst-first. The first level that matches wins, so a paid placement is
 // never described merely as "an unnamed publisher".
@@ -51,7 +51,9 @@ function assess(s) {
   // Positive signals ("names its author", "continuously archived for years")
   // carry severity "info" and must never be quoted back as reasons to worry.
   const concerning = flags.filter((f) => f && f.severity !== "info");
-  const level = s && s.placementLevel ? s.placementLevel : scoreSignals(flags.map((f) => f && f.key)).level;
+  const scored = scoreSignals(flags.map((f) => f && f.key));
+  const level = s && s.placementLevel ? s.placementLevel : scored.level;
+  const score = s && typeof s.placementScore === "number" ? s.placementScore : scored.score;
   // A source we could neither fetch nor look up in the archive told us nothing.
   // Scoring silence as "clean" would turn a failed check into an all-clear,
   // which is the single most harmful thing this report could say: the reader
@@ -72,6 +74,7 @@ function assess(s) {
     established: !!(s && s.established),
     unchecked,
     pageUnread,
+    score,
     level,
     keys: new Set(concerning.map((f) => f.key)),
     orderedKeys: concerning.map((f) => f.key)
@@ -147,10 +150,32 @@ export function summarizeRisk(sources = []) {
     .filter((o) => o.reasonKeys.length > 0);
 
   const reasonKeys = [...new Set(offenders.flatMap((o) => o.reasonKeys))];
+
+  // How much is actually behind the headline. An external review made the point
+  // that a large confident accusation appears before the reader meets any
+  // uncertainty, and that prominence should track the strength of the evidence.
+  // The honest fix is not a smaller font: it is showing the arithmetic next to
+  // the claim, so "flagged" and "barely flagged" do not read identically.
+  const worst = flagged
+    .filter((a) => level.matches(a))
+    .reduce((best, a) => (best && best.score >= (a.score || 0) ? best : { score: a.score || 0, keys: a.orderedKeys }), null);
+  const strength = worst
+    ? {
+      signals: new Set(worst.keys).size,
+      score: worst.score,
+      accuseAt: HIGH_RISK_AT,
+      // Decisive signals (a paid-content label, a non-public citation) are
+      // observations rather than accumulations, so a margin is meaningless.
+      decisive: level.key === "paid",
+      margin: worst.score - HIGH_RISK_AT
+    }
+    : null;
+
   return {
     level: level.key,
     tone: level.tone,
     reasonKeys,
+    strength,
     offenders,
     uncheckedCount: assessed.filter((a) => a.unchecked).length,
     unreadCount: assessed.filter((a) => a.pageUnread).length,

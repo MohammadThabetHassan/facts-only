@@ -15,6 +15,7 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 ![Tests: 165 offline checks](https://img.shields.io/badge/tests-165%20offline%20checks-brightgreen)
 ![False positives: 0 of 209](https://img.shields.io/badge/false%20positives-0%20%2F%20209%20publishers-brightgreen)
 ![Held-out: 0 of 79](https://img.shields.io/badge/held--out-0%20%2F%2079%20accused-brightgreen)
+![Real pages: 0 of 70](https://img.shields.io/badge/real%20article%20pages-0%20%2F%2070%20accused-brightgreen)
 
 </div>
 
@@ -63,6 +64,13 @@ Across the whole corpus it is also 0 accused of 209, and the tuning half scores
 the same, so there is no overfitting gap. The tuning number stays printed beside
 it so a future gap is visible.
 
+Those rows use constructed page bodies, so the detector is also run over **70
+real article pages fetched from these outlets** (`eval/collect-pages.mjs`):
+**0 of 70 accused**, one cautioned, and article extraction found the article in
+68 of 70 pages it was never tuned against. 139 outlets could not be read at all
+— 133 expose no usable feed, 6 refused — which is reported rather than trimmed,
+because being refused is the condition the tool meets most often.
+
 The 209 publishers carry **real Wayback histories** and are chosen to be hostile
 to this tool's known weaknesses: weighted toward the press no allowlist covers
 (South Asian, African, Middle Eastern, Latin American, South-East Asian,
@@ -76,9 +84,17 @@ is harder than reality.
 
 The adversary is a campaign site plus each cheap change a real operator would
 make. The old rule lost at **rung 1: deleting one question mark.** Rung 6 is
-buying an aged domain — the standard answer to any age check — and it is caught,
-because age was never the signal; continuous archived publishing is, and that
-cannot be bought retroactively.
+buying an *aged but barely archived* domain — the standard answer to a naive age
+check — and it is caught, because age was never the signal; continuous archived
+publishing is.
+
+**Continuous archived publishing can, however, be bought.** Lapsed domains that
+already carry decades of real history are traded routinely, and the archive
+record transfers with them. The same crude campaign that scores 100 on a fresh
+domain scores 40 on an 18-year expired one, and clean once it adds a byline and
+an about page. This is the most serious gap in the model, because the archive
+signal carries most of its discriminating power. It is scored and printed under
+**Documented misses** rather than left for a reader to find.
 
 Paid content is **decisive**: an advertorial is flagged even on a thirty-year-old
 masthead, because a trusted name makes a placement more effective, not less. That

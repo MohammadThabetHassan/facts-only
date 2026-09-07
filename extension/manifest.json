@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Facts Only — AI Answer Verifier",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
   "permissions": [
     "contextMenus",

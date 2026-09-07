@@ -3,9 +3,9 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-07 (v1.3.0 — corpus 111 → 209, unread verdict, real extension checks)
+Last updated: 2026-09-07 (v1.6.0 — evidence-gated verdicts, 70 real article pages, documented misses)
 
-## 1. Offline test suite — PASSING (165 checks)
+## 1. Offline test suite — PASSING (174 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -122,9 +122,20 @@ Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
   shape. The *planted* card states patterns rather than a conclusion and says
   plainly that they are not proof.
 
-  Still open from that review: real-article evaluation with independently
-  labelled pages. The corpus uses real archive histories with constructed page
-  bodies, which is stated in `docs/EVALUATION.md` rather than claimed otherwise.
+  **Partly closed since:** the detector now also runs over **70 real article
+  pages** fetched from the corpus outlets (`eval/collect-pages.mjs`, gated in
+  CI) — **0 of 70 accused**, extraction narrowing the page in 68 of 70. That
+  removes "constructed inputs only" as an objection to the false-positive
+  number. It also corrected a claim of ours: the constructed test is harsher on
+  headlines (2/70 real pages carry a question headline, against 209/209
+  constructed) but *more generous* on bylines (33/70 real pages expose none), so
+  it was never uniformly the harder test.
+
+  **Still open, and not fixable here:** the pages are real but **not
+  independently labelled**. They are known-legitimate outlets, so they measure
+  false positives only. Recall against real placement operations remains
+  unmeasured, because no public labelled corpus exists and this repository will
+  not build one by accusing domains on the strength of its own heuristics.
 
 ## 5. Detector accuracy — MEASURED (2026-09-06)
 

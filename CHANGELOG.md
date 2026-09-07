@@ -4,6 +4,66 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [1.6.0] - 2026-09-07
+
+### Added - the detector now runs on real article pages
+
+The last standing objection from the external review: the evaluation used real
+archive histories but **constructed** page bodies, so impressive numbers were
+regression tests rather than validation on real articles.
+
+`eval/collect-pages.mjs` fetches real articles from the corpus outlets via their
+feeds and commits the extracted text, so `npm run eval` scores them with the
+live detectors on every run — the text is stored rather than derived precisely
+so a detector change still moves the number.
+
+| | |
+| --- | --- |
+| Outlets returning a readable article | **70 / 209** |
+| **Accused of placement** | **0 / 70** |
+| Given any warning | 1 / 70 (`follow-the-money.eu`) |
+| Extraction narrowed the page | 68 / 70 |
+
+**68 of 70** is the one to notice: `extractArticle` finds the article in real
+HTML it was never tuned against, not just in fixtures. The single warning is the
+same outlet the constructed run flags, for the same reason.
+
+**139 outlets could not be read** — 133 expose no usable feed, 6 refused. Kept
+and reported rather than trimmed, because being refused is the condition this
+tool meets most often, and it is why the *unread* verdict exists.
+
+### Changed - "harder than reality" was only half true
+
+Real pages contradicted our own framing. The constructed corpus gives every
+outlet a question headline **and** a byline. On headlines it is genuinely
+harsher: 2/70 real pages carry one, against 209/209 constructed. On bylines it
+is *more generous* — **33/70 real pages expose none**, which is +15 rather than
+−10, a 25-point swing in the test's favour on nearly half the corpus. Both
+directions are now measured and printed.
+
+### Added - the expired-domain hijack, and a claim it falsifies
+
+This project claimed continuous archived publishing "cannot be bought
+retroactively". **It can.** Lapsed domains carrying decades of genuine history
+are traded routinely and the archive record transfers with them. The same crude
+campaign scoring 100 on a fresh domain scores **40 on an 18-year expired one**,
+and goes clean once it adds the byline and about page from rungs 3–4.
+
+It is an *alternate route* rather than a rung — it skips the ladder instead of
+climbing it — and it is the most serious gap in the model, because the archive
+signal carries most of the discriminating power. Now scored under **Documented
+misses**; the README claim is corrected. Catching it needs a discontinuity
+signal between the archived site and the current one, which this tool lacks.
+
+### Changed - accusations now show their arithmetic
+
+The review's interface point: a large confident accusation appears before the
+reader meets any uncertainty, and prominence should track evidence strength. The
+risk card now carries the number of observations, the score, and the threshold —
+so "flagged" and "barely flagged" stop reading identically — with an explicit
+note when a verdict is within 10 points of the line. A paid-content label is
+reported as an observation rather than a margin, because it is one.
+
 ## [1.5.0] - 2026-09-07
 
 ### Fixed - "Well supported" could mean no evidence at all
