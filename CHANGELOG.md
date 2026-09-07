@@ -27,6 +27,63 @@ gap is visible rather than found by someone else, and the discipline is written
 down: weights may be informed by the tuning half, and a worse held-out number
 gets published worse.
 
+### Fixed - a known publisher is no longer an all-clear for an unread page
+
+Found by driving the deployed web app, not by reading code. Two allowlisted
+sources whose pages could not be fetched (HTTP 401 and CORS) produced a green
+tick reading *"No paid-placement or influence-campaign patterns were detected in
+the sources checked"* — when nothing had been fetched at all. The identical run
+with non-allowlisted domains correctly said *"this is not an all-clear — it is a
+failed check"*, so the allowlist was short-circuiting established domains past
+the unknown state.
+
+This reopened the hole that making `sponsored` decisive was meant to close. A
+paid disclosure lives in the page, so if the page is never read the signal can
+never fire, and the allowlist alone rendered a green tick: **a Reuters
+advertorial URL reported as clean.**
+
+Knowing who publishes a site and having read the article are different claims. A
+source whose page was never opened can no longer contribute to an all-clear,
+however well known it is, and archive history cannot stand in for reading the
+page either. There is a new `unread` verdict — *"We know these publishers, but
+we could not open the pages"* — in both locales. In the web app CORS makes this
+the common outcome, which is the honest reason to prefer the extension.
+
+One existing test asserted the old behaviour outright and was inverted
+deliberately, with the reasoning recorded beside it.
+
+### Fixed - page-text detectors read the whole page, not the article
+
+The root cause under both page-text false positives. `excerpt` was the entire
+page, so navigation, ad rails and promo footers arrived as one flat string and a
+"Sponsored" label on someone else's ad slot read exactly like the article's own
+words. Pages are now narrowed to the article first (`extractArticle`) — furniture
+dropped, `<article>`/`<main>` preferred, falling back to the whole page when
+nothing is identifiable so content is never silently discarded. Regex-based and
+DOM-free on purpose: the engine runs unchanged in the extension, the web app and
+Node.
+
+This does work the disclosure-wording fix could not. A realistic page whose ad
+rail reads "Paid post: our partner clinic leads the region" still defeats that
+check on its own — the text genuinely leads its segment, it just is not the
+article.
+
+### Changed - the evaluation now exercises the page-text detectors
+
+Corpus rows were built with `excerpt: ""`, so `sponsored` and
+`ai-generated-text` contributed nothing to 0/111 — the number covered less than
+it appeared to, which is exactly why a decisive false-accusation bug survived in
+it. Every outlet now gets a full HTML page routed through the real extraction
+path, in the shapes that actually caused false positives: ad furniture around
+clean reporting, an investigation into paid placement, and an explainer quoting
+the AI phrase. 56 of 111 rows carry paid-content bait, 28 quote the AI phrase.
+
+A tenth CI gate fails if that coverage is ever removed again, negative-tested by
+reverting the corpus to empty excerpts and confirming the gate blocks it.
+
+Held-out numbers are unchanged under the harder corpus: 0/40 accused, 0/111
+overall, 8/8 rungs. Offline checks 157 -> 165.
+
 ### Added - reproducible packages and an SBOM
 
 Releases now carry a Chrome package, a Firefox package and a CycloneDX 1.5 SBOM,

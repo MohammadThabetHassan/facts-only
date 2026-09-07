@@ -239,7 +239,30 @@ less damaging miss. All three pages now score clean, the control is still
 flagged, and the cases are pinned in `test/smoke.mjs`.
 
 **The headline number could not have caught this**, which is the part worth
-sitting with — see the coverage gap under *Known limits*.
+sitting with. The corpus was built with empty page bodies, so the detector that
+produced the accusation was never under test. That is now fixed — every row
+carries a real page body through the real extraction path, and a CI gate keeps
+it that way — but the lesson generalises past this bug: *a number only covers
+what it actually exercised*, and 0/111 sounded like it covered everything.
+
+### And the root cause under both of them
+
+Two page-text detectors, two false-positive bugs, one shared cause: `excerpt`
+was the whole page. Navigation, ad rails, promo footers and body prose all
+arrived as one flat string, so a "Sponsored" label on someone else's ad slot
+read exactly like the article's own words.
+
+Pages are now narrowed to the article before any detector reads them
+(`extractArticle` in `engine/text.js`) — furniture elements dropped, `<article>`
+or `<main>` preferred, with a fallback to the whole page when nothing is
+identifiable so content is never silently discarded. It is a regex heuristic
+rather than a parser, deliberately: the engine runs unchanged in the extension,
+the web app and Node, and reaching for `DOMParser` would end that.
+
+This does work the wording fix could not. A realistic page whose ad rail reads
+"Paid post: our partner clinic leads the region" still defeats the
+disclosure-shape check on its own, because that text genuinely does lead its
+segment — it is just not the article. Both fixes are pinned in `test/smoke.mjs`.
 
 ## Weight sensitivity
 
@@ -306,15 +329,20 @@ real newsroom.
 - **The corpus measures the archive signal most strongly**, because that is what
   the collector gathers. Page-level signals (byline, about page) are supplied as
   worst-case assumptions rather than crawled.
-- **The false-positive number does not exercise the page-content detectors.**
-  Corpus rows are built with `excerpt: ""`, so `sponsored` and `ai-generated-text`
-  — the two signals that read page *text* rather than metadata — contribute
-  nothing to the 0/111. That gap is not theoretical: it is precisely why a bare
-  word match on `sponsored` survived to be found by hand-probing instead
-  (see *And the bug that fix created*). Those paths are covered by targeted
-  regression cases in `test/smoke.mjs`, which is weaker than corpus measurement
-  and should be read as such. Closing it properly means crawling real pages,
-  which is the same work item as the point above.
+- **Page bodies are synthetic, though they are now measured.** This used to read
+  as a gap rather than a limit: rows were built with `excerpt: ""`, so
+  `sponsored` and `ai-generated-text` — the two signals that read page *text* —
+  contributed nothing to the 0/111. That blind spot is why a bare word match on
+  `sponsored` survived in shipped code until it was found by hand.
+
+  Every outlet now gets a full HTML page run through the same extraction path
+  the profiler uses, and the shapes are the ones that actually caused false
+  positives: ad-slot furniture around clean reporting, an investigation *into*
+  paid placement, and an explainer quoting the AI tell-tale phrase. 56 of 111
+  rows carry paid-content bait and 28 quote the AI phrase, and a CI gate fails
+  if that coverage is ever removed again. The remaining limit is real but
+  narrower: the bodies are written, not crawled, so they test the shapes that
+  are known to break the detector rather than the full variety of the web.
 - **111 outlets is still small.** It is more than enough to have caught the 100%
   false-positive rate of the previous rule, and enough to say the current rate is
   under a couple of percent. It is not enough to distinguish 0.5% from 0.05%.

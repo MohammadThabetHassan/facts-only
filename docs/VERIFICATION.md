@@ -5,7 +5,7 @@ with each release so contributors and users can trust claims instead of assertio
 
 Last updated: 2026-09-07 (v1.2.0 — held-out evaluation split + paid-disclosure fix)
 
-## 1. Offline test suite — PASSING (157 checks)
+## 1. Offline test suite — PASSING (165 checks)
 
 Command: `node test/smoke.mjs` (no key, no network; CI runs it on every PR).
 
@@ -26,7 +26,11 @@ cancellation · paid-disclosure shape (an investigation into paid placement, an
 explainer defining the term, and a bare "Sponsored" ad-slot label must all stay
 clean, while a leading disclosure label is still caught) · page-voice attribution
 (an article quoting the AI tell-tale phrase to explain it is not flagged as AI
-filler; the same phrase unquoted still is).
+filler; the same phrase unquoted still is) · article extraction (nav, ad rails
+and footers dropped before any detector reads the page; an in-article disclosure
+still caught; fallback to the whole page when no article is identifiable) ·
+the unread verdict (a recognised publisher whose page could not be opened is
+reported as "we could not open the pages", never as an all-clear).
 
 ## 2. Real-browser E2E — PASSING (2026-09-06)
 

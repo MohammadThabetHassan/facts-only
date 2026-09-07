@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { computeFlags } from "../extension/engine/sourceProfiler.js";
 import { SIGNAL_WEIGHTS } from "../extension/engine/sourceScore.js";
+import { extractArticle, stripHtml } from "../extension/engine/text.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
@@ -130,6 +131,53 @@ const WORST_CASE_HEADLINES = [
   "Who is really paying for the pipeline?"
 ];
 
+// Worst-case page BODIES, and the reason this section exists.
+//
+// Until now every row was built with `excerpt: ""`. That quietly excluded the
+// two detectors that read page text - `sponsored` and `ai-generated-text` -
+// from the headline number, so 0/111 said nothing at all about them. It was not
+// a hypothetical gap: a bare-word match on `sponsored` survived in the shipped
+// code and had to be found by hand-probing instead, and `sponsored` is
+// DECISIVE, so it produced accusations no evidence could argue down.
+//
+// So every outlet now gets a full HTML page, run through the real extraction
+// path the profiler uses. The shapes are the ones that actually caused false
+// positives: ad-slot furniture around a clean article, reporting ABOUT paid
+// placement, and an explainer quoting the AI tell-tale phrase. Worst case is
+// still the rule - every outlet is assumed to have published the trap.
+const WORST_CASE_BODIES = [
+  // 1. Ordinary reporting wrapped in the furniture of a commercial news site.
+  (title) => `<body>
+    <header><a href="/">Home</a></header>
+    <nav><a href="/sponsored">Sponsored content</a><a href="/world">World</a></nav>
+    <aside class="ad-rail"><span>Sponsored</span><p>Paid post: our partner clinic leads the region.</p></aside>
+    <main><article><h1>${title}</h1>
+      <p>Officials set out the details on Thursday, citing figures published earlier in the week.
+      Analysts said the change was widely expected and would take effect next quarter.</p>
+    </article></main>
+    <footer><p>Advertisement. Subscribe today. Sponsored by our partners.</p></footer></body>`,
+
+  // 2. An investigation into paid placement - this project's own subject matter.
+  (title) => `<body><main><article><h1>${title}</h1>
+      <p>Agencies sell sponsored placements to clients who want favourable answers from AI
+      assistants, an investigation has found. Editors said the practice of advertorial content
+      is spreading across the region.</p>
+    </article></main></body>`,
+
+  // 3. A media-literacy explainer that has to quote the phrase to explain it.
+  (title) => `<body><main><article><h1>${title}</h1>
+      <p>Researchers found hundreds of pages that open with the words
+      &ldquo;As an AI language model, I cannot verify that claim&rdquo;, left in by careless
+      operators. An advertorial is paid content designed to look like journalism.</p>
+    </article></main></body>`,
+
+  // 4. A plain article with no traps, so the corpus is not all adversarial shapes.
+  (title) => `<body><main><article><h1>${title}</h1>
+      <p>The committee published its findings after a six-month inquiry, setting out
+      recommendations that the ministry said it would consider in full.</p>
+    </article></main></body>`
+];
+
 // --- tuning / held-out split -------------------------------------------------
 //
 // SIGNAL_WEIGHTS were hand-set while looking at this corpus, which means a
@@ -160,8 +208,12 @@ const isHeldOut = (domain) => bucketOf(domain) >= 60;
 
 const fpRows = corpus.outlets.map((o, i) => {
   const title = WORST_CASE_HEADLINES[i % WORST_CASE_HEADLINES.length];
+  // Through the real extraction path, so the eval measures what the profiler
+  // will actually see rather than a hand-written excerpt.
+  const excerpt = stripHtml(extractArticle(WORST_CASE_BODIES[i % WORST_CASE_BODIES.length](title)));
   const page = asProfile({
     url: `https://${o.domain}/article`,
+    excerpt,
     siteName: o.domain,
     title,
     author: "Staff Reporter Named Person", // realistic byline
@@ -178,11 +230,29 @@ const fpRows = corpus.outlets.map((o, i) => {
     months: o.archive.months,
     score: r.score,
     level: r.level,
+    excerpt,
     accused: r.level === "high",
     warned: r.level !== "clean",
     baselineAccused: baselineFlags({ title, excerpt: "" })
   };
 });
+
+// Does the corpus actually put the page-text detectors under load? Measured
+// from the excerpts the rows were built with, so it cannot drift out of step
+// with them.
+const pageTextCoverage = (() => {
+  const excerpts = fpRows.map((r) => r.excerpt || "");
+  const withPaidBait = excerpts.filter((e) => /sponsored|advertorial|paid post/i.test(e)).length;
+  const withAiBait = excerpts.filter((e) => /as an ai language model/i.test(e)).length;
+  return {
+    withPaidBait,
+    withAiBait,
+    total: excerpts.length,
+    // Both detectors must be given something to fire on, across a real share of
+    // the corpus - one token row would satisfy the letter and not the point.
+    exercised: withPaidBait >= excerpts.length * 0.2 && withAiBait >= excerpts.length * 0.1
+  };
+})();
 
 const advRows = ADVERSARY.map((a) => {
   const r = computeFlags(asProfile({ ...a.page, archive: a.archive }));
@@ -309,9 +379,11 @@ if (JSON_OUT) {
   console.log(`\nPLACEMENT DETECTOR EVALUATION`);
   console.log(`corpus collected ${corpus.collectedAt.slice(0, 10)} · ${nAll} real publishers, real Wayback histories\n`);
 
-  console.log(`FALSE POSITIVES  \u2014 HELD-OUT SET  (worst case: every outlet given a question-shaped headline)`);
+  console.log(`FALSE POSITIVES  \u2014 HELD-OUT SET  (worst case: every outlet given a question-shaped headline AND a trap page body)`);
   console.log(`  ${nAll} publishers split by a stable hash of the domain: ${tuningRows.length} tuning, ${n} held out.`);
-  console.log(`  Weights may be informed by the tuning half only. These are the held-out numbers.\n`);
+  console.log(`  Weights may be informed by the tuning half only. These are the held-out numbers.`);
+  console.log(`  Page text is under load too: ${pageTextCoverage.withPaidBait}/${pageTextCoverage.total} rows carry paid-content bait ` +
+    `(ad furniture, or reporting about paid placement) and ${pageTextCoverage.withAiBait}/${pageTextCoverage.total} quote the AI tell-tale phrase.\n`);
   console.log(`  accused of placement   ${String(falseAccusations.length).padStart(3)}/${n}   ${pct(falseAccusations.length / n)}`);
   console.log(`  any warning at all     ${String(falseWarnings.length).padStart(3)}/${n}   ${pct(falseWarnings.length / n)}`);
   console.log(`  previous binary rule   ${String(baselineFalse.length).padStart(3)}/${n}   ${pct(baselineFalse.length / n)}   <- what this replaced`);
@@ -371,6 +443,12 @@ const GATES = [
   ["detection beats the rule it replaced", results.adversary.detectedRate > results.adversary.baselineDetectedRate],
   ["false positives beat the rule they replaced", results.legitimate.falselyAccusedRate < results.legitimate.baselineFalselyAccusedRate],
   ["other placement techniques are caught (Arabic, advertorial, AI filler, injection)", variantRows.every((v) => v.ok)],
+  // Coverage, not accuracy. The corpus used to build every row with excerpt "",
+  // which silently excluded the page-text detectors from the headline number -
+  // 0/111 was measuring less than it appeared to, and a decisive false-accusation
+  // bug lived in that blind spot until it was found by hand. This gate fails if
+  // the corpus ever stops putting those detectors under load again.
+  ["the corpus actually exercises the page-text detectors", pageTextCoverage.exercised],
   // Sensitivity is reported honestly rather than gated at zero. Scaling every
   // weight is equivalent to moving the thresholds, so borderline cases moving is
   // expected; what must NOT happen is the harmful failure becoming common, or
