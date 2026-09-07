@@ -3,7 +3,7 @@
 What has been verified, by which evidence, and what remains. This file is updated
 with each release so contributors and users can trust claims instead of assertions.
 
-Last updated: 2026-09-07 (v1.2.0 — held-out evaluation split + paid-disclosure fix)
+Last updated: 2026-09-07 (v1.3.0 — corpus 111 → 209, unread verdict, real extension checks)
 
 ## 1. Offline test suite — PASSING (165 checks)
 
@@ -105,21 +105,21 @@ Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
 
 The claim "it detects manipulation" was, until this release, an assertion. It is
 now a measurement that runs on every commit: `npm run eval`, offline and
-deterministic against `eval/corpus.json` (111 real publishers, real Wayback
+deterministic against `eval/corpus.json` (209 real publishers, real Wayback
 histories collected by `eval/collect.mjs`).
 
 | | before | after |
 | --- | --- | --- |
-| Legitimate publishers accused, held-out half | 40 / 40 (100%) | **0 / 40 (0%)** |
-| Legitimate publishers accused, whole corpus | 111 / 111 (100%) | **0 / 111 (0%)** |
+| Legitimate publishers accused, held-out half | 79 / 79 (100%) | **0 / 79 (0%)** |
+| Legitimate publishers accused, whole corpus | 209 / 209 (100%) | **0 / 209 (0%)** |
 | Adversary rungs detected below the ceiling | 1 / 8 (12.5%) | **8 / 8 (100%)** |
 
-109 of the 111 publishers are **not** on any allowlist in this repository, and
+195 of the 209 publishers are **not** on any allowlist in this repository, and
 each is scored as though it had published the exact headline shape the detector
 hunts for — a harder test than reality. 22 of them are real research institutions
 whose names deliberately trip the "self-described think tank" heuristic; all 22
-score clean. One outlet (an alias hostname with no archive record at all) draws a
-caution; it is documented rather than curated away.
+score clean. Two outlets whose hostnames the archive barely covers draw a caution; both are
+documented rather than curated away.
 
 Five thresholds gate CI, including "no legitimate publisher is accused of
 placement". Full method, corpus criteria, adversary ladder and the documented

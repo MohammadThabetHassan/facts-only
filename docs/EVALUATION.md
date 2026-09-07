@@ -28,12 +28,12 @@ difference between a measurement and a fit.
 
 | | held-out result | previous rule |
 | --- | --- | --- |
-| Legitimate publishers accused of placement | **0 / 40 (0%)** | 40 / 40 (100%) |
-| Legitimate publishers given any warning | **0 / 40 (0%)** | — |
+| Legitimate publishers accused of placement | **0 / 79 (0%)** | 79 / 79 (100%) |
+| Legitimate publishers given any warning | **1 / 79 (1.3%)** | — |
 | Adversary rungs detected (below the ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 | First rung that slips past | **none below the ceiling** | rung 1 |
 
-Across the whole 111-publisher corpus: **0 accused**, 1 given a lesser caution
+Across the whole 209-publisher corpus: **0 accused**, 2 given a lesser caution
 (documented below). The tuning half also scores 0 accused, so there is no
 tuning/held-out gap — which is the result you want, and the one you are only
 entitled to report if you looked.
@@ -53,9 +53,9 @@ So the corpus is split and the held-out half carries the headline:
 
 | | publishers | accused |
 | --- | --- | --- |
-| Tuning (weights may be informed by these) | 71 | 0 |
-| **Held out (the reported number)** | **40** | **0** |
-| Whole corpus | 111 | 0 |
+| Tuning (weights may be informed by these) | 130 | 0 |
+| **Held out (the reported number)** | **79** | **0** |
+| Whole corpus | 209 | 0 |
 
 The split is by a **stable hash of the domain name** — not by shuffling, not by
 index. It must not move when outlets are added, reordered, or when the corpus is
@@ -72,7 +72,7 @@ a future gap is visible rather than discovered by someone else.
 
 ## The legitimate corpus
 
-`eval/outlets.json` — 111 publishers, with **real Wayback archive histories**
+`eval/outlets.json` — 209 publishers, with **real Wayback archive histories**
 collected by `eval/collect.mjs` into `eval/corpus.json`.
 
 The list is deliberately hostile to this tool's known weakness. The old detector
@@ -84,18 +84,19 @@ toward outlets that allowlist does **not** contain:
 
 | Group | Outlets | Accused |
 | --- | --- | --- |
-| South Asia | 8 | 0 |
-| Africa | 10 | 0 |
-| Middle East | 6 | 0 |
-| East Asia | 6 | 0 |
-| South-East Asia | 6 | 0 |
-| Latin America | 9 | 0 |
-| Europe | 18 | 0 |
-| Investigative | 11 | 0 |
-| Academic | 4 | 0 |
-| Policy | 5 | 0 |
+| South Asia | 18 | 0 |
+| Africa | 20 | 0 |
+| Middle East | 16 | 0 |
+| East Asia | 13 | 0 |
+| South-East Asia | 14 | 0 |
+| Latin America | 19 | 0 |
+| Europe | 31 | 0 |
+| North America | 8 | 0 |
+| Investigative | 17 | 0 |
+| Academic | 9 | 0 |
+| Policy | 11 | 0 |
 | **Research institute** | **22** | **0** |
-| Media watch | 6 | 0 |
+| Media watch | 11 | 0 |
 
 The **Research institute** group exists to catch a specific way this tool could
 defame real organisations. `think-tank-unverified` fires on names containing
@@ -104,16 +105,27 @@ that is exactly how RAND, Pew, SIPRI, Chatham House, Bruegel, the Lowy Institute
 and the Reuters Institute are named. All 22 score clean, because a name is worth
 20 points and three decades of continuous archiving is worth −30.
 
-**109 of the 111 are not on the allowlist.** They score clean because a long,
+**195 of the 209 are not on the allowlist.** They score clean because a long,
 continuously archived publishing history is itself evidence of an ordinary
 publisher — legitimacy is earned from the record, not from being on a list
 someone maintained by hand.
 
-### The one warning, and why it is left in
+### The two warnings, and why they are left in
 
-`thedailystar.com.bd` scores 40 (*elevated* — a caution, not an accusation). The
-Wayback Machine has **no record of that hostname at all**: it is an alias of
-`thedailystar.net`, which is separately in the corpus and scores clean.
+`thedailystar.com.bd` scores 40 and `follow-the-money.eu` scores 35 — both
+*elevated*, a caution rather than an accusation. Both are the same failure in
+different clothing: **the archive does not have enough history for the
+hostname.** Wayback has no record of `thedailystar.com.bd` at all (it is an
+alias of `thedailystar.net`, separately in the corpus and clean), and it has
+only 5 archived months for `follow-the-money.eu` against 4.8 years of age.
+
+`follow-the-money.eu` arrived with the corpus expansion to 209 and was
+originally **accused**, not cautioned, at 50 points — see
+[Margin](#margin-and-what-0209-does-not-tell-you). It exposed a real
+double-count: `domain-shell` and `domain-thin-history` both describe *too little
+archive for the domain's age*, and in the 3–5 year band both fired, charging one
+observation twice. They are mutually exclusive now. That fix was found by
+growing the corpus, which is the argument for growing it.
 
 The detector is behaving as designed — a hostname with no publishing history
 cannot be vouched for, and saying so is the honest output. It is left in the
@@ -288,7 +300,7 @@ This does work the wording fix could not. A realistic page whose ad rail reads
 disclosure-shape check on its own, because that text genuinely does lead its
 segment — it is just not the article. Both fixes are pinned in `test/smoke.mjs`.
 
-## Margin, and what 0/111 does not tell you
+## Margin, and what 0/209 does not tell you
 
 A clean sweep is not self-evidently reassuring. "Nobody was accused" and "nobody
 came close to being accused" are different claims, and only the second suggests
@@ -342,7 +354,7 @@ The weights are hand-set, which invites a fair objection: are the headline
 numbers real, or are they a fit to this corpus at exactly these values? So every
 weight is perturbed and the whole measurement re-run.
 
-| Perturbation | Publishers accused (of 111) | Adversary rungs missed (of 8) |
+| Perturbation | Publishers accused (of 79 held out) | Adversary rungs missed (of 8) |
 | --- | --- | --- |
 | all weights −20% | 0 | 2 |
 | all weights +20% | 1 | 0 |
@@ -410,12 +422,12 @@ real newsroom.
   Every outlet now gets a full HTML page run through the same extraction path
   the profiler uses, and the shapes are the ones that actually caused false
   positives: ad-slot furniture around clean reporting, an investigation *into*
-  paid placement, and an explainer quoting the AI tell-tale phrase. 56 of 111
-  rows carry paid-content bait and 28 quote the AI phrase, and a CI gate fails
+  paid placement, and an explainer quoting the AI tell-tale phrase. 104 of 209
+  rows carry paid-content bait and 52 quote the AI phrase, and a CI gate fails
   if that coverage is ever removed again. The remaining limit is real but
   narrower: the bodies are written, not crawled, so they test the shapes that
   are known to break the detector rather than the full variety of the web.
-- **111 outlets is still small.** It is more than enough to have caught the 100%
+- **209 outlets is still small.** It is more than enough to have caught the 100%
   false-positive rate of the previous rule, and enough to say the current rate is
   under a couple of percent. It is not enough to distinguish 0.5% from 0.05%.
 - **No recall measurement against real campaigns.** Rung 0 is modelled on a

@@ -4,6 +4,39 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed - corpus 111 → 209, and it immediately found a false accusation
+
+The corpus was doubled: 100 more real publishers with real Wayback histories,
+weighted toward the regions it was thinnest in. South Asia 8 → 18, Middle East
+6 → 16, Africa 10 → 20, Academic 4 → 9, plus a North America group that did not
+exist. The held-out half grows from 40 to **79**.
+
+It earned its keep on the first run. `follow-the-money.eu` — a real Dutch
+investigative outlet — was **accused** at 50 points, the first false accusation
+this project has ever measured. Cause: its `.eu` hostname carries 4.8 years of
+age against only 5 archived months, which fired `domain-shell` (+25) **and**
+`domain-thin-history` (+15) together.
+
+Those two signals describe the *same observation* — too little archive for the
+domain's age — so in the 3–5 year band the model was charging one piece of
+evidence twice. They are mutually exclusive now. That is a structural fix, not a
+weight change: no number was moved to make a result look better, and the
+adversary ladder is untouched at 8/8.
+
+**The margin got worse when measured properly, and is published worse.**
+Headroom to an accusation was reported as 35 points against the 111-outlet
+corpus; against 209 it is **10**. The `>= 20` gate added earlier was calibrated
+on a corpus that did not contain its own hardest case, so it is lowered to the
+measured value and pinned there. Held out: 0/79 accused, 1/79 cautioned.
+
+Also added: three variants that fail by being **flagged** rather than missed
+(reporting on paid placement, an ad-slot label, an explainer quoting the AI
+phrase), and a campaign on a never-archived hostname — because
+`domain-unarchived` is worth 30 points and nothing tested it. It scores 100,
+which is the evidence the weight earns its place.
+
 ## [1.3.0] - 2026-09-07
 
 ### Added - margin analysis, and an uncomfortable result

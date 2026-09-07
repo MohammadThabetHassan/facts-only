@@ -130,11 +130,19 @@ export function archiveSignals(archive) {
   else if (years < 1) out.push("domain-new");
   else if (years < 3) out.push("domain-recent");
 
-  if (years >= 3 && months < SHELL_MONTHS) out.push("domain-shell");
+  const shell = years >= 3 && months < SHELL_MONTHS;
+  if (shell) out.push("domain-shell");
   if (years >= 5 && months >= SUSTAINED_MONTHS) out.push("domain-long-history");
   // Sporadic coverage for its age: real outlets of the same vintage are
   // archived most months. Only meaningful once there is an age to compare to.
-  if (years >= 1 && years < 5 && months * 3 < ageDays / 30) out.push("domain-thin-history");
+  //
+  // Mutually exclusive with domain-shell, because both describe the SAME
+  // observation - too little archive for the domain's age - and emitting both
+  // charges one piece of evidence twice. In the 3-5 year band they overlapped
+  // and stacked to +40, which is what accused follow-the-money.eu: a real
+  // investigative outlet whose .eu hostname has 4.8 years and 5 archived
+  // months. Found by growing the corpus, not by inspection.
+  if (!shell && years >= 1 && years < 5 && months * 3 < ageDays / 30) out.push("domain-thin-history");
 
   return out;
 }

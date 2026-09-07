@@ -12,9 +12,9 @@ Independent evidence search · claim-by-claim verdicts · manipulation-pattern s
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
-![Tests: 147 offline checks](https://img.shields.io/badge/tests-147%20offline%20checks-brightgreen)
-![False positives: 0 of 111](https://img.shields.io/badge/false%20positives-0%20%2F%20111%20publishers-brightgreen)
-![Held-out: 0 of 40](https://img.shields.io/badge/held--out-0%20%2F%2040%20accused-brightgreen)
+![Tests: 165 offline checks](https://img.shields.io/badge/tests-165%20offline%20checks-brightgreen)
+![False positives: 0 of 209](https://img.shields.io/badge/false%20positives-0%20%2F%20209%20publishers-brightgreen)
+![Held-out: 0 of 79](https://img.shields.io/badge/held--out-0%20%2F%2079%20accused-brightgreen)
 
 </div>
 
@@ -57,18 +57,18 @@ on a real newsroom.
 | Adversary rungs detected (below the stated ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 
 The weights were hand-set against this corpus, so the headline is measured on a
-**held-out half** the tuning never touched — 40 publishers, split by a stable hash
+**held-out half** the tuning never touched — 79 publishers, split by a stable hash
 of the domain so the split cannot drift toward whatever flatters the result.
-Across the whole corpus it is also 0 accused of 111, and the tuning half scores
+Across the whole corpus it is also 0 accused of 209, and the tuning half scores
 the same, so there is no overfitting gap. The tuning number stays printed beside
 it so a future gap is visible.
 
-The 111 publishers carry **real Wayback histories** and are chosen to be hostile
+The 209 publishers carry **real Wayback histories** and are chosen to be hostile
 to this tool's known weaknesses: weighted toward the press no allowlist covers
 (South Asian, African, Middle Eastern, Latin American, South-East Asian,
 independent investigative), plus **22 real research institutions whose names trip
 the "self-described think tank" heuristic on purpose** — RAND, Pew, SIPRI,
-Chatham House, Bruegel, the Lowy Institute. **109 of the 111 are not on any list
+Chatham House, Bruegel, the Lowy Institute. **195 of the 209 are not on any list
 inside this repo**; they score clean because a long, continuously archived
 publishing record is itself evidence of an ordinary publisher. Each one is scored
 as though it had published the exact headline shape the detector hunts for, which
