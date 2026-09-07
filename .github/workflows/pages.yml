@@ -26,6 +26,12 @@ concurrency:
 
 jobs:
   deploy:
+    # Pages is not available to a private repository on a free plan, so on one
+    # this job cannot succeed - configure-pages 404s on "Get Pages site" and the
+    # run goes red for a reason that is not a defect. Skipping while private
+    # reports that honestly (neutral, not failed) and starts deploying by itself
+    # the moment the repository is made public.
+    if: github.event.repository.visibility == 'public'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -43,7 +49,11 @@ jobs:
           # Land visitors on the app rather than a directory listing.
           printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./webapp/index.html"><title>Facts Only</title><a href="./webapp/index.html">Facts Only</a>' > _site/index.html
 
+      # enablement turns Pages on via the API on first run, so publishing needs
+      # no visit to Settings -> Pages -> Source.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
