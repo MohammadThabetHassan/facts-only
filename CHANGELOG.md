@@ -27,6 +27,28 @@ gap is visible rather than found by someone else, and the discipline is written
 down: weights may be informed by the tuning half, and a worse held-out number
 gets published worse.
 
+### Added - the extension is now actually tested, not skipped
+
+The one check that mattered most had never run. `test/e2e.mjs` reported SKIP for
+the unpacked extension because Chrome removed the `--load-extension` switch
+(~M137) — accepted and silently ignored, headed and headless alike, with the
+`DisableLoadExtensionCommandLineSwitch` escape hatch also gone.
+
+CDP's `Extensions.loadUnpacked` is the supported replacement and works headless.
+The suite now loads the real extension, drives its own pages under the
+`chrome-extension://` origin, and asks the **running** extension what
+permissions it holds — still over a raw WebSocket rather than adding Puppeteer.
+
+Observed on Chrome 152, not inferred from the manifest:
+`contains({origins:['<all_urls>']})` is **false** at install, `host_permissions`
+is **empty**, and the only granted origins are the six named chatbot hosts.
+"We only ask for host access when you click" is now measured.
+
+E2E goes from 15 checks with 1 skip to **23 checks with no skips**, and the
+"verified only by hand" entry for the extension origin comes off
+`docs/VERIFICATION.md`. The lint gate caught the dead `unpackedExtensionId`
+helper the rewrite orphaned.
+
 ### Fixed - a known publisher is no longer an all-clear for an unread page
 
 Found by driving the deployed web app, not by reading code. Two allowlisted

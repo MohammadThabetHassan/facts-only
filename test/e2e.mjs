@@ -19,13 +19,12 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { extname, join, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
-import { createHash } from "node:crypto";
 
 const execFileAsync = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -77,47 +76,108 @@ function serve() {
   return new Promise((resolve) => server.listen(PORT, "127.0.0.1", () => resolve(server)));
 }
 
-// Chrome derives an unpacked extension's ID from the SHA-256 of its absolute
-// path: the first 32 hex characters, each mapped 0-f -> a-p. Knowing it lets us
-// address the extension's own pages without a UI.
-function unpackedExtensionId(dir) {
-  const hex = createHash("sha256").update(dir, "utf8").digest("hex").slice(0, 32);
-  return [...hex].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join("");
-}
-
-// Load the REAL extension and render one of its pages under the
-// chrome-extension:// origin.
+// Load the REAL extension and drive its own pages under the chrome-extension://
+// origin.
 //
 // This is not the same test as the localhost one above, and that is the point:
 // extension pages run under the Manifest V3 content security policy, which is
 // far stricter than http://localhost. A page that works when served over HTTP
-// can still be refused here - and a manifest that Chrome rejects outright
-// produces an extension that simply is not there, which no amount of unit
-// testing catches.
-async function extensionDom(browser, page) {
+// can still be refused here - and a manifest Chrome rejects outright produces
+// an extension that simply is not there, which no unit test catches.
+//
+// It also asks the running extension what permissions it actually holds, which
+// is the only way to prove the install prompt does not request all sites. The
+// manifest is a claim; this is the observation.
+//
+// Chrome removed the --load-extension switch around M137, which is why this
+// check reported SKIP for so long: the flag was accepted and silently ignored,
+// and every chrome-extension:// URL served an error page. CDP's
+// Extensions.loadUnpacked is the supported replacement, it works headless, and
+// the check runs for real now.
+//
+// Still written against the raw protocol over a WebSocket rather than pulling
+// in Puppeteer - the zero-dependency promise applies to the test suite too.
+async function openExtension(browser) {
   const extDir = join(ROOT, "extension");
-  const id = unpackedExtensionId(extDir);
   const profile = await mkdtemp(join(tmpdir(), "fo-ext-"));
-  try {
-    const { stdout } = await execFileAsync(
-      browser,
-      [
-        "--headless=new",
-        "--disable-gpu",
-        "--no-sandbox",
-        `--user-data-dir=${profile}`,
-        `--load-extension=${extDir}`,
-        `--disable-extensions-except=${extDir}`,
-        "--virtual-time-budget=15000",
-        "--dump-dom",
-        `chrome-extension://${id}/${page}`
-      ],
-      { maxBuffer: 32 * 1024 * 1024, timeout: 180000 }
-    );
-    return stdout;
-  } finally {
-    await rm(profile, { recursive: true, force: true }).catch(() => {});
+  const port = 9222 + (process.pid % 200);
+  const proc = spawn(browser, [
+    "--headless=new", "--disable-gpu", "--no-sandbox",
+    `--user-data-dir=${profile}`, `--remote-debugging-port=${port}`,
+    "--no-first-run", "--no-default-browser-check",
+    // Required companion flag for driving extensions over CDP.
+    "--enable-unsafe-extension-debugging",
+    "about:blank"
+  ], { stdio: "ignore" });
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let version = null;
+  for (let i = 0; i < 60; i++) {
+    try {
+      version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
+      if (version.webSocketDebuggerUrl) break;
+    } catch { /* not listening yet */ }
+    await sleep(500);
   }
+
+  const cleanup = async () => {
+    proc.kill();
+    await sleep(500);
+    await rm(profile, { recursive: true, force: true }).catch(() => {});
+  };
+  if (!version?.webSocketDebuggerUrl) {
+    await cleanup();
+    return null;
+  }
+
+  const ws = new WebSocket(version.webSocketDebuggerUrl);
+  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error("ws failed")); });
+
+  let msgId = 0;
+  const send = (method, params, sessionId) => new Promise((res, rej) => {
+    const n = ++msgId;
+    const timer = setTimeout(() => rej(new Error(`timeout: ${method}`)), 45000);
+    const on = (m) => {
+      const msg = JSON.parse(m.data);
+      if (msg.id !== n) return;
+      clearTimeout(timer);
+      ws.removeEventListener("message", on);
+      msg.error ? rej(new Error(`${method}: ${msg.error.message}`)) : res(msg.result);
+    };
+    ws.addEventListener("message", on);
+    ws.send(JSON.stringify({ id: n, method, params, sessionId }));
+  });
+
+  let extId;
+  try {
+    ({ id: extId } = await send("Extensions.loadUnpacked", { path: extDir }));
+  } catch (e) {
+    try { ws.close(); } catch { /* already closing */ }
+    await cleanup();
+    return { unsupported: e.message };
+  }
+
+  return {
+    extId,
+    // Open one of the extension's own pages and evaluate inside it.
+    async evaluate(page, expression) {
+      const { targetId } = await send("Target.createTarget", { url: `chrome-extension://${extId}/${page}` });
+      const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
+      await send("Runtime.enable", {}, sessionId);
+      await sleep(2500);
+      try {
+        const r = await send("Runtime.evaluate",
+          { expression, awaitPromise: true, returnByValue: true }, sessionId);
+        return r.result?.value;
+      } finally {
+        await send("Target.closeTarget", { targetId }).catch(() => {});
+      }
+    },
+    async close() {
+      try { ws.close(); } catch { /* already closing */ }
+      await cleanup();
+    }
+  };
 }
 
 async function domOf(browser, path) {
@@ -206,22 +266,59 @@ try {
   // (which would be blaming the code for the environment). This path then stays
   // on the manual checklist in docs/VERIFICATION.md.
   console.log("\nreal extension, loaded unpacked:");
-  const extPanel = await extensionDom(browser, "panel/panel.html");
-  if (!/Facts Only/.test(extPanel)) {
+  const ext = await openExtension(browser);
+  if (!ext || ext.unsupported) {
     skipped++;
-    console.log("  SKIP  headless Chrome did not load the unpacked extension in this environment");
-    console.log("        -> the extension origin is UNVERIFIED here; check it manually:");
-    console.log("           chrome://extensions -> Developer mode -> Load unpacked -> extension/");
+    console.log(`  SKIP  this Chrome cannot load an unpacked extension over CDP${ext?.unsupported ? ` (${ext.unsupported})` : ""}`);
+    console.log("        -> Extensions.loadUnpacked needs a recent Chrome; the extension origin is");
+    console.log("           UNVERIFIED here. Check manually: chrome://extensions -> Developer mode");
+    console.log("           -> Load unpacked -> extension/");
   } else {
-    check("Chrome accepts the manifest and serves the extension's own pages",
-      /Facts Only/.test(extPanel));
-    check("the ES module graph resolves under the MV3 content security policy",
-      /id="sources"/.test(extPanel) && /id="settings"/.test(extPanel));
+    try {
+      const panel = JSON.parse(await ext.evaluate("panel/panel.html", `(async () => JSON.stringify({
+        origin: location.origin,
+        title: document.title,
+        brand: /Facts Only/.test(document.body.innerText + document.title),
+        // Queried from the live DOM, not matched against a truncated HTML
+        // string: these ids only exist if the module graph actually ran.
+        hasSources: !!document.getElementById('sources'),
+        hasSettings: !!document.getElementById('settings'),
+        hasRun: !!document.getElementById('run'),
+        granted: await new Promise(r => chrome.permissions.getAll(p => r(p))),
+        hasAllUrls: await new Promise(r => chrome.permissions.contains({origins:['<all_urls>']}, c => r(c))),
+        manifestHosts: chrome.runtime.getManifest().host_permissions || [],
+        optionalHosts: chrome.runtime.getManifest().optional_host_permissions || []
+      }))()`));
 
-    const extPopup = await extensionDom(browser, "popup/popup.html");
-    check("the toolbar popup renders", /Facts Only/.test(extPopup));
-    check("the popup leads with the no-key path, not an API-key wall",
-      /No API key needed/i.test(extPopup), extPopup.slice(0, 300));
+      check("Chrome accepts the manifest and serves the extension's own pages",
+        panel.origin === `chrome-extension://${ext.extId}` && panel.brand,
+        `origin=${panel.origin}`);
+      check("the ES module graph resolves under the MV3 content security policy",
+        panel.hasSources && panel.hasSettings && panel.hasRun,
+        `sources=${panel.hasSources} settings=${panel.hasSettings} run=${panel.hasRun}`);
+
+      // The permission model, checked against a running extension rather than
+      // against the manifest text. Requesting <all_urls> up front is the
+      // difference between a store review that passes and one that does not,
+      // and "we only ask when you click" is a claim worth proving.
+      check("installing does NOT grant access to all sites",
+        panel.hasAllUrls === false,
+        `granted origins = ${JSON.stringify(panel.granted.origins)}`);
+      check("the manifest requires no host permissions at install",
+        panel.manifestHosts.length === 0, JSON.stringify(panel.manifestHosts));
+      check("<all_urls> is optional, so it must be requested at point of use",
+        (panel.optionalHosts || []).includes("<all_urls>"));
+      check("install-time origins are the named chatbot hosts only",
+        (panel.granted.origins || []).every((o) => /chatgpt|openai|gemini|claude|perplexity/.test(o)),
+        JSON.stringify(panel.granted.origins));
+
+      const popup = await ext.evaluate("popup/popup.html", "document.documentElement.outerHTML.slice(0, 4000)");
+      check("the toolbar popup renders", /Facts Only/.test(popup));
+      check("the popup leads with the no-key path, not an API-key wall",
+        /No API key needed/i.test(popup), String(popup).slice(0, 300));
+    } finally {
+      await ext.close();
+    }
   }
 } finally {
   server.close();

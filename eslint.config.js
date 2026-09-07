@@ -39,6 +39,10 @@ export default [
         localStorage: "readonly",
         sessionStorage: "readonly",
         MutationObserver: "readonly",
+        // Node 22 and every target browser ship WebSocket globally; the E2E
+        // suite speaks the DevTools Protocol over it rather than adding a
+        // dependency for it.
+        WebSocket: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
         console: "readonly",

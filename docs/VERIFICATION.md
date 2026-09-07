@@ -32,10 +32,18 @@ still caught; fallback to the whole page when no article is identifiable) ·
 the unread verdict (a recognised publisher whose page could not be opened is
 reported as "we could not open the pages", never as an all-clear).
 
-## 2. Real-browser E2E — PASSING (2026-09-06)
+## 2. Real-browser E2E — PASSING (23 checks, no skips, 2026-09-07)
 
-Executed in the ZCode in-app browser and in a real Chrome instance (temporary
-profile), driving the actual UI rather than unit shims:
+Executed in headless Chrome against a temporary profile, driving the actual UI
+rather than unit shims. Eight of these run inside the **real unpacked
+extension**, loaded over CDP (`Extensions.loadUnpacked`) — including the live
+permission read that shows the install prompt asks for no host access.
+
+Also verified against the **deployed** site at
+`https://mohammadthabethassan.github.io/facts-only/`: the demo report renders
+(4,534 chars, correct verdict, names the planted source) and the keyless check
+runs over the real network against real domains, reporting "NOT verified"
+honestly with zero console errors.
 
 | Flow | Result |
 | --- | --- |
@@ -123,26 +131,28 @@ refuses to do, so the negative class is synthetic and labelled as such.
 
 ## 6. Still verified only by hand
 
-- **The extension origin.** Everything the automated E2E suite drives is served
-  over HTTP. Extension pages run under the Manifest V3 content security policy,
-  which is stricter. `test/e2e.mjs` contains the check and will run it wherever
-  the browser cooperates. It cannot run on the development machine, and the
-  reason is now specific rather than "some builds": **Chrome removed the
-  `--load-extension` switch outright** (~M137). Chrome 152 here ignores it in
-  headed and headless mode alike, and the
-  `--disable-features=DisableLoadExtensionCommandLineSwitch` escape hatch is gone
-  too — a CDP probe against a freshly launched Chrome 152 saw only the two
-  built-in component extensions and no `chrome-extension://` origin of ours. The
-  suite reports **SKIP** rather than passing, because a check that cannot run is
-  not a check that passed.
+- ~~**The extension origin.**~~ **Now automated — see section 2.** This entry
+  read "verified only by hand" for as long as the suite reported SKIP, and the
+  reason was real: Chrome removed the `--load-extension` switch outright
+  (~M137), ignoring it headed and headless alike, with the
+  `--disable-features=DisableLoadExtensionCommandLineSwitch` escape hatch gone
+  too. A CDP probe against Chrome 152 saw only the two built-in component
+  extensions.
 
-  Two of the three claims below are nonetheless pinned without a browser:
-  `manifest.json` declares **no** `host_permissions` and lists `<all_urls>` only
-  under `optional_host_permissions`, so the install prompt cannot ask for all
-  sites; and the offline suite asserts that a run with `fetchSources: false`
-  reports "could not check" rather than clean. What genuinely needs a human is
-  the middle claim — that the runtime `chrome.permissions.request()` prompt
-  actually appears on the click that needs it.
+  CDP's `Extensions.loadUnpacked` is the supported replacement and works
+  headless. `test/e2e.mjs` now loads the real extension, opens its own pages
+  under the `chrome-extension://` origin, and asks the running extension what
+  permissions it holds — 8 checks, no skip. Observed on Chrome 152:
+  `chrome.permissions.contains({origins:['<all_urls>']})` is **false** at
+  install, `host_permissions` is **empty**, and the only granted origins are the
+  six named chatbot hosts the content script declares. The install prompt cannot
+  ask for all sites, and that is now measured rather than argued from the
+  manifest.
+
+  What still needs a human is narrower than it was: whether the runtime
+  `chrome.permissions.request()` prompt visibly appears on the click that needs
+  it. The refusal path either way — a run with `fetchSources: false` reporting
+  "could not check" rather than clean — is asserted offline.
 
   Until it runs somewhere, this is a manual step before any release:
   `chrome://extensions` → Developer mode → Load unpacked → `extension/`, then
