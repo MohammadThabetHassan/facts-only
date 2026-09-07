@@ -27,6 +27,28 @@ gap is visible rather than found by someone else, and the discipline is written
 down: weights may be informed by the tuning half, and a worse held-out number
 gets published worse.
 
+### Added - margin analysis, and an uncomfortable result
+
+0/111 stays true right up until a weight change pushes a real publisher one
+point over, and an outcome-only gate cannot see that coming. The eval now
+reports the distance between the legitimate population and the accusation line.
+
+Headroom is **5 points** including `thedailystar.com.bd` — the documented
+unarchived alias that carries +30 for having no Wayback record — and **35**
+without it. Both are printed: quoting only the first blames the model for a
+known input, quoting only the second is curating until the number flatters. A
+gate holds the archived figure at ≥ 20.
+
+The uncomfortable part: **the two populations overlap.** The weakest *detected*
+adversary rung scores 24, below the worst legitimate publisher at 40. There is
+no score at which placement and publisher cleanly separate — detection of the
+top rungs relies on the warning threshold at 22, not on distance, and the only
+reason no real outlet is accused is that accusation sits at 45 above both.
+
+Stated plainly in `docs/EVALUATION.md` rather than left for a reader to derive:
+the model separates well at the accusation threshold and poorly at the warning
+threshold, so *elevated* means "look closer" and never a soft accusation.
+
 ### Added - the extension is now actually tested, not skipped
 
 The one check that mattered most had never run. `test/e2e.mjs` reported SKIP for

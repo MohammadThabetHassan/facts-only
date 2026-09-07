@@ -264,6 +264,43 @@ This does work the wording fix could not. A realistic page whose ad rail reads
 disclosure-shape check on its own, because that text genuinely does lead its
 segment — it is just not the article. Both fixes are pinned in `test/smoke.mjs`.
 
+## Margin, and what 0/111 does not tell you
+
+A clean sweep is not self-evidently reassuring. "Nobody was accused" and "nobody
+came close to being accused" are different claims, and only the second suggests
+the result would survive a corpus slightly unlike this one. So the eval now
+prints the distance between the legitimate population and the line.
+
+| | Score |
+| --- | --- |
+| Accusation threshold | 45 |
+| Warning threshold | 22 |
+| Median legitimate publisher | −20 |
+| Worst legitimate publisher | 40 (`thedailystar.com.bd`, the unarchived alias) |
+| Worst **archived** publisher | 10 |
+| Weakest **detected** adversary rung | 24 |
+
+Two things fall out of this, and the second is uncomfortable.
+
+**Headroom is 5 points including the alias, 35 without it.** Both are printed.
+Quoting only the first would blame the scoring model for a documented input
+problem; quoting only the second would be curating the corpus until the number
+flatters. A CI gate holds the archived figure at ≥ 20, so a future weight change
+that quietly erodes separation fails the build instead of being noticed later.
+
+**The two populations overlap.** The weakest detected adversary rung scores 24 —
+*below* the worst legitimate publisher at 40. There is no score at which
+"placement" and "publisher" cleanly separate, and detection of the top rungs
+depends on the warning threshold at 22, not on distance. The reason no real
+outlet is accused is that the accusation threshold sits at 45, above both.
+
+That is a genuine limitation of a linear additive score over these signals, and
+it is stated here rather than left for a reader to derive: **the model separates
+well at the accusation threshold and poorly at the warning threshold.** The
+practical consequence is that *elevated* should be read as "look closer", never
+as a soft accusation — which is what the plain-language wording already does,
+now for a measured reason rather than an intuition.
+
 ## Weight sensitivity
 
 The weights are hand-set, which invites a fair objection: are the headline

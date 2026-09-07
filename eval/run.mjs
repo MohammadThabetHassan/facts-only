@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { computeFlags } from "../extension/engine/sourceProfiler.js";
-import { SIGNAL_WEIGHTS } from "../extension/engine/sourceScore.js";
+import { SIGNAL_WEIGHTS, HIGH_RISK_AT, ELEVATED_AT } from "../extension/engine/sourceScore.js";
 import { extractArticle, stripHtml } from "../extension/engine/text.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -345,8 +345,51 @@ const detected = scored.filter((a) => a.detected);
 const caught = scored.filter((a) => a.caught);
 const baselineDetected = scored.filter((a) => a.baselineCaught);
 
+// --- margin, and why a clean sweep is not automatically reassuring ----------
+//
+// 0/111 accused is the headline, but on its own it cannot distinguish a
+// well-separated model from one sitting a single point below the threshold on
+// every row. "Nobody was accused" and "nobody came close to being accused" are
+// different claims, and only the second says the result would survive a corpus
+// slightly unlike this one.
+//
+// So: how much headroom is there between the worst-scoring legitimate publisher
+// and the line at which the tool starts accusing?
+// Reported twice, deliberately. One corpus entry - thedailystar.com.bd, an
+// alias hostname the Wayback Machine has no record of - carries +30 for being
+// unarchived and dominates the worst case. It is left in the corpus on purpose
+// (see EVALUATION.md), so the headline margin includes it. But quoting only
+// that number would misattribute the tightness to the scoring model when it
+// comes from a known and documented input, so the archived-only figure is
+// printed beside it. Neither is the "real" one; the pair is the finding.
+const legitScores = fpRows.map((r) => r.score).sort((a, b) => a - b);
+const archivedRows = fpRows.filter((r) => r.months > 0);
+const archivedScores = archivedRows.map((r) => r.score).sort((a, b) => a - b);
+const worstLegit = legitScores[legitScores.length - 1];
+const worstArchived = archivedScores[archivedScores.length - 1];
+const median = legitScores[Math.floor(legitScores.length / 2)];
+const nearestAccusation = fpRows
+  .slice()
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 3)
+  .map((r) => ({ domain: r.domain, score: r.score }));
+const margin = {
+  worstLegitScore: worstLegit,
+  worstArchivedScore: worstArchived,
+  medianLegitScore: median,
+  accuseAt: HIGH_RISK_AT,
+  warnAt: ELEVATED_AT,
+  headroomToAccusation: HIGH_RISK_AT - worstLegit,
+  headroomExcludingUnarchived: HIGH_RISK_AT - worstArchived,
+  unarchivedInCorpus: fpRows.length - archivedRows.length,
+  // The tightest adversary rung below the ceiling, for the other side of the gap.
+  weakestDetectedRung: Math.min(...scored.filter((a) => a.detected).map((a) => a.score)),
+  nearestAccusation
+};
+
 const results = {
   corpusCollectedAt: corpus.collectedAt,
+  margin,
   legitimate: {
     n,
     corpusTotal: nAll,
@@ -396,6 +439,14 @@ if (JSON_OUT) {
   console.log(`    whole corpus accused   ${String(allAccused.length).padStart(3)}/${nAll}   ${pct(allAccused.length / nAll)}`);
   console.log(`    whole corpus warned    ${String(fpRows.filter((r) => r.warned).length).padStart(3)}/${nAll}   ${pct(fpRows.filter((r) => r.warned).length / nAll)}`);
   console.log(`    a large tuning/held-out gap would be the overfitting signal.`);
+
+  console.log(`\n  MARGIN  (well separated, or one point below the line?)`);
+  console.log(`    accuse at ${margin.accuseAt}, warn at ${margin.warnAt}. Legitimate scores: median ${margin.medianLegitScore}, worst ${margin.worstLegitScore}.`);
+  console.log(`    headroom to an accusation: ${margin.headroomToAccusation} points (${margin.headroomExcludingUnarchived} excluding the ${margin.unarchivedInCorpus} unarchived alias, worst archived ${margin.worstArchivedScore})`);
+  console.log(`    closest to the line: ${margin.nearestAccusation.map((x) => `${x.domain} (${x.score})`).join(", ")}`);
+  console.log(`    weakest DETECTED adversary rung scores ${margin.weakestDetectedRung}, BELOW the worst legitimate score.`);
+  console.log(`    So the bands overlap: detection of the top rungs relies on the warn threshold (${margin.warnAt}),`);
+  console.log(`    not on separation. No legitimate publisher is accused, but "not accused" is not "well separated".`);
 
   console.log(`\n  by region (whole corpus):`);
   const regions = [...new Set(fpRows.map((r) => r.region))];
@@ -449,6 +500,13 @@ const GATES = [
   // bug lived in that blind spot until it was found by hand. This gate fails if
   // the corpus ever stops putting those detectors under load again.
   ["the corpus actually exercises the page-text detectors", pageTextCoverage.exercised],
+  // Margin, not just outcome. 0/111 stays true right up until a weight change
+  // pushes a real publisher one point over, and the outcome gate would not see
+  // it coming. Archived outlets - the ones whose score reflects the model
+  // rather than a missing Wayback record - must keep real distance from the
+  // accusation threshold.
+  ["archived publishers keep >= 20 points of headroom before accusation",
+    margin.headroomExcludingUnarchived >= 20],
   // Sensitivity is reported honestly rather than gated at zero. Scaling every
   // weight is equivalent to moving the thresholds, so borderline cases moving is
   // expected; what must NOT happen is the harmful failure becoming common, or
