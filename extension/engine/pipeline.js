@@ -26,17 +26,81 @@ export const TRUST_SIGNALS = {
 // Weighted aggregation: confidence and verdict feed a 0..1 support score.
 // Exported for tests — the thresholds and the decision order are part of the
 // product's public contract (see docs/ARCHITECTURE.md).
-export function computeTrustSignal(claimResults, sources, bias) {
+/**
+ * How much actual evidence stands behind one claim's verdict.
+ *
+ * @param {object} c claim result
+ * @param {Set<string>} citedHosts hosts the answer being checked already cited
+ */
+function evidenceStrength(c, citedHosts) {
+  const items = (Array.isArray(c && c.evidence) ? c.evidence : [])
+    .filter((e) => e && typeof e.url === "string" && /^https?:\/\//i.test(e.url));
+  const hostOf = (u) => {
+    try {
+      return new URL(u).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  const independent = items.filter((e) => !citedHosts.has(hostOf(e.url)));
+  const corroborated = items.filter((e) => e.quoteStatus === "verified" || e.quoteStatus === "partial");
+  return { usable: items.length, independent: independent.length, corroborated: corroborated.length };
+}
+
+/**
+ * @param {object[]} claimResults
+ * @param {object[]} sources
+ * @param {object} bias
+ * @param {{citedUrls?: string[]}} [context] URLs the checked answer itself cited.
+ */
+export function computeTrustSignal(claimResults, sources, bias, context = {}) {
   const W = { high: 1, medium: 0.7, low: 0.4 };
   const V = { supported: 1, mixed: 0.5, unverifiable: 0.5, contradicted: 0 };
   let total = 0;
   const counts = { supported: 0, mixed: 0, contradicted: 0, unverifiable: 0, checked: 0 };
+
+  const citedHosts = new Set(
+    (context.citedUrls || []).map((u) => {
+      try {
+        return new URL(u).hostname.replace(/^www\./, "").toLowerCase();
+      } catch {
+        return "";
+      }
+    }).filter(Boolean)
+  );
+
+  // A model asserting "supported, high confidence" is a claim, not a check.
+  // Until this gate existed the score read those assertions directly, so an
+  // answer could be reported "Well supported" with an empty evidence list -
+  // the tool's loudest verdict resting on nothing but the thing it was
+  // supposed to be auditing.
+  //
+  // Deliberately NOT treated as disproof: a claim with no evidence becomes
+  // unverifiable, never contradicted. A failed fetch is not proof of falsehood.
+  let ungrounded = 0; // asserted a direction with no usable evidence at all
+  let circular = 0; // only evidence is the answer's own cited sources
   for (const c of claimResults) {
+    const s = evidenceStrength(c, citedHosts);
+    let verdict = c.verdict;
+    if ((verdict === "supported" || verdict === "contradicted") && s.usable === 0) {
+      verdict = "unverifiable";
+      ungrounded++;
+    } else if (verdict === "supported" && s.independent === 0) {
+      // Evidence exists but every item is a source the answer already cited.
+      // That is corroboration by the thing under review, not independent
+      // verification, and the product promises the latter.
+      verdict = "mixed";
+      circular++;
+    }
+    c.effectiveVerdict = verdict;
+    c.evidenceStrength = s;
     const w = W[c.confidence] ?? 0.5;
-    total += (V[c.verdict] ?? 0.5) * w;
+    total += (V[verdict] ?? 0.5) * w;
     counts.checked++;
-    if (counts[c.verdict] !== undefined) counts[c.verdict]++;
+    if (counts[verdict] !== undefined) counts[verdict]++;
   }
+  counts.ungrounded = ungrounded;
+  counts.circular = circular;
   // Denominator is the claim count, NOT the weight sum: low confidence drags a
   // claim's contribution toward neutral (0.5·w for unverifiable/mixed, 1·w for
   // supported, 0 for contradicted) instead of being normalized away.
@@ -63,6 +127,12 @@ export function computeTrustSignal(claimResults, sources, bias) {
   const basis = [
     `weighted support score ${score.toFixed(2)} (1 = fully supported)`,
     `${counts.supported} supported · ${counts.mixed} mixed · ${counts.contradicted} contradicted · ${counts.unverifiable} unverifiable`,
+    counts.ungrounded
+      ? `${counts.ungrounded} claim(s) asserted a verdict with NO evidence — counted as unverifiable, not as supported`
+      : "every graded claim carried at least one usable evidence link",
+    counts.circular
+      ? `${counts.circular} claim(s) supported only by sources the answer itself cited — downgraded, not independent`
+      : "no claim rested solely on the answer's own citations",
     anyManipulated ? "1+ source flagged as high-risk (manipulation pattern)" : "no high-risk source flags",
     bias && bias.oneSided ? "bias analysis: answer is one-sided" : "bias analysis: not one-sided"
   ];
@@ -242,7 +312,10 @@ export async function verifyAnswer(input, settings, { onProgress = () => {}, pro
   // ---- Step 6: summary + deterministic trust signal ------------------------
   guard();
   onProgress({ step: "summary", pct: 92, message: "Writing the report…" });
-  const trust = computeTrustSignal(claimResults, sources, bias);
+  // Quote verification has already run, so evidenceStrength() can see which
+  // quotes actually checked out. citedUrls is what the answer itself pointed
+  // at: evidence from those hosts is corroboration, not independent support.
+  const trust = computeTrustSignal(claimResults, sources, bias, { citedUrls });
   let summary = { summary: "", readerAdvice: "" };
   try {
     summary = await writeSummary(prov, settings, `Trust signal: ${TRUST_SIGNALS[trust.key].label}.\n` + contextForBias, signal);
@@ -253,14 +326,37 @@ export async function verifyAnswer(input, settings, { onProgress = () => {}, pro
 
   onProgress({ step: "done", pct: 100, message: "Report ready." });
 
-  const searchUsed = prov.supportsSearch && settings.grounding !== false;
+  // "Search requested" is a setting. "Search observed" is a fact about what the
+  // provider actually returned. Reporting the first as the second told readers
+  // the web had been consulted when nothing in the response said so.
+  const searchRequested = prov.supportsSearch && settings.grounding !== false;
+  const searchObserved = claimResults.some((c) => c.searchObserved === true);
+  const evidenceTotals = claimResults.reduce(
+    (acc, c) => {
+      const s = c.evidenceStrength || { usable: 0, independent: 0, corroborated: 0 };
+      acc.usable += s.usable;
+      acc.independent += s.independent;
+      acc.corroborated += s.corroborated;
+      return acc;
+    },
+    { usable: 0, independent: 0, corroborated: 0 }
+  );
   return {
     createdAt: new Date().toISOString(),
     page: input.page || "manual",
     providerName: prov.name,
     providerModel: providerModel || "",
     method: {
-      searchUsed,
+      // searchUsed is kept as the OBSERVED value so older readers of this field
+      // cannot keep reporting a request as a result.
+      searchUsed: searchObserved,
+      searchRequested,
+      searchObserved,
+      evidenceItems: evidenceTotals.usable,
+      evidenceIndependent: evidenceTotals.independent,
+      evidenceCorroborated: evidenceTotals.corroborated,
+      claimsUngrounded: trust.counts.ungrounded,
+      claimsCircular: trust.counts.circular,
       quotesVerified,
       quotesMissing,
       claimsChecked: trust.counts.checked,

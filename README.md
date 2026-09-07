@@ -350,9 +350,21 @@ test/smoke.mjs      offline pipeline test suite
 
 ## Known limitations
 
-- **The detector has a documented ceiling.** An operation willing to run a real
-  site for six years clears every signal here. See
-  [EVALUATION.md](docs/EVALUATION.md) — it is measured and stated, not hidden.
+- **The detector has documented ceilings, and one of them is cheap.** An
+  external review changed a campaign headline from *"How the law threatens
+  human rights"* to *"The law threatens human rights"* and the score fell from
+  29/elevated to 15/clean. That is one word, not the six years of publishing
+  history the ladder's top rung describes. Headline shape is deliberately weak
+  evidence, because a detector that fired on plain declarative headlines would
+  flag ordinary journalism — but the practical consequence is that headline
+  signals are one edit from useless. Both ceilings are scored and printed by
+  `npm run eval` under **Documented misses**.
+- **A verdict is only as good as the evidence behind it, and now says so.** The
+  same review showed the pipeline returning "Well supported" for claims the
+  model asserted with an empty evidence list. Verdicts are now gated: a claim
+  with no usable evidence counts as *unverifiable*, never as supported, and
+  evidence drawn only from the answer's own citations is not counted as
+  independent.
 - The keyless source check is strongest in the extension, which holds host
   permissions. In the web app CORS blocks page fetches and the archive lookup,
   so most sources come back as "could not check" rather than cleared.

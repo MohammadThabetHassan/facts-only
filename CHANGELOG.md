@@ -4,6 +4,65 @@ All notable changes to Facts Only are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the project
 versions follow [SemVer](https://semver.org/).
 
+## [1.5.0] - 2026-09-07
+
+### Fixed - "Well supported" could mean no evidence at all
+
+An external critical review of v1.4.0 rated the project 6/10, and 4/10 as a tool
+to rely on today. Its central counterexample reproduced exactly: a provider
+returning `supported / high confidence` with an **empty evidence list** produced
+a **"Well supported"** report. The loudest verdict this tool can give rested on
+nothing but the assertion of the model it exists to audit.
+
+`computeTrustSignal` read `verdict` and `confidence` straight from the model and
+nothing else. Computing a label in code does not make it independent of the
+model when the only input is the model's own opinion.
+
+Verdicts are now gated on evidence:
+
+- A claim asserting *supported* or *contradicted* with **no usable evidence
+  link** is counted as **unverifiable**. Deliberately not counted as
+  contradicted — a failed fetch is not proof a claim is false.
+- A claim supported **only by sources the answer itself cited** is downgraded to
+  *mixed* and counted as circular. That is corroboration by the thing under
+  review, not the independent verification the product promises.
+- The basis lines name both counts, so the gate is visible in the report rather
+  than only in the score.
+
+### Fixed - search was reported as used when none happened
+
+`searchUsed` was `provider.supportsSearch && settings.grounding !== false` — a
+description of the **settings**, not of what the provider did. A run that
+returned no grounding still reported "live web search used". The evidence step
+now records `searchObserved` per claim from the actual response, and the report
+renders three states: observed, requested-but-absent, and off.
+
+### Fixed - language that claimed checks the tool does not perform
+
+`think-tank-unverified` read *"Calls itself a research institute — we could not
+confirm it exists"*. **No existence or registration check is performed**; the
+signal is a regex on the site name. That was a false statement about the tool's
+own behaviour, which is the worst kind for this project. It now says the
+organisation was not checked.
+
+`geo-question-headline` asserted intent — *"Written to be quoted by an AI"* —
+from a headline shape. It now describes the shape. The *planted* card states the
+patterns observed instead of the conclusion, and says plainly that patterns are
+not proof and that the tool cannot see who made a site or why.
+
+### Added - documented misses, printed on every run
+
+The review changed *"How the law threatens human rights"* to *"The law threatens
+human rights"* and the score fell 29/elevated → 15/clean. One word, against a
+README that implied the cheapest evasion was six years of publishing history.
+
+It is a genuine ceiling rather than a bug — a detector that fired on plain
+declarative headlines would flag ordinary journalism — but it was undocumented
+and unmeasured. `npm run eval` now prints a **Documented misses** section
+scoring the evasions the tool does *not* claim to catch, with a gate asserting
+they are **still missed**, so a future change that starts catching one forces
+the documentation to be corrected rather than left overstating the limits.
+
 ## [1.4.0] - 2026-09-07
 
 ### Changed - corpus 111 → 209, and it immediately found a false accusation

@@ -5,9 +5,9 @@
   "metadata": {
     "component": {
       "type": "application",
-      "bom-ref": "facts-only@1.4.0",
+      "bom-ref": "facts-only@1.5.0",
       "name": "facts-only",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "description": "Facts Only — stress-tests AI chatbot answers: independent evidence search, claim-by-claim verdicts, and manipulation-pattern source profiling.",
       "licenses": [
         {
@@ -41,9 +41,9 @@
   "components": [
     {
       "type": "application",
-      "bom-ref": "facts-only-extension@1.4.0",
+      "bom-ref": "facts-only-extension@1.5.0",
       "name": "facts-only-extension",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "description": "Manifest V3 browser extension. 4 permissions, no required host permissions; <all_urls> is optional and requested at point of use.",
       "properties": [
         {
@@ -139,7 +139,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "276e04dc972970c9ca641b8e047679c94640694c6430135a67e818419d716644"
+          "content": "96ed89ff55e605234f642fc93b23c658f2a99d7fad1d6fc14fb67cc708b90ff5"
         }
       ]
     },
@@ -238,7 +238,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "124bd79180507c017304d41e41a7c40c9a3f02a55cced274686a94c7f6cd2adf"
+          "content": "5f07047282819f8c1ad330d0173edcaf399c17bcd1962262d527b259a4863262"
         }
       ]
     },
@@ -283,7 +283,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0fd08d84d535fe28c77d99069d961f393507cc5f3150633121b6235bdc3062a2"
+          "content": "7f5523a4d9dfe9d693f5546a9fd98d088a84769f8ca8e3a670afe3f821ed28f7"
         }
       ]
     },
@@ -292,7 +292,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c6afcf5d3a0955832c2ffbe79fa3635e33f42214b72abbeacd5a95a5f54133fe"
+          "content": "bdf7a40c56eade7565eae107167054319ccfc5715b0fb0506ce8176da6175dbc"
         }
       ]
     },
@@ -355,7 +355,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "fcf66c377b1c62485f604666cba169603a0db76505ab90ff817be64c557beef0"
+          "content": "6a6df3489429666ad850b971909b8b890640a009f1fc3e4e124116dc54c65e14"
         }
       ]
     },

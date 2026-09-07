@@ -77,6 +77,12 @@ Return JSON exactly in this shape:
     verdict,
     confidence,
     evidence,
+    // Search REQUESTED is a setting; search OBSERVED is a fact about the
+    // response. Reporting the first as the second told the reader the web had
+    // been consulted when nothing said it had. Only the provider knows, so it
+    // is recorded per claim here rather than inferred from config later.
+    searchRequested: !!useSearch,
+    searchObserved: !!(meta && Array.isArray(meta.groundingSources) && meta.groundingSources.length > 0),
     notes: truncate(parsed.notes || "", 500)
   };
 }

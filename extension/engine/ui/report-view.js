@@ -161,7 +161,11 @@ export function renderReport(container, report, { onExport, onCopy, lang = "en" 
   const m = sourcesOnly ? null : report.method;
   if (m) {
     const bits = [
-      m.searchUsed ? t("m.searchUsed", L) : t("m.noSearch", L),
+      // Three states, not two: observed, requested-but-absent, and off.
+      // The middle one used to render as "used".
+      m.searchObserved ? t("m.searchUsed", L)
+        : m.searchRequested ? t("m.searchNotObserved", L)
+          : t("m.noSearch", L),
       m.claimsChecked != null && m.additionalCheckable > 0
         ? t("m.coverage", L, { checked: m.claimsChecked, total: m.claimsTotal, extra: m.additionalCheckable })
         : (m.claimsChecked != null ? t("m.coverageAll", L, { checked: m.claimsChecked }) : null),
@@ -354,7 +358,7 @@ export function reportToMarkdown(report, lang = "en") {
   }
   lines.push(``);
   if (report.trustLabel) lines.push(`- **Trust signal:** ${report.trustLabel} (weighted support score ${report.trustScore != null ? Number(report.trustScore).toFixed(2) : "?"})`);
-  lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchUsed ? "yes" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);
+  lines.push(`- **Verified with:** ${report.providerName}${report.providerModel ? ` (${report.providerModel})` : ""} · live web search: ${m.searchObserved ? "yes (grounding observed)" : m.searchRequested ? "requested, no grounding returned" : "no"}${m.secondOpinionUsed ? " · second-model cross-check: yes" : ""}`);
   if (m.claimsChecked != null) {
     lines.push(`- **Coverage:** ${m.claimsChecked} of ~${m.claimsTotal} checkable claims examined${m.additionalCheckable ? ` (${m.additionalCheckable} not checked)` : ""}`);
   }

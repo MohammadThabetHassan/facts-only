@@ -197,7 +197,15 @@ try {
 
 // --- trust signal aggregation (deterministic contract) ----------------------------
 console.log("trust signal checks:");
-const S = (verdict, confidence) => ({ verdict, confidence });
+// Claims now have to carry evidence to be graded on it, so the weighting
+// contract below is tested with a usable, independent evidence item attached.
+// Before the evidence gate existed this helper produced claims with none, and
+// they still scored "well-supported" - which is the defect an external review
+// reproduced and is pinned separately further down.
+const EV = (url = "https://independent.example/a") => [
+  { url, title: "t", publisher: "p", quote: "q", stance: "support", quoteStatus: "verified" }
+];
+const S = (verdict, confidence, evidence = EV()) => ({ verdict, confidence, evidence });
 check(
   "all supported/high → well-supported",
   computeTrustSignal([S("supported", "high")], [], { oneSided: false }).key === "well-supported"
@@ -218,6 +226,60 @@ check(
   "contradicted only → contradicted",
   computeTrustSignal([S("contradicted", "high")], [], { oneSided: false }).key === "contradicted"
 );
+// --- the evidence gate -------------------------------------------------------
+// Reported by an external review, reproduced exactly: the provider returned
+// "supported / high confidence" with an empty evidence list and the pipeline
+// answered "Well supported". The loudest verdict this tool can give rested on
+// nothing but the assertion of the model it exists to audit. Computing the
+// label in code does not make it independent of the model when the only input
+// is the model's own opinion.
+check("a verdict asserted with NO evidence cannot be well-supported",
+  (() => {
+    const r = computeTrustSignal(
+      [{ verdict: "supported", confidence: "high", evidence: [] },
+        { verdict: "supported", confidence: "high", evidence: [] }],
+      [], { oneSided: false });
+    return r.key === "unverifiable" && r.counts.ungrounded === 2 && r.counts.supported === 0;
+  })());
+
+// The review warned against the opposite overcorrection, and it is right: a
+// failed fetch is not proof a claim is false.
+check("an ungrounded claim becomes unverifiable, never contradicted",
+  (() => {
+    const r = computeTrustSignal([{ verdict: "contradicted", confidence: "high", evidence: [] }],
+      [], { oneSided: false });
+    return r.key === "unverifiable" && r.counts.contradicted === 0;
+  })());
+
+check("evidence drawn only from the answer's own citations is not independent support",
+  (() => {
+    const r = computeTrustSignal(
+      [{ verdict: "supported", confidence: "high", evidence: [{ url: "https://cited.example/x", quote: "q" }] }],
+      [], { oneSided: false },
+      { citedUrls: ["https://www.cited.example/story"] });
+    return r.counts.circular === 1 && r.counts.supported === 0 && r.key !== "well-supported";
+  })());
+
+check("independent evidence still earns the top verdict",
+  computeTrustSignal(
+    [{ verdict: "supported", confidence: "high", evidence: [{ url: "https://elsewhere.example/x", quote: "q" }] }],
+    [], { oneSided: false }, { citedUrls: ["https://cited.example/story"] }
+  ).key === "well-supported");
+
+// The same review found the report claiming "live web search used" when the
+// provider had returned no grounding at all. searchUsed was read straight off
+// the settings, so it described what was asked for, not what happened.
+check("search is reported as three states, and requested is not used",
+  (() => {
+    const en = keys("en");
+    return en.includes("m.searchNotObserved") && keys("ar").includes("m.searchNotObserved") &&
+      t("m.searchUsed", "en") !== t("m.searchNotObserved", "en");
+  })());
+
+check("the basis names the gate rather than hiding it",
+  computeTrustSignal([{ verdict: "supported", confidence: "high", evidence: [] }], [], { oneSided: false })
+    .basis.some((b) => /NO evidence/.test(b)));
+
 check(
   "high-risk source flags raise manipulated-sources",
   computeTrustSignal([S("mixed", "high")], [{ highRisk: true }], { oneSided: false }).key === "manipulated-sources"
@@ -892,7 +954,7 @@ console.log("\nplacement scoring:");
     /^# Facts Only verification report/.test(md) && /^> \*\*/m.test(head),
     head);
   check("exported warning names the flagged source and its reasons",
-    /global-security-observatory\.org/.test(head) && /research institute/.test(head),
+    /global-security-observatory\.org/.test(head) && /research[- ]institute/.test(head),
     head);
   check("exported source flags use plain wording with the technical term in parentheses",
     /- \u26a0 [^(\n]+\(/.test(md) || !/## Sources/.test(md));

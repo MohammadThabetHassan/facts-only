@@ -97,9 +97,34 @@ Last updated: 2026-09-06 (v1.0.0 + live pass, see section 3)
   the right-click and paste flows cover the same pipeline without the detector.
   Selector drift on those sites remains the most likely future breakage
   (one-line fixes — see CONTRIBUTING).
-- Independent human review. All passing evidence to date was produced by the
-  project author; the test suite is intentionally offline and deterministic so
-  any reviewer can reproduce it in seconds.
+- ~~Independent human review.~~ **Done — and it found real defects.** An
+  external critical review of v1.4.0 rated the project **6/10** overall and
+  **4/10 as a tool to rely on today**, against the author's own 9.7. It was
+  right, and the gap was instructive: the author's assessment had audited the
+  source-profiling half thoroughly and never audited the claim-verification
+  half at all.
+
+  Both of its reproducible counterexamples reproduced exactly:
+
+  | Finding | Status |
+  | --- | --- |
+  | "Well supported" returned for claims asserted with an **empty evidence list** | Fixed — verdicts gated on evidence |
+  | Search reported as *used* when the provider returned no grounding | Fixed — three states, observed ≠ requested |
+  | Evidence not required to be independent of the answer's own citations | Fixed — circular evidence downgraded |
+  | One-word headline edit evades the warning (29/elevated → 15/clean) | Accepted ceiling, now scored and printed |
+  | Language exceeds what the signals establish | Fixed — see below |
+
+  The wording fix matters on its own: `think-tank-unverified` read *"we could
+  not confirm it exists"* when **no existence or registration check is
+  performed** — a false statement about the tool's own behaviour. It now says
+  the organisation was not checked. `geo-question-headline` asserted intent
+  ("Written to be quoted by an AI") from a headline shape; it now describes the
+  shape. The *planted* card states patterns rather than a conclusion and says
+  plainly that they are not proof.
+
+  Still open from that review: real-article evaluation with independently
+  labelled pages. The corpus uses real archive histories with constructed page
+  bodies, which is stated in `docs/EVALUATION.md` rather than claimed otherwise.
 
 ## 5. Detector accuracy — MEASURED (2026-09-06)
 

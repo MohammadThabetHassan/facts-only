@@ -165,6 +165,35 @@ const VARIANTS = [
   }
 ];
 
+// --- documented misses -------------------------------------------------------
+//
+// Evasions this tool does NOT catch, scored and printed on every run so the
+// ceiling sits beside the detection rate instead of being findable only by a
+// reviewer. The first one was: an external review changed "How the law
+// threatens human rights" to "The law threatens human rights" and the score
+// went 29/elevated to 15/clean. That is one word, not the six years of
+// publishing history the docs implied was the cheapest route past the tool.
+//
+// These are ceilings rather than bugs because the alternative is worse. A bare
+// declarative headline is what ordinary journalism looks like; a detector that
+// fired on it would accuse the entire corpus. Headline shape is deliberately
+// weak evidence (14 points, never decisive) and this is the price of that.
+const KNOWN_MISSES = [
+  {
+    name: "declarative rewrite: drop the interrogative word entirely",
+    page: { title: "The law threatens human rights", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group" },
+    archive: { ageDays: 30, months: 1 },
+    why: "One word cheaper than rung 1. No headline-shape signal fires, and one that fired on plain declaratives would flag ordinary reporting."
+  },
+  {
+    name: "advertorial disclosed only mid-sentence",
+    page: { title: "The emergency law explained", author: "R. Ellis", aboutLink: true, siteName: "Meridian Policy Group",
+      excerpt: "The committee met on Thursday and, in a piece produced with our commercial team, set out its recommendations." },
+    archive: { ageDays: 2200, months: 70 },
+    why: "The disclosure check requires a label leading its segment. The cost of not accusing every outlet that merely mentions sponsorship."
+  }
+];
+
 const asProfile = (over) => ({
   url: "https://meridian-policy.example/report",
   fetched: true, excerpt: "", ...over
@@ -332,6 +361,14 @@ const variantRows = VARIANTS.map((v) => {
   };
 });
 
+const missRows = KNOWN_MISSES.map((m) => {
+  const r = computeFlags(asProfile({ ...m.page, archive: m.archive }));
+  // "still missed" is the assertion. If a future change starts catching one of
+  // these, this flips and the run fails - forcing the documentation to be
+  // updated rather than silently becoming too pessimistic.
+  return { name: m.name, why: m.why, score: r.score, level: r.level, stillMissed: r.level !== "high" };
+});
+
 // --- weight sensitivity ------------------------------------------------------
 // The weights are hand-set, which invites the fair objection that the headline
 // numbers are knife-edge tuning. So perturb every weight and re-measure: if the
@@ -479,7 +516,7 @@ const results = {
 };
 
 if (JSON_OUT) {
-  console.log(JSON.stringify({ results, fpRows, advRows, variantRows, sensitivity }, null, 2));
+  console.log(JSON.stringify({ results, fpRows, advRows, variantRows, missRows, sensitivity }, null, 2));
 } else {
   const pct = (x) => `${(x * 100).toFixed(1)}%`;
   console.log(`\nPLACEMENT DETECTOR EVALUATION`);
@@ -502,6 +539,12 @@ if (JSON_OUT) {
   console.log(`    whole corpus accused   ${String(allAccused.length).padStart(3)}/${nAll}   ${pct(allAccused.length / nAll)}`);
   console.log(`    whole corpus warned    ${String(fpRows.filter((r) => r.warned).length).padStart(3)}/${nAll}   ${pct(fpRows.filter((r) => r.warned).length / nAll)}`);
   console.log(`    a large tuning/held-out gap would be the overfitting signal.`);
+
+  console.log(`\nDOCUMENTED MISSES  (evasions this tool does NOT claim to catch)`);
+  for (const m of missRows) {
+    console.log(`  ${m.stillMissed ? "MISS" : "NOW CAUGHT - update the docs"}  ${String(m.score).padStart(4)}  ${m.level.padEnd(9)} ${m.name}`);
+    console.log(`        ${m.why}`);
+  }
 
   console.log(`\n  MARGIN  (well separated, or one point below the line?)`);
   console.log(`    accuse at ${margin.accuseAt}, warn at ${margin.warnAt}. Legitimate scores: median ${margin.medianLegitScore}, worst ${margin.worstLegitScore}.`);
@@ -577,6 +620,11 @@ const GATES = [
   // when it was measured properly, and that is the number.
   ["archived publishers keep >= 10 points of headroom before accusation",
     margin.headroomExcludingUnarchived >= 10],
+  // Not "these are caught" - "these are still missed, and still documented".
+  // A detector that quietly started catching a documented ceiling would leave
+  // the docs overstating its limits, which is its own kind of dishonesty.
+  ["documented misses are still missed, so the stated ceiling is still true",
+    missRows.every((m) => m.stillMissed)],
   // Sensitivity is reported honestly rather than gated at zero. Scaling every
   // weight is equivalent to moving the thresholds, so borderline cases moving is
   // expected; what must NOT happen is the harmful failure becoming common, or
