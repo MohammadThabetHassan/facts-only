@@ -61,9 +61,9 @@ truth would become the single point of manipulation most worth attacking.
 
 MEASURED, NOT ASSERTED
 
-The detector is evaluated on every code change against 50 real publishers
+The detector is evaluated on every code change against 209 real publishers
 weighted toward the independent and non-Western press, and against an adversary
-that makes each cheap change a real operator would: 0 of 50 legitimate
+that makes each cheap change a real operator would: 0 of 209 legitimate
 publishers are wrongly accused, and every adversary rung below a documented
 ceiling is caught. The method, and the ceiling, are published in the repository.
 

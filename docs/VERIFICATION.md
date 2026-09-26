@@ -47,8 +47,8 @@ honestly with zero console errors.
 
 | Flow | Result |
 | --- | --- |
-| Web app: settings render (all providers, second-opinion select), demo run produces full report | PASS (screenshot `docs/screenshots/webapp-report.png`) |
-| Panel page: demo + paste flow, history recording, cache bar with "Re-run fresh" | PASS (screenshot `docs/screenshots/panel-report.png`) |
+| Web app: settings render (all providers, second-opinion select), demo run produces full report | PASS (screenshot `docs/screenshots/webapp-full.png`) |
+| Panel page: demo + paste flow, history recording, cache bar with "Re-run fresh" | PASS |
 | Cache: second identical run loads from cache with note; fresh run bypasses | PASS |
 | Cancel: mid-run cancel stops the pipeline, shows "Verification cancelled", re-enables the button, saves nothing | PASS |
 | **Real extension:** Developer mode → Load unpacked → card loads with icon, v0.3.0, no errors | PASS |
@@ -152,12 +152,14 @@ histories collected by `eval/collect.mjs`).
 
 195 of the 209 publishers are **not** on any allowlist in this repository, and
 each is scored as though it had published the exact headline shape the detector
-hunts for — a harder test than reality. 22 of them are real research institutions
-whose names deliberately trip the "self-described think tank" heuristic; all 22
-score clean. Two outlets whose hostnames the archive barely covers draw a caution; both are
+hunts for — a harder test than reality. 22 of them are real research institutes,
+included as a false-positive control for the "self-described think tank"
+heuristic; all 22 score clean. Only 2 of the 22 currently trip that heuristic,
+because the eval passes each outlet's domain rather than its organisation name
+as the site name (see [EVALUATION.md](EVALUATION.md#the-legitimate-corpus)). Two outlets whose hostnames the archive barely covers draw a caution; both are
 documented rather than curated away.
 
-Five thresholds gate CI, including "no legitimate publisher is accused of
+Fourteen gates in `eval/run.mjs` fail CI, including "no legitimate publisher is accused of
 placement". Full method, corpus criteria, adversary ladder and the documented
 ceiling: [EVALUATION.md](EVALUATION.md).
 
