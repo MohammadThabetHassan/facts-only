@@ -159,7 +159,7 @@ because the eval passes each outlet's domain rather than its organisation name
 as the site name (see [EVALUATION.md](EVALUATION.md#the-legitimate-corpus)). Two outlets whose hostnames the archive barely covers draw a caution; both are
 documented rather than curated away.
 
-Fourteen gates in `eval/run.mjs` fail CI, including "no legitimate publisher is accused of
+Fourteen gates in `eval/run.mjs` fail the build if broken, including "no legitimate publisher is accused of
 placement". Full method, corpus criteria, adversary ladder and the documented
 ceiling: [EVALUATION.md](EVALUATION.md).
 
