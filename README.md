@@ -8,11 +8,13 @@
 
 Independent evidence search · claim-by-claim verdicts · manipulation-pattern source profiling
 
+**Try it without installing:** [open the web app with a sample report](https://mohammadthabethassan.github.io/facts-only/webapp/index.html?demo=1)
+
 [![CI](https://github.com/MohammadThabetHassan/facts-only/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadThabetHassan/facts-only/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![Telemetry: none](https://img.shields.io/badge/telemetry-none-brightgreen)
-![Tests: 165 offline checks](https://img.shields.io/badge/tests-165%20offline%20checks-brightgreen)
+![Tests: 174 offline checks](https://img.shields.io/badge/tests-174%20offline%20checks-brightgreen)
 ![False positives: 0 of 209](https://img.shields.io/badge/false%20positives-0%20%2F%20209%20publishers-brightgreen)
 ![Held-out: 0 of 79](https://img.shields.io/badge/held--out-0%20%2F%2079%20accused-brightgreen)
 ![Real pages: 0 of 70](https://img.shields.io/badge/real%20article%20pages-0%20%2F%2070%20accused-brightgreen)
@@ -54,7 +56,7 @@ on a real newsroom.
 
 | | result | the rule this replaced |
 | --- | --- | --- |
-| Legitimate publishers accused of placement (held-out half) | **0 / 40 (0%)** | 40 / 40 (100%) |
+| Legitimate publishers accused of placement (held-out half) | **0 / 79 (0%)** | 79 / 79 (100%) |
 | Adversary rungs detected (below the stated ceiling) | **8 / 8 (100%)** | 1 / 8 (12.5%) |
 
 The weights were hand-set against this corpus, so the headline is measured on a
@@ -74,9 +76,13 @@ because being refused is the condition the tool meets most often.
 The 209 publishers carry **real Wayback histories** and are chosen to be hostile
 to this tool's known weaknesses: weighted toward the press no allowlist covers
 (South Asian, African, Middle Eastern, Latin American, South-East Asian,
-independent investigative), plus **22 real research institutions whose names trip
-the "self-described think tank" heuristic on purpose** — RAND, Pew, SIPRI,
-Chatham House, Bruegel, the Lowy Institute. **195 of the 209 are not on any list
+independent investigative), plus **22 real research institutes** — among them
+RAND, Pew, SIPRI, Bruegel, the Lowy Institute and the Reuters Institute — as a
+false-positive control for the "self-described think tank" heuristic. In the
+current eval only 2 of the 22 (`lowyinstitute.org` and
+`reutersinstitute.politics.ox.ac.uk`) actually trip that heuristic, because
+`eval/run.mjs` passes each outlet's domain as its site name (lines 312 and 461)
+rather than the organisation's full name. **195 of the 209 are not on any list
 inside this repo**; they score clean because a long, continuously archived
 publishing record is itself evidence of an ordinary publisher. Each one is scored
 as though it had published the exact headline shape the detector hunts for, which
@@ -117,7 +123,7 @@ Method, corpus criteria, and the full ladder: **[docs/EVALUATION.md](docs/EVALUA
 ## What a report looks like
 
 <div align="center">
-  <img src="docs/screenshots/report.png" width="740" alt="A Facts Only report. It opens with a red plain-language box reading 'One of these sources looks planted, not reported', followed by why: the site global-security-observatory.org was written to be quoted by an AI and calls itself a research institute that could not be confirmed. Below that, the trust banner with claim counts, a method line, and per-claim cards with evidence links, quotes and quote-verification chips.">
+  <img src="docs/screenshots/report.png" width="740" alt="A Facts Only report. It opens with a red plain-language box reading 'One source matches several patterns common in planted content', followed by why: the site global-security-observatory.org has a headline shaped like the question you would type into a chatbot and uses a research-institute name whose registration was not checked. Below that, the trust banner with claim counts, a method line, and per-claim cards with evidence links, quotes and quote-verification chips.">
 </div>
 
 **The plain-language warning comes first, on purpose.** Most people will read that box
@@ -168,7 +174,7 @@ Screenshots are generated, not hand-cropped: `python scripts/capture-screenshots
         ▼
  ③ SOURCE PROFILER  every source gets:
         │           • code heuristics: question-shaped headlines (GEO),
-        │             no named author, unregistered "think tank",
+        │             no named author, self-described "think tank",
         │             sponsored content, raw AI-generated text,
         │             domain first archived <90 days ago
         │           • AI publisher profile: funding, stance, credibility
@@ -192,7 +198,7 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
   No signup, no cost, no setup. The report states plainly that the claims
   themselves were not verified.
 - 💰 **Says who paid, in plain words** — the report opens with one sentence a
-  non-technical reader understands ("One of these sources looks planted, not reported"),
+  non-technical reader understands ("One source matches several patterns common in planted content"),
   names the site, and lists why. Ranked worst-first so paid placement outranks every
   softer signal, and computed in code so it cannot be talked down.
 - 🔎 **Verify anywhere** — one click under AI answers on ChatGPT, Gemini, Claude and
@@ -210,10 +216,10 @@ a documented contract ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) and are covered 
 - ⚖️ **Cross-partisan by design** — the established-publisher list spans wire services,
   courts and UN bodies, academic venues, and newspapers from different editorial lines,
   with documented inclusion criteria ([SOURCE-LISTS.md](docs/SOURCE-LISTS.md)).
-- 🔇 **Silence is never an all-clear** — a source that could not be fetched and
-  has no archive record is reported as *"we could not check who is behind this"*,
-  never as clean. A failed check that reads like reassurance is the most harmful
-  thing this tool could say.
+- 🔇 **Silence is never an all-clear** — when the sources could not be fetched
+  and have no archive record, the report says *"We could not check who is behind
+  these sources"*, never that they are clean. A failed check that reads like
+  reassurance is the most harmful thing this tool could say.
 - 🛡️ **Hardened against the attack it studies** — fetched pages and analyzed answers are
   treated as untrusted data in every model prompt, and model-supplied URLs are refused
   unless they are public web addresses, so a page cannot steer the extension into the
@@ -301,9 +307,9 @@ There is no build step and there are no dependencies — load `extension/` unpac
 the files.
 
 ```bash
-npm test                  # 147-check offline suite: no key, no network
-npm run test:e2e          # 15 real-browser checks in headless Chrome
-npm run eval              # measure the detector against 50 real publishers
+npm test                  # 174-check offline suite: no key, no network
+npm run test:e2e          # 23 real-browser checks in headless Chrome
+npm run eval              # measure the detector against 209 real publishers
 npm run typecheck         # type-check the engine from its JSDoc (still no build step)
 npm run lint              # dev-only lint: undefined refs, dead code, swallowed errors
 npm run dev               # serve webapp + panel at localhost:8123
@@ -311,8 +317,10 @@ npm run build:firefox     # build the Firefox add-on directory
 npm run package           # store-ready zip of the Chrome extension
 ```
 
-All six run in CI on every push, and the eval thresholds are build gates:
-loosening one is a visible, argued commit.
+The first five run in CI on every push to `main` and every pull request, along
+with a syntax check, JSON validation and the SBOM check (`npm run sbom:check`),
+and the eval thresholds are build gates: loosening one is a visible, argued
+commit.
 
 Each script is a plain `node` or `python` invocation if you would rather not use npm — see
 `package.json`.
